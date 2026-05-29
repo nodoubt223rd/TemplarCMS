@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../TemplarCMS.Abstractions/TemplarCMS.Abstractions.csproj" />
+    <ProjectReference Include="../TemplarCMS.Domain/TemplarCMS.Domain.csproj" />
+    <ProjectReference Include="../TemplarCMS.ContentModeling/TemplarCMS.ContentModeling.csproj" />
+  </ItemGroup>
+</Project>
