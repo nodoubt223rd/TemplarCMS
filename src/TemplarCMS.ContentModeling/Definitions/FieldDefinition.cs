@@ -10,14 +10,14 @@ public sealed class FieldDefinition
     /// </summary>
     /// <param name="name">The display name of the field.</param>
     /// <param name="key">The unique field key used for resolution and value storage.</param>
-    /// <param name="fieldType">The field type identifier.</param>
+    /// <param name="fieldType">The strongly typed field type.</param>
     /// <param name="isShared">Whether the field value is shared across all languages and versions.</param>
     /// <param name="isUnversioned">Whether the field value varies by language but not by version.</param>
     /// <param name="metadata">Additional field metadata used by editors, validators, and schema generation.</param>
     public FieldDefinition(
         string name,
         string key,
-        string fieldType,
+        FieldType fieldType,
         bool isShared = false,
         bool isUnversioned = false,
         IReadOnlyDictionary<string, string>? metadata = null)
@@ -32,14 +32,9 @@ public sealed class FieldDefinition
             throw new ArgumentException("Field key is required.", nameof(key));
         }
 
-        if (string.IsNullOrWhiteSpace(fieldType))
-        {
-            throw new ArgumentException("Field type is required.", nameof(fieldType));
-        }
-
         Name = name.Trim();
         Key = key.Trim();
-        FieldType = fieldType.Trim();
+        FieldType = fieldType;
         IsShared = isShared;
         IsUnversioned = isUnversioned;
         Metadata = metadata ?? new Dictionary<string, string>();
@@ -56,9 +51,9 @@ public sealed class FieldDefinition
     public string Key { get; }
 
     /// <summary>
-    /// Gets the field type identifier.
+    /// Gets the strongly typed field type.
     /// </summary>
-    public string FieldType { get; }
+    public FieldType FieldType { get; }
 
     /// <summary>
     /// Gets a value indicating whether the field value is shared across all languages and versions.
