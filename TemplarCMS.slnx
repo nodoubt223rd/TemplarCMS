@@ -1,0 +1,11 @@
+<Solution>
+  <Project Path="src/TemplarCMS.Abstractions/TemplarCMS.Abstractions.csproj" />
+  <Project Path="src/TemplarCMS.Application/TemplarCMS.Application.csproj" />
+  <Project Path="src/TemplarCMS.ContentModeling/TemplarCMS.ContentModeling.csproj" />
+  <Project Path="src/TemplarCMS.Domain/TemplarCMS.Domain.csproj" />
+  <Project Path="tests/TemplarCMS.Api.Tests/TemplarCMS.Api.Tests.csproj" Id="d449e428-ffd8-4acb-80e6-d9aa41f64c81" />
+  <Project Path="tests/TemplarCMS.Application.Tests/TemplarCMS.Application.Tests.csproj" Id="0d7dae17-2175-4e86-a7c7-6bef4ed8ccf3" />
+  <Project Path="tests/TemplarCMS.ContentModeling.Tests/TemplarCMS.ContentModeling.Tests.csproj" Id="848f913c-83bd-4eba-8536-87cfc7717eba" />
+  <Project Path="tests/TemplarCMS.Integration.Tests/TemplarCMS.Integration.Tests.csproj" Id="90b55eee-de6b-467a-8521-08107ca2962f" />
+  <Project Path="tests/TemplarCMS.Domain.Tests/TemplarCMS.Domain.Tests.csproj" Id="fbd23012-f8f9-4343-99e4-7f0c1c273b19" />
+</Solution>

@@ -72,6 +72,15 @@ Effective Templates should:
 - Preserve field metadata.
 - Be immutable after creation.
 
+### TemplateDefinition vs EffectiveTemplateDefinition
+
+TemplarCMS distinguishes between authored schema definitions and resolved schema definitions.
+
+```text
+TemplateDefinition
+    ↓
+EffectiveTemplateDefinition
+
 ## Resolution Order
 
 Inheritance resolution follows this order:
