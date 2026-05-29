@@ -14,12 +14,12 @@ Without a formal inheritance model, template definitions become duplicated and d
 
 The inheritance model must support:
 
-- Reusable field definitions.
-- Multiple base templates.
-- Override behavior.
-- Effective template generation.
-- Validation.
-- Cycle detection.
+* Reusable field definitions.
+* Multiple base templates.
+* Override behavior.
+* Effective template generation.
+* Validation.
+* Cycle detection.
 
 ## Decision
 
@@ -66,11 +66,11 @@ An Effective Template is a fully resolved representation of a template after inh
 
 Effective Templates should:
 
-- Contain all inherited fields.
-- Contain all local fields.
-- Resolve conflicts.
-- Preserve field metadata.
-- Be immutable after creation.
+* Contain all inherited fields.
+* Contain all local fields.
+* Resolve conflicts.
+* Preserve field metadata.
+* Be immutable after creation.
 
 ### TemplateDefinition vs EffectiveTemplateDefinition
 
@@ -80,6 +80,98 @@ TemplarCMS distinguishes between authored schema definitions and resolved schema
 TemplateDefinition
     ↓
 EffectiveTemplateDefinition
+```
+
+#### TemplateDefinition
+
+Represents the authored schema definition.
+
+A `TemplateDefinition` may contain:
+
+* Base template references.
+* Local sections.
+* Local field definitions.
+* Incomplete inheritance information.
+
+It is the source model used by content architects and administrators when defining schemas.
+
+#### EffectiveTemplateDefinition
+
+Represents the fully resolved schema produced by the content modeling engine.
+
+An `EffectiveTemplateDefinition` contains:
+
+* All inherited fields.
+* All local fields.
+* Applied overrides.
+* Resolved field metadata.
+* Deterministic field ordering.
+
+An Effective Template should not require additional inheritance resolution.
+
+Consumers should prefer `EffectiveTemplateDefinition` whenever possible.
+
+Examples include:
+
+* REST API responses.
+* Template validation.
+* Vue Admin form generation.
+* GraphQL schema generation.
+* Package deployment.
+* Content serialization.
+
+#### Example
+
+```text
+_Base SEO
+ ├── MetaTitle
+ └── MetaDescription
+
+Article
+ ├── inherits _Base SEO
+ ├── Title
+ └── Body
+```
+
+TemplateDefinition (Article):
+
+```text
+BaseTemplates:
+ └── _Base SEO
+
+Fields:
+ ├── Title
+ └── Body
+```
+
+EffectiveTemplateDefinition (Article):
+
+```text
+Fields:
+ ├── MetaTitle
+ ├── MetaDescription
+ ├── Title
+ └── Body
+```
+
+#### Architectural Rule
+
+The Content Modeling Engine is responsible for producing Effective Templates.
+
+The following services participate in this process:
+
+```text
+ITemplateInheritanceResolver
+TemplateInheritanceResolver
+
+IEffectiveTemplateBuilder
+EffectiveTemplateBuilder
+
+ITemplateValidator
+TemplateValidator
+```
+
+Controllers, API contracts, and persistence entities must not implement inheritance resolution logic directly.
 
 ## Resolution Order
 
@@ -158,11 +250,11 @@ Cycle detection must occur before Effective Template generation.
 
 The inheritance model must validate:
 
-- Duplicate field keys.
-- Circular inheritance.
-- Invalid template references.
-- Duplicate base template references.
-- Invalid field metadata.
+* Duplicate field keys.
+* Circular inheritance.
+* Invalid template references.
+* Duplicate base template references.
+* Invalid field metadata.
 
 Validation should produce structured validation results rather than throwing exceptions whenever practical.
 
@@ -193,32 +285,34 @@ Inheritance resolution should not live in controllers, persistence entities, or 
 
 ### Positive
 
-- Strong template reuse.
-- Reduced duplication.
-- Deterministic schema generation.
-- Easier GraphQL generation.
-- Easier dynamic Vue form generation.
-- Familiar behavior for Sitecore developers.
+* Strong template reuse.
+* Reduced duplication.
+* Deterministic schema generation.
+* Easier GraphQL generation.
+* Easier dynamic Vue form generation.
+* Familiar behavior for Sitecore developers.
 
 ### Negative
 
-- Additional complexity during validation.
-- More expensive schema resolution compared to flat templates.
-- Requires caching for large template hierarchies.
+* Additional complexity during validation.
+* More expensive schema resolution compared to flat templates.
+* Requires caching for large template hierarchies.
 
 ## Future Work
 
 Potential future enhancements:
 
-- Effective template caching.
-- Template dependency graphs.
-- Template visualization tools.
-- Template serialization.
-- Package deployment support.
-- Schema comparison tools.
+* Effective template caching.
+* Template dependency graphs.
+* Template visualization tools.
+* Template serialization.
+* Package deployment support.
+* Schema comparison tools.
 
 ## Decision Summary
 
 TemplarCMS will support multiple base templates, deterministic inheritance resolution, effective template generation, override precedence, and cycle detection.
+
+TemplarCMS distinguishes between authored `TemplateDefinition` models and resolved `EffectiveTemplateDefinition` models.
 
 Consumers should interact with Effective Templates whenever possible.
