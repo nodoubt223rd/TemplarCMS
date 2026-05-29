@@ -1,0 +1,12 @@
+bin/
+obj/
+.vs/
+.idea/
+.vscode/
+node_modules/
+dist/
+coverage/
+TestResults/
+*.user
+*.suo
+*.db
