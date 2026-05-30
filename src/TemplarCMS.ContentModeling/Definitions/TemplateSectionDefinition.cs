@@ -5,31 +5,49 @@ namespace TemplarCMS.ContentModeling.Definitions;
 /// </summary>
 public sealed class TemplateSectionDefinition
 {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="TemplateSectionDefinition" /> class.
-    /// </summary>
-    /// <param name="name">The display name of the section.</param>
-    /// <param name="sortOrder">The sort order used when rendering or resolving sections.</param>
-    /// <param name="fields">The field definitions contained by this section.</param>
     public TemplateSectionDefinition(
+        Guid id,
         string name,
+        string key,
         int sortOrder = 100,
         IReadOnlyCollection<FieldDefinition>? fields = null)
     {
+        if (id == Guid.Empty)
+        {
+            throw new ArgumentException("Section id is required.", nameof(id));
+        }
+
         if (string.IsNullOrWhiteSpace(name))
         {
             throw new ArgumentException("Section name is required.", nameof(name));
         }
 
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            throw new ArgumentException("Section key is required.", nameof(key));
+        }
+
+        Id = id;
         Name = name.Trim();
+        Key = key.Trim();
         SortOrder = sortOrder;
         Fields = fields?.ToArray() ?? Array.Empty<FieldDefinition>();
     }
 
     /// <summary>
+    /// Gets the stable id of the section.
+    /// </summary>
+    public Guid Id { get; }
+
+    /// <summary>
     /// Gets the display name of the section.
     /// </summary>
     public string Name { get; }
+
+    /// <summary>
+    /// Gets the unique section key used for resolution and serialization.
+    /// </summary>
+    public string Key { get; }
 
     /// <summary>
     /// Gets the sort order used when rendering or resolving sections.

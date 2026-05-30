@@ -6,10 +6,16 @@ namespace TemplarCMS.ContentModeling.Definitions;
 public sealed class EffectiveTemplateDefinition
 {
     public EffectiveTemplateDefinition(
+        Guid id,
         string name,
         string key,
-        IReadOnlyCollection<FieldDefinition>? fields = null)
+        IReadOnlyCollection<TemplateSectionDefinition>? sections = null)
     {
+        if (id == Guid.Empty)
+        {
+            throw new ArgumentException("Template id is required.", nameof(id));
+        }
+
         if (string.IsNullOrWhiteSpace(name))
         {
             throw new ArgumentException("Template name is required.", nameof(name));
@@ -20,15 +26,22 @@ public sealed class EffectiveTemplateDefinition
             throw new ArgumentException("Template key is required.", nameof(key));
         }
 
+        Id = id;
         Name = name.Trim();
         Key = key.Trim();
-        Fields = fields?.ToArray() ?? Array.Empty<FieldDefinition>();
+        Sections = sections?.ToArray() ?? Array.Empty<TemplateSectionDefinition>();
     }
+
     public Guid Id { get; }
 
     public string Name { get; }
 
     public string Key { get; }
 
-    public IReadOnlyCollection<FieldDefinition> Fields { get; }
+    public IReadOnlyCollection<TemplateSectionDefinition> Sections { get; }
+
+    public IReadOnlyCollection<FieldDefinition> Fields =>
+        Sections
+            .SelectMany(section => section.Fields)
+            .ToArray();
 }
