@@ -13,6 +13,8 @@ public sealed class TemplateInheritanceResolver : ITemplateInheritanceResolver
         TemplateDefinition template,
         CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         if (template == null)
         {
             var errors = new[]
@@ -28,15 +30,16 @@ public sealed class TemplateInheritanceResolver : ITemplateInheritanceResolver
 
         var resolvedTemplates = new List<TemplateDefinition>();
         var errorsList = new List<ValidationError>();
-        var visiting = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var visiting = new HashSet<Guid>();
+        var visited = new HashSet<Guid>();
 
         ResolveTemplate(
             template,
             resolvedTemplates,
             errorsList,
             visiting,
-            visited);
+            visited,
+            cancellationToken);
 
         if (errorsList.Count > 0)
         {
@@ -52,12 +55,15 @@ public sealed class TemplateInheritanceResolver : ITemplateInheritanceResolver
         TemplateDefinition template,
         ICollection<TemplateDefinition> resolvedTemplates,
         ICollection<ValidationError> errors,
-        ISet<string> visiting,
-        ISet<string> visited)
+        ISet<Guid> visiting,
+        ISet<Guid> visited,
+        CancellationToken cancellationToken)
     {
-        var key = NormalizeKey(template.Key);
+        cancellationToken.ThrowIfCancellationRequested();
 
-        if (visiting.Contains(key))
+        var templateId = template.Id;
+
+        if (visiting.Contains(templateId))
         {
             errors.Add(
                 new ValidationError(
@@ -68,12 +74,12 @@ public sealed class TemplateInheritanceResolver : ITemplateInheritanceResolver
             return;
         }
 
-        if (visited.Contains(key))
+        if (visited.Contains(templateId))
         {
             return;
         }
 
-        visiting.Add(key);
+        visiting.Add(templateId);
 
         foreach (var baseTemplate in template.BaseTemplates)
         {
@@ -82,17 +88,13 @@ public sealed class TemplateInheritanceResolver : ITemplateInheritanceResolver
                 resolvedTemplates,
                 errors,
                 visiting,
-                visited);
+                visited,
+                cancellationToken);
         }
 
-        visiting.Remove(key);
-        visited.Add(key);
+        visiting.Remove(templateId);
+        visited.Add(templateId);
 
         resolvedTemplates.Add(template);
-    }
-
-    private static string NormalizeKey(string key)
-    {
-        return key.Trim().ToUpperInvariant();
     }
 }
