@@ -16,8 +16,4 @@
     <ProjectReference Include="..\..\src\TemplarCMS.ContentModeling\TemplarCMS.ContentModeling.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Validation\" />
-  </ItemGroup>
-
 </Project>
