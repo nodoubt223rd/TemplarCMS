@@ -36,6 +36,7 @@ public sealed class TemplateDefinition
             throw new ArgumentException("Template key is required.", nameof(key));
         }
 
+        Id = id;
         Name = name.Trim();
         Key = key.Trim();
         BaseTemplates = baseTemplates?.ToArray() ?? Array.Empty<TemplateDefinition>();
