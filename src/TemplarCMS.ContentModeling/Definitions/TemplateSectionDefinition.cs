@@ -23,7 +23,7 @@ public sealed class TemplateSectionDefinition
 
         Name = name.Trim();
         SortOrder = sortOrder;
-        Fields = fields ?? Array.Empty<FieldDefinition>();
+        Fields = fields?.ToArray() ?? Array.Empty<FieldDefinition>();
     }
 
     /// <summary>

@@ -37,7 +37,9 @@ public sealed class FieldDefinition
         FieldType = fieldType;
         IsShared = isShared;
         IsUnversioned = isUnversioned;
-        Metadata = metadata ?? new Dictionary<string, string>();
+        Metadata = metadata != null
+            ? new Dictionary<string, string>(metadata)
+            : new Dictionary<string, string>();
     }
 
     /// <summary>

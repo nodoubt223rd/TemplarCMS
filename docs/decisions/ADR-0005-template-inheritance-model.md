@@ -213,6 +213,45 @@ Example:
 MetaTitle
 metaTitle
 ```
+#### TemplateDefinition
+
+Represents the authored schema definition.
+
+A `TemplateDefinition` may contain:
+
+- Base template references.
+- Local sections.
+- Local field definitions.
+- Incomplete inheritance information.
+
+It is the source model used by content architects and administrators when defining schemas.
+
+#### EffectiveTemplateDefinition
+
+Represents the fully resolved schema produced by the content modeling engine.
+
+An `EffectiveTemplateDefinition` contains:
+
+- All inherited fields.
+- All local fields.
+- Applied overrides.
+- Resolved field metadata.
+- Deterministic field ordering.
+
+An Effective Template should not require additional inheritance resolution.
+
+Consumers should prefer `EffectiveTemplateDefinition` whenever possible.
+
+Examples include:
+
+- REST API responses.
+- Template validation.
+- Vue Admin form generation.
+- GraphQL schema generation.
+- Package deployment.
+- Content serialization.
+
+TemplarCMS distinguishes between authored `TemplateDefinition` models and resolved `EffectiveTemplateDefinition` models.
 
 Field keys should be normalized during validation.
 

@@ -11,7 +11,7 @@ public sealed class ValidationResult
     /// <param name="errors">The validation errors produced by the operation.</param>
     public ValidationResult(IReadOnlyCollection<ValidationError>? errors = null)
     {
-        Errors = errors ?? Array.Empty<ValidationError>();
+        Errors = errors?.ToArray() ?? Array.Empty<ValidationError>();
     }
 
     /// <summary>
