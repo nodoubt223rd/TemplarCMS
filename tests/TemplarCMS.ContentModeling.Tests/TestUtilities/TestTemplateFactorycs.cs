@@ -1,6 +1,6 @@
 using TemplarCMS.ContentModeling.Definitions;
 
-namespace TemplarCMS.ContentModeling.Tests
+namespace TemplarCMS.ContentModeling.Tests.TestUtilities
 {
     internal static class TestTemplateFactory
     {

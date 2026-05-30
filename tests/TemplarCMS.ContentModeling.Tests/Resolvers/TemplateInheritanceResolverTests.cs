@@ -5,9 +5,10 @@ using System.Text;
 using System.Threading.Tasks;
 using TemplarCMS.ContentModeling.Definitions;
 using TemplarCMS.ContentModeling.Resolvers;
+using TemplarCMS.ContentModeling.Tests.TestUtilities;
 using Xunit;
 
-namespace TemplarCMS.ContentModeling.Tests
+namespace TemplarCMS.ContentModeling.Tests.Resolvers
 {
     public class TemplateInheritanceResolverTests
     {
