@@ -13,6 +13,7 @@ public sealed class EffectiveTemplateBuilderTests
     [Fact]
     public async Task BuildEffectiveTemplateAsync_ReturnsEffectiveTemplate_ForSimpleTemplate()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var section = CreateSection(
             "Content",
             "content",
@@ -26,7 +27,7 @@ public sealed class EffectiveTemplateBuilderTests
 
         var builder = CreateBuilder();
 
-        var result = await builder.BuildEffectiveTemplateAsync(template);
+        var result = await builder.BuildEffectiveTemplateAsync(template, cancellationToken);
 
         Assert.True(result.Succeeded);
         Assert.NotNull(result.Value);
@@ -44,6 +45,7 @@ public sealed class EffectiveTemplateBuilderTests
     [Fact]
     public async Task BuildEffectiveTemplateAsync_IncludesInheritedSections_ForSingleInheritance()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var seoSection = CreateSection(
             "SEO",
             "seo",
@@ -69,7 +71,7 @@ public sealed class EffectiveTemplateBuilderTests
 
         var builder = CreateBuilder();
 
-        var result = await builder.BuildEffectiveTemplateAsync(articleTemplate);
+        var result = await builder.BuildEffectiveTemplateAsync(articleTemplate, cancellationToken);
 
         Assert.True(result.Succeeded);
         Assert.NotNull(result.Value);
@@ -82,6 +84,7 @@ public sealed class EffectiveTemplateBuilderTests
     [Fact]
     public async Task BuildEffectiveTemplateAsync_MergesSections_WithSameKey()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var baseContentSection = CreateSection(
             "Content",
             "content",
@@ -107,7 +110,7 @@ public sealed class EffectiveTemplateBuilderTests
 
         var builder = CreateBuilder();
 
-        var result = await builder.BuildEffectiveTemplateAsync(articleTemplate);
+        var result = await builder.BuildEffectiveTemplateAsync(articleTemplate, cancellationToken);
 
         Assert.True(result.Succeeded);
         Assert.NotNull(result.Value);
@@ -124,6 +127,7 @@ public sealed class EffectiveTemplateBuilderTests
     [Fact]
     public async Task BuildEffectiveTemplateAsync_AppliesDerivedSectionOverride_WhenSectionKeyMatches()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var baseSection = CreateSection(
             "Base Content",
             "content",
@@ -149,7 +153,7 @@ public sealed class EffectiveTemplateBuilderTests
 
         var builder = CreateBuilder();
 
-        var result = await builder.BuildEffectiveTemplateAsync(articleTemplate);
+        var result = await builder.BuildEffectiveTemplateAsync(articleTemplate, cancellationToken);
 
         Assert.True(result.Succeeded);
         Assert.NotNull(result.Value);
@@ -165,6 +169,7 @@ public sealed class EffectiveTemplateBuilderTests
     [Fact]
     public async Task BuildEffectiveTemplateAsync_AppliesDerivedFieldOverride_WhenFieldKeyMatches()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var baseTitleField = new FieldDefinition(
             "Base Title",
             "title",
@@ -200,7 +205,7 @@ public sealed class EffectiveTemplateBuilderTests
 
         var builder = CreateBuilder();
 
-        var result = await builder.BuildEffectiveTemplateAsync(articleTemplate);
+        var result = await builder.BuildEffectiveTemplateAsync(articleTemplate, cancellationToken);
 
         Assert.True(result.Succeeded);
         Assert.NotNull(result.Value);
@@ -216,6 +221,7 @@ public sealed class EffectiveTemplateBuilderTests
     [Fact]
     public async Task BuildEffectiveTemplateAsync_ReturnsErrors_WhenInheritanceResolutionFails()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var template = CreateTemplate("Article", "article");
 
         var error = new ValidationError(
@@ -232,7 +238,7 @@ public sealed class EffectiveTemplateBuilderTests
 
         var builder = new EffectiveTemplateBuilder(inheritanceResolver);
 
-        var result = await builder.BuildEffectiveTemplateAsync(template);
+        var result = await builder.BuildEffectiveTemplateAsync(template, cancellationToken);
 
         Assert.False(result.IsValid);
         Assert.False(result.HasValue);

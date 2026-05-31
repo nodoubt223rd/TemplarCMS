@@ -13,15 +13,17 @@ public sealed class ContentModelCatalogTests
     [Fact]
     public async Task RefreshAsync_PublishesTemplates_WhenRefreshSucceeds()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
         var template = CreateTemplate("Article", "article");
         var effectiveTemplate = CreateEffectiveTemplate(template);
 
         var context = CreateContext(template, effectiveTemplate);
 
-        await context.Catalog.RefreshAsync();
+        await context.Catalog.RefreshAsync(cancellationToken);
 
-        var actualTemplate = await context.Catalog.GetTemplateAsync(template.Id);
-        var actualEffectiveTemplate = await context.Catalog.GetEffectiveTemplateAsync(template.Id);
+        var actualTemplate = await context.Catalog.GetTemplateAsync(template.Id, cancellationToken);
+        var actualEffectiveTemplate = await context.Catalog.GetEffectiveTemplateAsync(template.Id, cancellationToken);
 
         Assert.Same(template, actualTemplate);
         Assert.Same(effectiveTemplate, actualEffectiveTemplate);
@@ -30,14 +32,15 @@ public sealed class ContentModelCatalogTests
     [Fact]
     public async Task GetTemplateAsync_ReturnsTemplate_WhenKeyMatchesDifferentCasing()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var template = CreateTemplate("Article", "article");
         var effectiveTemplate = CreateEffectiveTemplate(template);
 
         var context = CreateContext(template, effectiveTemplate);
 
-        await context.Catalog.RefreshAsync();
+        await context.Catalog.RefreshAsync(cancellationToken);
 
-        var actual = await context.Catalog.GetTemplateAsync("ARTICLE");
+        var actual = await context.Catalog.GetTemplateAsync("ARTICLE", cancellationToken);
 
         Assert.Same(template, actual);
     }
@@ -45,14 +48,15 @@ public sealed class ContentModelCatalogTests
     [Fact]
     public async Task GetEffectiveTemplateAsync_ReturnsEffectiveTemplate_WhenKeyMatches()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var template = CreateTemplate("Article", "article");
         var effectiveTemplate = CreateEffectiveTemplate(template);
 
         var context = CreateContext(template, effectiveTemplate);
 
-        await context.Catalog.RefreshAsync();
+        await context.Catalog.RefreshAsync(cancellationToken);
 
-        var actual = await context.Catalog.GetEffectiveTemplateAsync("article");
+        var actual = await context.Catalog.GetEffectiveTemplateAsync("article", cancellationToken);
 
         Assert.Same(effectiveTemplate, actual);
     }
@@ -60,21 +64,23 @@ public sealed class ContentModelCatalogTests
     [Fact]
     public async Task InvalidateAsync_ClearsPublishedSnapshot()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var template = CreateTemplate("Article", "article");
         var effectiveTemplate = CreateEffectiveTemplate(template);
 
         var context = CreateContext(template, effectiveTemplate);
 
-        await context.Catalog.RefreshAsync();
-        await context.Catalog.InvalidateAsync();
+        await context.Catalog.RefreshAsync(cancellationToken);
+        await context.Catalog.InvalidateAsync(cancellationToken);
 
-        Assert.Null(await context.Catalog.GetTemplateAsync(template.Id));
-        Assert.Null(await context.Catalog.GetEffectiveTemplateAsync(template.Id));
+        Assert.Null(await context.Catalog.GetTemplateAsync(template.Id, cancellationToken));
+        Assert.Null(await context.Catalog.GetEffectiveTemplateAsync(template.Id, cancellationToken));
     }
 
     [Fact]
     public async Task RefreshAsync_ThrowsAndDoesNotBuildEffectiveTemplates_WhenAuthoringValidationFails()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var template = CreateTemplate("Article", "article");
         var error = new ValidationError(
             "DuplicateFieldKeyInTemplate",
@@ -93,7 +99,7 @@ public sealed class ContentModelCatalogTests
             .Returns(Task.FromResult(new ValidationResult(new[] { error })));
 
         var exception = await Assert.ThrowsAsync<ContentModelCatalogRefreshException>(
-            () => context.Catalog.RefreshAsync());
+            () => context.Catalog.RefreshAsync(cancellationToken));
 
         var actualError = Assert.Single(exception.Errors);
 
@@ -103,18 +109,19 @@ public sealed class ContentModelCatalogTests
             .DidNotReceive()
             .BuildEffectiveTemplateAsync(Arg.Any<TemplateDefinition>(), Arg.Any<CancellationToken>());
 
-        Assert.Null(await context.Catalog.GetTemplateAsync(template.Id));
+        Assert.Null(await context.Catalog.GetTemplateAsync(template.Id, cancellationToken));
     }
 
     [Fact]
     public async Task RefreshAsync_DoesNotReplaceExistingSnapshot_WhenAuthoringValidationFails()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var template = CreateTemplate("Article", "article");
         var effectiveTemplate = CreateEffectiveTemplate(template);
 
         var context = CreateContext(template, effectiveTemplate);
 
-        await context.Catalog.RefreshAsync();
+        await context.Catalog.RefreshAsync(cancellationToken);
 
         var error = new ValidationError(
             "DuplicateFieldKeyInTemplate",
@@ -126,9 +133,9 @@ public sealed class ContentModelCatalogTests
             .Returns(Task.FromResult(new ValidationResult(new[] { error })));
 
         await Assert.ThrowsAsync<ContentModelCatalogRefreshException>(
-            () => context.Catalog.RefreshAsync());
+            () => context.Catalog.RefreshAsync(cancellationToken));
 
-        var actual = await context.Catalog.GetTemplateAsync(template.Id);
+        var actual = await context.Catalog.GetTemplateAsync(template.Id, cancellationToken);
 
         Assert.Same(template, actual);
     }
@@ -136,6 +143,7 @@ public sealed class ContentModelCatalogTests
     [Fact]
     public async Task RefreshAsync_ThrowsAndDoesNotPublish_WhenEffectiveTemplateBuildFails()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var template = CreateTemplate("Article", "article");
         var error = new ValidationError(
             "CircularTemplateInheritance",
@@ -160,12 +168,12 @@ public sealed class ContentModelCatalogTests
                 new[] { error })));
 
         var exception = await Assert.ThrowsAsync<ContentModelCatalogRefreshException>(
-            () => context.Catalog.RefreshAsync());
+            () => context.Catalog.RefreshAsync(cancellationToken));
 
         var actualError = Assert.Single(exception.Errors);
 
         Assert.Equal("CircularTemplateInheritance", actualError.Code);
-        Assert.Null(await context.Catalog.GetTemplateAsync(template.Id));
+        Assert.Null(await context.Catalog.GetTemplateAsync(template.Id, cancellationToken));
     }
 
     private static CatalogTestContext CreateContext(

@@ -15,6 +15,7 @@ namespace TemplarCMS.ContentModeling.Tests.Resolvers
         [Fact]
         public async Task ResolveAsync_ReturnsResolvedChain_ForSimpleInheritance()
         {
+            var cancellationToken = TestContext.Current.CancellationToken;
             var baseTemplate = new TemplateDefinitionBuilder()
                 .WithNameAndKey("Base SEO", "base-seo")
                 .Build();
@@ -26,7 +27,7 @@ namespace TemplarCMS.ContentModeling.Tests.Resolvers
 
             var sut = new TemplateInheritanceResolver();
 
-            var result = await sut.ResolveAsync(articleTemplate);
+            var result = await sut.ResolveAsync(articleTemplate, cancellationToken);
 
             Assert.True(result.Succeeded);
 
@@ -39,6 +40,7 @@ namespace TemplarCMS.ContentModeling.Tests.Resolvers
         [Fact]
         public async Task ResolveAsync_ReturnsResolvedChain_ForMultipleBaseTemplates()
         {
+            var cancellationToken = TestContext.Current.CancellationToken;
             var seoTemplate = new TemplateDefinitionBuilder()
                 .WithNameAndKey("Base SEO", "base-seo")
                 .Build();
@@ -59,7 +61,7 @@ namespace TemplarCMS.ContentModeling.Tests.Resolvers
 
             var sut = new TemplateInheritanceResolver();
 
-            var result = await sut.ResolveAsync(articleTemplate);
+            var result = await sut.ResolveAsync(articleTemplate, cancellationToken);
 
             Assert.True(result.Succeeded);
 
@@ -73,6 +75,7 @@ namespace TemplarCMS.ContentModeling.Tests.Resolvers
         [Fact]
         public async Task ResolveAsync_ReturnsResolvedChain_ForDeepInheritance()
         {
+            var cancellationToken = TestContext.Current.CancellationToken;
             var baseContent = new TemplateDefinitionBuilder()
             .WithNameAndKey("Base Content", "base-content")
             .Build();
@@ -89,7 +92,7 @@ namespace TemplarCMS.ContentModeling.Tests.Resolvers
 
             var sut = new TemplateInheritanceResolver();
 
-            var result = await sut.ResolveAsync(article);
+            var result = await sut.ResolveAsync(article, cancellationToken);
 
             Assert.True(result.Succeeded);
 

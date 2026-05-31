@@ -9,6 +9,7 @@ public sealed class EffectiveTemplateValidatorTests
     [Fact]
     public async Task ValidateAsync_ReturnsValid_ForValidEffectiveTemplate()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var template = CreateEffectiveTemplate(
             "Article Page",
             "article-page",
@@ -23,7 +24,7 @@ public sealed class EffectiveTemplateValidatorTests
 
         var validator = new EffectiveTemplateValidator();
 
-        var result = await validator.ValidateAsync(template);
+        var result = await validator.ValidateAsync(template, cancellationToken);
 
         Assert.True(result.IsValid);
         Assert.Empty(result.Errors);
@@ -32,9 +33,10 @@ public sealed class EffectiveTemplateValidatorTests
     [Fact]
     public async Task ValidateAsync_ReturnsEffectiveTemplateRequired_WhenTemplateIsNull()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var validator = new EffectiveTemplateValidator();
 
-        var result = await validator.ValidateAsync(null!);
+        var result = await validator.ValidateAsync(null!, cancellationToken);
 
         Assert.False(result.IsValid);
 
@@ -45,6 +47,7 @@ public sealed class EffectiveTemplateValidatorTests
     [Fact]
     public async Task ValidateAsync_ReturnsDuplicateEffectiveSectionKey_WhenSectionsShareKey()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var template = CreateEffectiveTemplate(
             "Article Page",
             "article-page",
@@ -53,7 +56,7 @@ public sealed class EffectiveTemplateValidatorTests
 
         var validator = new EffectiveTemplateValidator();
 
-        var result = await validator.ValidateAsync(template);
+        var result = await validator.ValidateAsync(template, cancellationToken);
 
         Assert.False(result.IsValid);
 
@@ -65,6 +68,7 @@ public sealed class EffectiveTemplateValidatorTests
     [Fact]
     public async Task ValidateAsync_ReturnsDuplicateEffectiveFieldKey_WhenFieldsShareKey()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var template = CreateEffectiveTemplate(
             "Article Page",
             "article-page",
@@ -79,7 +83,7 @@ public sealed class EffectiveTemplateValidatorTests
 
         var validator = new EffectiveTemplateValidator();
 
-        var result = await validator.ValidateAsync(template);
+        var result = await validator.ValidateAsync(template, cancellationToken);
 
         Assert.False(result.IsValid);
 
@@ -91,6 +95,7 @@ public sealed class EffectiveTemplateValidatorTests
     [Fact]
     public async Task ValidateAsync_ReturnsEffectiveSectionFieldKeyCollision_WhenSectionAndFieldShareKey()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var template = CreateEffectiveTemplate(
             "Article Page",
             "article-page",
@@ -101,7 +106,7 @@ public sealed class EffectiveTemplateValidatorTests
 
         var validator = new EffectiveTemplateValidator();
 
-        var result = await validator.ValidateAsync(template);
+        var result = await validator.ValidateAsync(template, cancellationToken);
 
         Assert.False(result.IsValid);
 
@@ -113,6 +118,7 @@ public sealed class EffectiveTemplateValidatorTests
     [Fact]
     public async Task ValidateAsync_ReturnsMultipleErrors_WhenEffectiveTemplateContainsMultipleIssues()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var template = CreateEffectiveTemplate(
             "Article Page",
             "article-page",
@@ -131,7 +137,7 @@ public sealed class EffectiveTemplateValidatorTests
 
         var validator = new EffectiveTemplateValidator();
 
-        var result = await validator.ValidateAsync(template);
+        var result = await validator.ValidateAsync(template, cancellationToken);
 
         Assert.False(result.IsValid);
 

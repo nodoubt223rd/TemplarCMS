@@ -9,6 +9,7 @@ public sealed class TemplateValidatorTests
     [Fact]
     public async Task ValidateAsync_ReturnsValid_ForValidTemplate()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var template = CreateTemplate(
             "Article Page",
             "article-page",
@@ -19,7 +20,7 @@ public sealed class TemplateValidatorTests
 
         var validator = new TemplateValidator();
 
-        var result = await validator.ValidateAsync(template);
+        var result = await validator.ValidateAsync(template, cancellationToken);
 
         Assert.True(result.IsValid);
         Assert.Empty(result.Errors);
@@ -28,9 +29,10 @@ public sealed class TemplateValidatorTests
     [Fact]
     public async Task ValidateAsync_ReturnsTemplateRequired_WhenTemplateIsNull()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var validator = new TemplateValidator();
 
-        var result = await validator.ValidateAsync(null!);
+        var result = await validator.ValidateAsync(null!, cancellationToken);
 
         Assert.False(result.IsValid);
 
@@ -41,6 +43,7 @@ public sealed class TemplateValidatorTests
     [Fact]
     public async Task ValidateAsync_ReturnsDuplicateSectionKey_WhenTemplateContainsDuplicateSectionKeys()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var template = CreateTemplate(
             "Article Page",
             "article-page",
@@ -49,7 +52,7 @@ public sealed class TemplateValidatorTests
 
         var validator = new TemplateValidator();
 
-        var result = await validator.ValidateAsync(template);
+        var result = await validator.ValidateAsync(template, cancellationToken);
 
         Assert.False(result.IsValid);
 
@@ -61,6 +64,7 @@ public sealed class TemplateValidatorTests
     [Fact]
     public async Task ValidateAsync_ReturnsDuplicateFieldKeyInSection_WhenSectionContainsDuplicateFieldKeys()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var template = CreateTemplate(
             "Article Page",
             "article-page",
@@ -72,7 +76,7 @@ public sealed class TemplateValidatorTests
 
         var validator = new TemplateValidator();
 
-        var result = await validator.ValidateAsync(template);
+        var result = await validator.ValidateAsync(template, cancellationToken);
 
         Assert.False(result.IsValid);
 
@@ -86,6 +90,7 @@ public sealed class TemplateValidatorTests
     [Fact]
     public async Task ValidateAsync_ReturnsDuplicateFieldKeyInTemplate_WhenTemplateContainsDuplicateFieldKeysAcrossSections()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var template = CreateTemplate(
             "Article Page",
             "article-page",
@@ -100,7 +105,7 @@ public sealed class TemplateValidatorTests
 
         var validator = new TemplateValidator();
 
-        var result = await validator.ValidateAsync(template);
+        var result = await validator.ValidateAsync(template, cancellationToken);
 
         Assert.False(result.IsValid);
 
@@ -112,6 +117,7 @@ public sealed class TemplateValidatorTests
     [Fact]
     public async Task ValidateAsync_ReturnsSectionFieldKeyCollision_WhenSectionAndFieldShareKey()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var template = CreateTemplate(
             "Article Page",
             "article-page",
@@ -122,7 +128,7 @@ public sealed class TemplateValidatorTests
 
         var validator = new TemplateValidator();
 
-        var result = await validator.ValidateAsync(template);
+        var result = await validator.ValidateAsync(template, cancellationToken);
 
         Assert.False(result.IsValid);
 
@@ -134,6 +140,7 @@ public sealed class TemplateValidatorTests
     [Fact]
     public async Task ValidateAsync_ReturnsMultipleErrors_WhenTemplateContainsMultipleValidationIssues()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var template = CreateTemplate(
             "Article Page",
             "article-page",
@@ -149,7 +156,7 @@ public sealed class TemplateValidatorTests
 
         var validator = new TemplateValidator();
 
-        var result = await validator.ValidateAsync(template);
+        var result = await validator.ValidateAsync(template, cancellationToken);
 
         Assert.False(result.IsValid);
 
