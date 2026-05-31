@@ -1,7 +1,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace TemplarCMS.ContentModels.Cache
+namespace TemplarCMS.ContentModeling.Cache
 {
     /// <summary>
     /// Provides caching services for content model artifacts.
@@ -13,9 +13,7 @@ namespace TemplarCMS.ContentModels.Cache
         /// </summary>
         /// <typeparam name="T">The expected cached value type.</typeparam>
         /// <param name="key">The cache key.</param>
-        /// <param name="cancellationToken">
-        /// A token used to cancel the cache operation.
-        /// </param>
+        /// <param name="cancellationToken">A token used to cancel the operation.</param>
         /// <returns>
         /// The cached value if found; otherwise <c>null</c>.
         /// </returns>
@@ -30,9 +28,7 @@ namespace TemplarCMS.ContentModels.Cache
         /// <typeparam name="T">The value type being cached.</typeparam>
         /// <param name="key">The cache key.</param>
         /// <param name="value">The value to cache.</param>
-        /// <param name="cancellationToken">
-        /// A token used to cancel the cache operation.
-        /// </param>
+        /// <param name="cancellationToken">A token used to cancel the operation.</param>
         Task SetAsync<T>(
             string key,
             T value,
@@ -43,9 +39,7 @@ namespace TemplarCMS.ContentModels.Cache
         /// Removes a cached value.
         /// </summary>
         /// <param name="key">The cache key.</param>
-        /// <param name="cancellationToken">
-        /// A token used to cancel the cache operation.
-        /// </param>
+        /// <param name="cancellationToken">A token used to cancel the operation.</param>
         Task RemoveAsync(
             string key,
             CancellationToken cancellationToken = default);
@@ -53,9 +47,7 @@ namespace TemplarCMS.ContentModels.Cache
         /// <summary>
         /// Removes all cached content model artifacts.
         /// </summary>
-        /// <param name="cancellationToken">
-        /// A token used to cancel the cache operation.
-        /// </param>
+        /// <param name="cancellationToken">A token used to cancel the operation.</param>
         Task ClearAsync(
             CancellationToken cancellationToken = default);
     }
