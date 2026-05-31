@@ -205,7 +205,8 @@ public sealed class ContentModelCatalogTests
             templateRepository,
             templateValidator,
             effectiveTemplateBuilder,
-            effectiveTemplateValidator);
+            effectiveTemplateValidator,
+            Substitute.For<ILogger<ContentModelCatalog>>());
 
         return new CatalogTestContext(
             catalog,

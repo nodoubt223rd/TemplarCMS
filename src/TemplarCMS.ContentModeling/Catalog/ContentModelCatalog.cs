@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using TemplarCMS.ContentModeling.Abstractions;
 using TemplarCMS.ContentModeling.Definitions;
 using TemplarCMS.ContentModeling.Repositories;
@@ -28,6 +29,7 @@ namespace TemplarCMS.ContentModeling.Catalog
         private readonly ITemplateValidator _templateValidator;
         private readonly IEffectiveTemplateBuilder _effectiveTemplateBuilder;
         private readonly IEffectiveTemplateValidator _effectiveTemplateValidator;
+        private readonly ILogger<ContentModelCatalog> _logger;
 
         private ContentModelSnapshot _snapshot = ContentModelSnapshot.Empty;
 
@@ -38,12 +40,14 @@ namespace TemplarCMS.ContentModeling.Catalog
             ITemplateRepository templateRepository,
             ITemplateValidator templateValidator,
             IEffectiveTemplateBuilder effectiveTemplateBuilder,
-            IEffectiveTemplateValidator effectiveTemplateValidator)
+            IEffectiveTemplateValidator effectiveTemplateValidator,
+            ILogger<ContentModelCatalog> logger)
         {
             _templateRepository = templateRepository ?? throw new ArgumentNullException(nameof(templateRepository));
             _templateValidator = templateValidator ?? throw new ArgumentNullException(nameof(templateValidator));
             _effectiveTemplateBuilder = effectiveTemplateBuilder ?? throw new ArgumentNullException(nameof(effectiveTemplateBuilder));
             _effectiveTemplateValidator = effectiveTemplateValidator ?? throw new ArgumentNullException(nameof(effectiveTemplateValidator));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         /// <inheritdoc />
@@ -114,17 +118,25 @@ namespace TemplarCMS.ContentModeling.Catalog
 
             _snapshot = ContentModelSnapshot.Empty;
 
+            _logger.LogInformation("Content model catalog snapshot was invalidated.");
+
             return Task.CompletedTask;
         }
 
         /// <inheritdoc />
         public async Task RefreshAsync(
-            CancellationToken cancellationToken = default)
+    CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
+            _logger.LogInformation("Refreshing content model catalog.");
+
             var templates = await _templateRepository.GetTemplatesAsync(cancellationToken);
             var errors = new List<ValidationError>();
+
+            _logger.LogInformation(
+                "Loaded {TemplateCount} authored content model templates.",
+                templates.Count);
 
             foreach (var template in templates)
             {
@@ -138,6 +150,10 @@ namespace TemplarCMS.ContentModeling.Catalog
 
             if (errors.Count > 0)
             {
+                _logger.LogWarning(
+                    "Content model catalog refresh failed during authoring validation with {ErrorCount} validation errors.",
+                    errors.Count);
+
                 throw new ContentModelCatalogRefreshException(errors);
             }
 
@@ -178,6 +194,10 @@ namespace TemplarCMS.ContentModeling.Catalog
 
             if (errors.Count > 0)
             {
+                _logger.LogWarning(
+                    "Content model catalog refresh failed during effective template generation with {ErrorCount} validation errors.",
+                    errors.Count);
+
                 throw new ContentModelCatalogRefreshException(errors);
             }
 
@@ -185,6 +205,11 @@ namespace TemplarCMS.ContentModeling.Catalog
                 templatesById,
                 effectiveTemplatesById,
                 templateKeys);
+
+            _logger.LogInformation(
+                "Content model catalog refresh completed with {TemplateCount} authored templates and {EffectiveTemplateCount} effective templates.",
+                templatesById.Count,
+                effectiveTemplatesById.Count);
         }
     }
 }

@@ -1,5 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.8" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="../TemplarCMS.Abstractions/TemplarCMS.Abstractions.csproj" />
     <ProjectReference Include="../TemplarCMS.Domain/TemplarCMS.Domain.csproj" />
     <ProjectReference Include="../TemplarCMS.ContentModeling/TemplarCMS.ContentModeling.csproj" />
