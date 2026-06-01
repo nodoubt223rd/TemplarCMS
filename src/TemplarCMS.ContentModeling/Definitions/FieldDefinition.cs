@@ -8,7 +8,7 @@ public sealed class FieldDefinition
     /// <summary>
     /// Initializes a new instance of the <see cref="FieldDefinition" /> class.
     /// </summary>
-    /// <param name="id">The id of the field.</param>
+    /// <param name="id">The stable field identifier.</param>
     /// <param name="name">The display name of the field.</param>
     /// <param name="key">The unique field key used for resolution and value storage.</param>
     /// <param name="fieldType">The strongly typed field type.</param>
@@ -40,6 +40,7 @@ public sealed class FieldDefinition
             throw new ArgumentException("Field key is required.", nameof(key));
         }
 
+        Id = id;
         Name = name.Trim();
         Key = key.Trim();
         FieldType = fieldType;
@@ -51,7 +52,7 @@ public sealed class FieldDefinition
     }
 
     /// <summary>
-    /// Gets the id of the field. 
+    /// Gets the stable field identifier. 
     /// </summary>
     public Guid Id { get; }
 
