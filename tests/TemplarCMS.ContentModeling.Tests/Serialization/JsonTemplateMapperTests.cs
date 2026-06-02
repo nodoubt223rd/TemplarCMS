@@ -216,6 +216,102 @@ public sealed class JsonTemplateMapperTests
         };
     }
 
+    [Fact]
+    public void Map_ShouldMapIsUnversioned()
+    {
+        var jsonTemplate = CreateTemplateWithField(new JsonFieldDefinition
+        {
+            Id = Guid.NewGuid(),
+            Name = "Title",
+            Key = "title",
+            FieldType = "singleLineText",
+            IsUnversioned = true
+        });
+
+        var result = _mapper.Map(jsonTemplate);
+
+        var section = Assert.Single(result.Sections);
+        var field = Assert.Single(section.Fields);
+
+        Assert.True(field.IsUnversioned);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData(" ")]
+    public void Map_ShouldThrow_WhenSectionNameMissing(string? name)
+    {
+        var jsonTemplate = CreateTemplate();
+
+        jsonTemplate.Sections.Add(new JsonTemplateSectionDefinition
+        {
+            Id = Guid.NewGuid(),
+            Name = name,
+            Key = "content",
+            SortOrder = 100
+        });
+
+        Assert.Throws<InvalidOperationException>(() =>
+            _mapper.Map(jsonTemplate));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData(" ")]
+    public void Map_ShouldThrow_WhenSectionKeyMissing(string? key)
+    {
+        var jsonTemplate = CreateTemplate();
+
+        jsonTemplate.Sections.Add(new JsonTemplateSectionDefinition
+        {
+            Id = Guid.NewGuid(),
+            Name = "Content",
+            Key = key,
+            SortOrder = 100
+        });
+
+        Assert.Throws<InvalidOperationException>(() =>
+            _mapper.Map(jsonTemplate));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData(" ")]
+    public void Map_ShouldThrow_WhenFieldNameMissing(string? name)
+    {
+        var jsonTemplate = CreateTemplateWithField(new JsonFieldDefinition
+        {
+            Id = Guid.NewGuid(),
+            Name = name,
+            Key = "title",
+            FieldType = "singleLineText"
+        });
+
+        Assert.Throws<InvalidOperationException>(() =>
+            _mapper.Map(jsonTemplate));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData(" ")]
+    public void Map_ShouldThrow_WhenFieldKeyMissing(string? key)
+    {
+        var jsonTemplate = CreateTemplateWithField(new JsonFieldDefinition
+        {
+            Id = Guid.NewGuid(),
+            Name = "Title",
+            Key = key,
+            FieldType = "singleLineText"
+        });
+
+        Assert.Throws<InvalidOperationException>(() =>
+            _mapper.Map(jsonTemplate));
+    }
+
     private static JsonTemplateDefinition CreateTemplateWithField(
         JsonFieldDefinition field)
     {
