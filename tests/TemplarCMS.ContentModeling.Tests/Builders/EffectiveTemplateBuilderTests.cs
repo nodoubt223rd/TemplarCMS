@@ -171,11 +171,13 @@ public sealed class EffectiveTemplateBuilderTests
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         var baseTitleField = new FieldDefinition(
+            Guid.NewGuid(),
             "Base Title",
             "title",
             FieldType.SingleLineText);
 
         var derivedTitleField = new FieldDefinition(
+            Guid.NewGuid(),
             "Article Title",
             "title",
             FieldType.RichText);
@@ -286,6 +288,7 @@ public sealed class EffectiveTemplateBuilderTests
         FieldType fieldType = FieldType.SingleLineText)
     {
         return new FieldDefinition(
+            Guid.NewGuid(),
             name,
             key,
             fieldType);

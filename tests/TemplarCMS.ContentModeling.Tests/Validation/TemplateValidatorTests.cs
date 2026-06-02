@@ -195,6 +195,7 @@ public sealed class TemplateValidatorTests
         FieldType fieldType = FieldType.SingleLineText)
     {
         return new FieldDefinition(
+            Guid.NewGuid(),
             name,
             key,
             fieldType);
