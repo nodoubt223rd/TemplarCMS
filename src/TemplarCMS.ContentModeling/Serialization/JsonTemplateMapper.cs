@@ -31,7 +31,7 @@ namespace TemplarCMS.ContentModeling.Serialization
     /// </remarks>
     public sealed class JsonTemplateMapper : IJsonTemplateMapper
     {
-        // <summary>
+        /// <summary>
         /// Maps a JSON template definition into a domain template definition.
         /// </summary>
         /// <param name="template">
