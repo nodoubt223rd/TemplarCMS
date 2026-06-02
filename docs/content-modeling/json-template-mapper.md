@@ -68,6 +68,22 @@ Resolving those references requires visibility into all templates loaded by the 
 
 For that reason, base template resolution occurs after mapping.
 
+## Repository Configuration
+
+The JSON template repository is configured using
+`JsonTemplateRepositoryOptions`.
+
+Example:
+
+```json
+{
+  "TemplatesPath": "content-models/templates"
+}
+```
+
+The repository loads all template definition files
+located in the configured directory.
+
 ## Testing Strategy
 
 Every JSON template passes through this component.
