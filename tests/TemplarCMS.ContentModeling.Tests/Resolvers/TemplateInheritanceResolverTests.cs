@@ -1,9 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using TemplarCMS.ContentModeling.Definitions;
 using TemplarCMS.ContentModeling.Resolvers;
 using TemplarCMS.ContentModeling.Tests.TestUtilities;
 using Xunit;
@@ -23,7 +17,7 @@ namespace TemplarCMS.ContentModeling.Tests.Resolvers
             var articleTemplate = TestTemplateFactory.Create(
                 "Article",
                 "article",
-                new[] { baseTemplate });
+                [baseTemplate]);
 
             var sut = new TemplateInheritanceResolver();
 
@@ -53,11 +47,10 @@ namespace TemplarCMS.ContentModeling.Tests.Resolvers
             var articleTemplate = TestTemplateFactory.Create(
                 "Article",
                 "article",
-                new[]
-                {
+                [
             seoTemplate,
             auditingTemplate
-                });
+                ]);
 
             var sut = new TemplateInheritanceResolver();
 
@@ -83,12 +76,12 @@ namespace TemplarCMS.ContentModeling.Tests.Resolvers
             var baseSeo = TestTemplateFactory.Create(
                 "Base SEO",
                 "base-seo",
-                new[] { baseContent });
+                [baseContent]);
 
             var article = TestTemplateFactory.Create(
                 "Article",
                 "article",
-                new[] { baseSeo });
+                [baseSeo]);
 
             var sut = new TemplateInheritanceResolver();
 

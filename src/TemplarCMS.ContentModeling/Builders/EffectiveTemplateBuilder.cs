@@ -73,11 +73,10 @@ public sealed class EffectiveTemplateBuilder : IEffectiveTemplateBuilder
             }
         }
 
-        return sectionsByKey
+        return [.. sectionsByKey
             .Values
             .OrderBy(section => section.SortOrder)
-            .Select(section => section.ToSectionDefinition())
-            .ToArray();
+            .Select(section => section.ToSectionDefinition())];
     }
 
     private sealed class SectionAccumulator

@@ -48,7 +48,7 @@ public sealed class FieldDefinition
         IsUnversioned = isUnversioned;
         Metadata = metadata != null
             ? new Dictionary<string, string>(metadata)
-            : new Dictionary<string, string>();
+            : [];
     }
 
     /// <summary>

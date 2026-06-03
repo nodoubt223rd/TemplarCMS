@@ -18,12 +18,11 @@ public sealed class TemplateValidator : ITemplateValidator
         {
             return Task.FromResult(
                 new ValidationResult(
-                    new[]
-                    {
+                    [
                         new ValidationError(
                             "TemplateRequired",
                             "Template definition is required.")
-                    }));
+                    ]));
         }
 
         var errors = new List<ValidationError>();

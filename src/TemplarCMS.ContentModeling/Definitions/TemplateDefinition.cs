@@ -39,8 +39,8 @@ public sealed class TemplateDefinition
         Id = id;
         Name = name.Trim();
         Key = key.Trim();
-        BaseTemplates = baseTemplates?.ToArray() ?? Array.Empty<TemplateDefinition>();
-        Sections = sections?.ToArray() ?? Array.Empty<TemplateSectionDefinition>();
+        BaseTemplates = baseTemplates?.ToArray() ?? [];
+        Sections = sections?.ToArray() ?? [];
     }
 
     /// <summary>

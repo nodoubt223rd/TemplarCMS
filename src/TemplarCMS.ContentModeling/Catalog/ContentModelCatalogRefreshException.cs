@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using TemplarCMS.ContentModeling.Validation;
 
 namespace TemplarCMS.ContentModeling.Catalog
@@ -24,7 +21,7 @@ namespace TemplarCMS.ContentModeling.Catalog
             IReadOnlyCollection<ValidationError> errors)
             : base("The content model catalog could not be refreshed because one or more content model validation errors occurred.")
         {
-            Errors = errors?.ToArray() ?? Array.Empty<ValidationError>();
+            Errors = errors?.ToArray() ?? [];
         }
 
         /// <summary>

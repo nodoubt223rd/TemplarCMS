@@ -61,13 +61,13 @@ public sealed class EffectiveTemplateBuilderTests
         var baseTemplate = CreateTemplate(
             "Base Page",
             "base-page",
-            sections: new[] { seoSection });
+            sections: [seoSection]);
 
         var articleTemplate = CreateTemplate(
             "Article Page",
             "article-page",
-            baseTemplates: new[] { baseTemplate },
-            sections: new[] { contentSection });
+            baseTemplates: [baseTemplate],
+            sections: [contentSection]);
 
         var builder = CreateBuilder();
 
@@ -100,13 +100,13 @@ public sealed class EffectiveTemplateBuilderTests
         var baseTemplate = CreateTemplate(
             "Base Page",
             "base-page",
-            sections: new[] { baseContentSection });
+            sections: [baseContentSection]);
 
         var articleTemplate = CreateTemplate(
             "Article Page",
             "article-page",
-            baseTemplates: new[] { baseTemplate },
-            sections: new[] { derivedContentSection });
+            baseTemplates: [baseTemplate],
+            sections: [derivedContentSection]);
 
         var builder = CreateBuilder();
 
@@ -143,13 +143,13 @@ public sealed class EffectiveTemplateBuilderTests
         var baseTemplate = CreateTemplate(
             "Base Page",
             "base-page",
-            sections: new[] { baseSection });
+            sections: [baseSection]);
 
         var articleTemplate = CreateTemplate(
             "Article Page",
             "article-page",
-            baseTemplates: new[] { baseTemplate },
-            sections: new[] { derivedSection });
+            baseTemplates: [baseTemplate],
+            sections: [derivedSection]);
 
         var builder = CreateBuilder();
 
@@ -197,13 +197,13 @@ public sealed class EffectiveTemplateBuilderTests
         var baseTemplate = CreateTemplate(
             "Base Page",
             "base-page",
-            sections: new[] { baseSection });
+            sections: [baseSection]);
 
         var articleTemplate = CreateTemplate(
             "Article Page",
             "article-page",
-            baseTemplates: new[] { baseTemplate },
-            sections: new[] { derivedSection });
+            baseTemplates: [baseTemplate],
+            sections: [derivedSection]);
 
         var builder = CreateBuilder();
 
@@ -236,7 +236,7 @@ public sealed class EffectiveTemplateBuilderTests
             .ResolveAsync(template, Arg.Any<CancellationToken>())
             .Returns(new ValidationResult<IReadOnlyCollection<TemplateDefinition>>(
                 null,
-                new[] { error }));
+                [error]));
 
         var builder = new EffectiveTemplateBuilder(inheritanceResolver);
 

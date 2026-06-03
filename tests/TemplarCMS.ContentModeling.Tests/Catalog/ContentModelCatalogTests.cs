@@ -92,7 +92,7 @@ public sealed class ContentModelCatalogTests
         context.TemplateRepository
             .GetTemplatesAsync(Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<IReadOnlyCollection<TemplateDefinition>>(
-                new[] { template }));
+                [template]));
 
         context.TemplateValidator
             .ValidateAsync(template, Arg.Any<CancellationToken>())
@@ -155,7 +155,7 @@ public sealed class ContentModelCatalogTests
         context.TemplateRepository
             .GetTemplatesAsync(Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<IReadOnlyCollection<TemplateDefinition>>(
-                new[] { template }));
+                [template]));
 
         context.TemplateValidator
             .ValidateAsync(template, Arg.Any<CancellationToken>())
@@ -165,7 +165,7 @@ public sealed class ContentModelCatalogTests
             .BuildEffectiveTemplateAsync(template, Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(new ValidationResult<EffectiveTemplateDefinition>(
                 null,
-                new[] { error })));
+                [error])));
 
         var exception = await Assert.ThrowsAsync<ContentModelCatalogRefreshException>(
             () => context.Catalog.RefreshAsync(cancellationToken));
@@ -190,7 +190,7 @@ public sealed class ContentModelCatalogTests
             templateRepository
                 .GetTemplatesAsync(Arg.Any<CancellationToken>())
                 .Returns(Task.FromResult<IReadOnlyCollection<TemplateDefinition>>(
-                    new[] { template }));
+                    [template]));
 
             templateValidator
                 .ValidateAsync(template, Arg.Any<CancellationToken>())

@@ -29,7 +29,7 @@ public sealed class EffectiveTemplateDefinition
         Id = id;
         Name = name.Trim();
         Key = key.Trim();
-        Sections = sections?.ToArray() ?? Array.Empty<TemplateSectionDefinition>();
+        Sections = sections?.ToArray() ?? [];
     }
 
     public Guid Id { get; }
@@ -41,7 +41,5 @@ public sealed class EffectiveTemplateDefinition
     public IReadOnlyCollection<TemplateSectionDefinition> Sections { get; }
 
     public IReadOnlyCollection<FieldDefinition> Fields =>
-        Sections
-            .SelectMany(section => section.Fields)
-            .ToArray();
+        [.. Sections.SelectMany(section => section.Fields)];
 }

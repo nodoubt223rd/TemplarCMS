@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using TemplarCMS.ContentModeling.Definitions;
 
 namespace TemplarCMS.ContentModeling.Catalog

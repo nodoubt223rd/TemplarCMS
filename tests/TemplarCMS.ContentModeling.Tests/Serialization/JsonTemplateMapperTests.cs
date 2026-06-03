@@ -323,10 +323,10 @@ public sealed class JsonTemplateMapperTests
             Name = "Content",
             Key = "content",
             SortOrder = 100,
-            Fields = new List<JsonFieldDefinition>
-            {
+            Fields =
+            [
                 field
-            }
+            ]
         });
 
         return template;

@@ -18,12 +18,11 @@ public sealed class EffectiveTemplateValidator : IEffectiveTemplateValidator
         {
             return Task.FromResult(
                 new ValidationResult(
-                    new[]
-                    {
+                    [
                         new ValidationError(
                             "EffectiveTemplateRequired",
                             "Effective template definition is required.")
-                    }));
+                    ]));
         }
 
         var errors = new List<ValidationError>();

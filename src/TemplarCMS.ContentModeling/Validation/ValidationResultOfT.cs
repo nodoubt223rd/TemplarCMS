@@ -16,7 +16,7 @@ public sealed class ValidationResult<T>
         IReadOnlyCollection<ValidationError>? errors = null)
     {
         Value = value;
-        Errors = errors?.ToArray() ?? Array.Empty<ValidationError>();
+        Errors = errors?.ToArray() ?? [];
     }
 
     /// <summary>
