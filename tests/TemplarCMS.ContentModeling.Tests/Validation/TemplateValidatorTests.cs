@@ -62,6 +62,26 @@ public sealed class TemplateValidatorTests
     }
 
     [Fact]
+    public async Task ValidateAsync_ReturnsDuplicateSectionKey_WhenSectionKeysDifferOnlyByCasing()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var template = CreateTemplate(
+            "Article Page",
+            "article-page",
+            CreateSection("Content", "content"),
+            CreateSection("Main Content", "CONTENT"));
+
+        var validator = new TemplateValidator();
+
+        var result = await validator.ValidateAsync(template, cancellationToken);
+
+        Assert.False(result.IsValid);
+
+        var error = Assert.Single(result.Errors);
+        Assert.Equal("DuplicateSectionKey", error.Code);
+    }
+
+    [Fact]
     public async Task ValidateAsync_ReturnsDuplicateFieldKeyInSection_WhenSectionContainsDuplicateFieldKeys()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
@@ -85,6 +105,30 @@ public sealed class TemplateValidatorTests
             error =>
                 error.Code == "DuplicateFieldKeyInSection" &&
                 error.Target == "content.title");
+    }
+
+    [Fact]
+    public async Task ValidateAsync_ReturnsDuplicateFieldKeyInSection_WhenFieldKeysDifferOnlyByCasing()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var template = CreateTemplate(
+            "Article Page",
+            "article-page",
+            CreateSection(
+                "Content",
+                "content",
+                CreateField("Title", "title"),
+                CreateField("Heading", "TITLE")));
+
+        var validator = new TemplateValidator();
+
+        var result = await validator.ValidateAsync(template, cancellationToken);
+
+        Assert.False(result.IsValid);
+
+        Assert.Contains(
+            result.Errors,
+            error => error.Code == "DuplicateFieldKeyInSection");
     }
 
     [Fact]
@@ -115,6 +159,32 @@ public sealed class TemplateValidatorTests
     }
 
     [Fact]
+    public async Task ValidateAsync_ReturnsDuplicateFieldKeyInTemplate_WhenFieldKeysAcrossSectionsDifferOnlyByCasing()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var template = CreateTemplate(
+            "Article Page",
+            "article-page",
+            CreateSection(
+                "Content",
+                "content",
+                CreateField("Title", "title")),
+            CreateSection(
+                "SEO",
+                "seo",
+                CreateField("Meta Title", "TITLE")));
+
+        var validator = new TemplateValidator();
+
+        var result = await validator.ValidateAsync(template, cancellationToken);
+
+        Assert.False(result.IsValid);
+
+        var error = Assert.Single(result.Errors);
+        Assert.Equal("DuplicateFieldKeyInTemplate", error.Code);
+    }
+
+    [Fact]
     public async Task ValidateAsync_ReturnsSectionFieldKeyCollision_WhenSectionAndFieldShareKey()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
@@ -135,6 +205,28 @@ public sealed class TemplateValidatorTests
         var error = Assert.Single(result.Errors);
         Assert.Equal("SectionFieldKeyCollision", error.Code);
         Assert.Equal("content", error.Target);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_ReturnsSectionFieldKeyCollision_WhenKeysDifferOnlyByCasing()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var template = CreateTemplate(
+            "Article Page",
+            "article-page",
+            CreateSection(
+                "Content",
+                "content",
+                CreateField("Content", "CONTENT")));
+
+        var validator = new TemplateValidator();
+
+        var result = await validator.ValidateAsync(template, cancellationToken);
+
+        Assert.False(result.IsValid);
+
+        var error = Assert.Single(result.Errors);
+        Assert.Equal("SectionFieldKeyCollision", error.Code);
     }
 
     [Fact]
@@ -163,6 +255,24 @@ public sealed class TemplateValidatorTests
         Assert.Contains(result.Errors, error => error.Code == "DuplicateSectionKey");
         Assert.Contains(result.Errors, error => error.Code == "DuplicateFieldKeyInSection");
         Assert.Contains(result.Errors, error => error.Code == "SectionFieldKeyCollision");
+    }
+
+    [Fact]
+    public async Task ValidateAsync_ShouldThrow_WhenCancellationRequested()
+    {
+        var template = CreateTemplate(
+            "Article Page",
+            "article-page");
+
+        using var cancellationTokenSource = new CancellationTokenSource();
+        cancellationTokenSource.Cancel();
+
+        var validator = new TemplateValidator();
+
+        await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            validator.ValidateAsync(
+                template,
+                cancellationTokenSource.Token));
     }
 
     private static TemplateDefinition CreateTemplate(
