@@ -9,7 +9,8 @@ namespace TemplarCMS.ContentModeling.Resolvers;
 /// </summary>
 public sealed class TemplateInheritanceResolver : ITemplateInheritanceResolver
 {
-    public Task<ValidationResult<IReadOnlyCollection<TemplateDefinition>>> ResolveAsync(
+    /// <inheritdoc />
+    public Task<ValidationResult<InheritedTemplateDefinition>> ResolveAsync(
         TemplateDefinition template,
         CancellationToken cancellationToken = default)
     {
@@ -25,13 +26,22 @@ public sealed class TemplateInheritanceResolver : ITemplateInheritanceResolver
             };
 
             return Task.FromResult(
-                new ValidationResult<IReadOnlyCollection<TemplateDefinition>>(null, errors));
+                new ValidationResult<InheritedTemplateDefinition>(
+                    null,
+                    errors));
         }
 
-        var resolvedTemplates = new List<TemplateDefinition>();
-        var errorsList = new List<ValidationError>();
-        var visiting = new HashSet<Guid>();
-        var visited = new HashSet<Guid>();
+        var resolvedTemplates =
+            new List<TemplateDefinition>();
+
+        var errorsList =
+            new List<ValidationError>();
+
+        var visiting =
+            new HashSet<Guid>();
+
+        var visited =
+            new HashSet<Guid>();
 
         ResolveTemplate(
             template,
@@ -44,11 +54,19 @@ public sealed class TemplateInheritanceResolver : ITemplateInheritanceResolver
         if (errorsList.Count > 0)
         {
             return Task.FromResult(
-                new ValidationResult<IReadOnlyCollection<TemplateDefinition>>(null, errorsList));
+                new ValidationResult<InheritedTemplateDefinition>(
+                    null,
+                    errorsList));
         }
 
+        var inheritedTemplate =
+            new InheritedTemplateDefinition(
+                template,
+                resolvedTemplates);
+
         return Task.FromResult(
-            new ValidationResult<IReadOnlyCollection<TemplateDefinition>>(resolvedTemplates));
+            new ValidationResult<InheritedTemplateDefinition>(
+                inheritedTemplate));
     }
 
     private static void ResolveTemplate(
@@ -61,7 +79,8 @@ public sealed class TemplateInheritanceResolver : ITemplateInheritanceResolver
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var templateId = template.Id;
+        var templateId =
+            template.Id;
 
         if (visiting.Contains(templateId))
         {
@@ -81,10 +100,10 @@ public sealed class TemplateInheritanceResolver : ITemplateInheritanceResolver
 
         visiting.Add(templateId);
 
-        foreach (var baseTemplate in template.BaseTemplates)
+        if (template.BaseTemplate != null)
         {
             ResolveTemplate(
-                baseTemplate,
+                template.BaseTemplate,
                 resolvedTemplates,
                 errors,
                 visiting,

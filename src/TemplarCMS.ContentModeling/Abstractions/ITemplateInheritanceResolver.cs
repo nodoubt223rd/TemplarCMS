@@ -8,7 +8,7 @@ namespace TemplarCMS.ContentModeling.Abstractions;
 /// </summary>
 public interface ITemplateInheritanceResolver
 {
-    Task<ValidationResult<IReadOnlyCollection<TemplateDefinition>>> ResolveAsync(
+    Task<ValidationResult<InheritedTemplateDefinition>> ResolveAsync(
         TemplateDefinition template,
         CancellationToken cancellationToken = default);
 }
