@@ -29,7 +29,8 @@ public sealed class EffectiveTemplateBuilder : IEffectiveTemplateBuilder
                 inheritanceResult.Errors);
         }
 
-        var sections = BuildSections(inheritanceResult.Value);
+        var sections = BuildSections(
+            inheritanceResult.Value.InheritanceChain);
 
         var effectiveTemplate = new EffectiveTemplateDefinition(
             template.Id,
@@ -41,11 +42,11 @@ public sealed class EffectiveTemplateBuilder : IEffectiveTemplateBuilder
     }
 
     private static IReadOnlyCollection<TemplateSectionDefinition> BuildSections(
-        IReadOnlyCollection<TemplateDefinition> resolvedTemplates)
+        IReadOnlyList<TemplateDefinition> inheritanceChain)
     {
         var sectionsByKey = new Dictionary<string, SectionAccumulator>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var template in resolvedTemplates)
+        foreach (var template in inheritanceChain)
         {
             foreach (var section in template.Sections.OrderBy(section => section.SortOrder))
             {
