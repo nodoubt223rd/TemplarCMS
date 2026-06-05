@@ -7,13 +7,13 @@ namespace TemplarCMS.ContentModeling.Tests.TestUtilities
         public static TemplateDefinition Create(
             string name,
             string key,
-            params TemplateDefinition[] baseTemplates)
+            TemplateDefinition baseTemplate)
         {
             return new TemplateDefinition(
                 Guid.NewGuid(),
                 name,
                 key,
-                baseTemplates);
+                baseTemplate);
         }
     }
 }

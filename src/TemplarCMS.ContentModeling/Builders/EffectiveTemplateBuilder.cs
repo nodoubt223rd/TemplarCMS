@@ -17,10 +17,13 @@ public sealed class EffectiveTemplateBuilder : IEffectiveTemplateBuilder
     }
 
     public async Task<ValidationResult<EffectiveTemplateDefinition>> BuildEffectiveTemplateAsync(
-        TemplateDefinition template,
-        CancellationToken cancellationToken = default)
+    TemplateDefinition template,
+    CancellationToken cancellationToken = default)
     {
-        var inheritanceResult = await _inheritanceResolver.ResolveAsync(template, cancellationToken);
+        var inheritanceResult =
+            await _inheritanceResolver.ResolveAsync(
+                template,
+                cancellationToken);
 
         if (!inheritanceResult.IsValid || inheritanceResult.Value == null)
         {
@@ -32,13 +35,15 @@ public sealed class EffectiveTemplateBuilder : IEffectiveTemplateBuilder
         var sections = BuildSections(
             inheritanceResult.Value.InheritanceChain);
 
-        var effectiveTemplate = new EffectiveTemplateDefinition(
-            template.Id,
-            template.Name,
-            template.Key,
-            sections);
+        var effectiveTemplate =
+            new EffectiveTemplateDefinition(
+                template.Id,
+                template.Name,
+                template.Key,
+                sections);
 
-        return new ValidationResult<EffectiveTemplateDefinition>(effectiveTemplate);
+        return new ValidationResult<EffectiveTemplateDefinition>(
+            effectiveTemplate);
     }
 
     private static IReadOnlyCollection<TemplateSectionDefinition> BuildSections(

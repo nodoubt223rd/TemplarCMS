@@ -17,7 +17,7 @@ namespace TemplarCMS.ContentModeling.Tests.Resolvers
             var articleTemplate = TestTemplateFactory.Create(
                 "Article",
                 "article",
-                [baseTemplate]);
+                baseTemplate);
 
             var sut = new TemplateInheritanceResolver();
 
@@ -26,42 +26,8 @@ namespace TemplarCMS.ContentModeling.Tests.Resolvers
             Assert.True(result.Succeeded);
 
             Assert.Collection(
-                result.Value!,
+                result.Value!.InheritanceChain,
                 item => Assert.Equal("base-seo", item.Key),
-                item => Assert.Equal("article", item.Key));
-        }
-
-        [Fact]
-        public async Task ResolveAsync_ReturnsResolvedChain_ForMultipleBaseTemplates()
-        {
-            var cancellationToken = TestContext.Current.CancellationToken;
-            var seoTemplate = new TemplateDefinitionBuilder()
-                .WithNameAndKey("Base SEO", "base-seo")
-                .Build();
-
-            var auditingTemplate = new TemplateDefinitionBuilder()
-                .WithNameAndKey("Base Auditing", "base-auditing")
-                .Build();
-
-
-            var articleTemplate = TestTemplateFactory.Create(
-                "Article",
-                "article",
-                [
-            seoTemplate,
-            auditingTemplate
-                ]);
-
-            var sut = new TemplateInheritanceResolver();
-
-            var result = await sut.ResolveAsync(articleTemplate, cancellationToken);
-
-            Assert.True(result.Succeeded);
-
-            Assert.Collection(
-                result.Value!,
-                item => Assert.Equal("base-seo", item.Key),
-                item => Assert.Equal("base-auditing", item.Key),
                 item => Assert.Equal("article", item.Key));
         }
 
@@ -76,12 +42,12 @@ namespace TemplarCMS.ContentModeling.Tests.Resolvers
             var baseSeo = TestTemplateFactory.Create(
                 "Base SEO",
                 "base-seo",
-                [baseContent]);
+                baseContent);
 
             var article = TestTemplateFactory.Create(
                 "Article",
                 "article",
-                [baseSeo]);
+                baseSeo);
 
             var sut = new TemplateInheritanceResolver();
 
@@ -90,7 +56,7 @@ namespace TemplarCMS.ContentModeling.Tests.Resolvers
             Assert.True(result.Succeeded);
 
             Assert.Collection(
-                result.Value!,
+                result.Value!.InheritanceChain,
                 item => Assert.Equal("base-content", item.Key),
                 item => Assert.Equal("base-seo", item.Key),
                 item => Assert.Equal("article", item.Key));

@@ -66,7 +66,7 @@ public sealed class EffectiveTemplateBuilderTests
         var articleTemplate = CreateTemplate(
             "Article Page",
             "article-page",
-            baseTemplates: [baseTemplate],
+            baseTemplate: baseTemplate,
             sections: [contentSection]);
 
         var builder = CreateBuilder();
@@ -105,7 +105,7 @@ public sealed class EffectiveTemplateBuilderTests
         var articleTemplate = CreateTemplate(
             "Article Page",
             "article-page",
-            baseTemplates: [baseTemplate],
+            baseTemplate: baseTemplate,
             sections: [derivedContentSection]);
 
         var builder = CreateBuilder();
@@ -148,7 +148,7 @@ public sealed class EffectiveTemplateBuilderTests
         var articleTemplate = CreateTemplate(
             "Article Page",
             "article-page",
-            baseTemplates: [baseTemplate],
+            baseTemplate: baseTemplate,
             sections: [derivedSection]);
 
         var builder = CreateBuilder();
@@ -202,7 +202,7 @@ public sealed class EffectiveTemplateBuilderTests
         var articleTemplate = CreateTemplate(
             "Article Page",
             "article-page",
-            baseTemplates: [baseTemplate],
+            baseTemplate: baseTemplate,
             sections: [derivedSection]);
 
         var builder = CreateBuilder();
@@ -234,7 +234,7 @@ public sealed class EffectiveTemplateBuilderTests
         var inheritanceResolver = Substitute.For<ITemplateInheritanceResolver>();
         inheritanceResolver
             .ResolveAsync(template, Arg.Any<CancellationToken>())
-            .Returns(new ValidationResult<IReadOnlyCollection<TemplateDefinition>>(
+            .Returns(new ValidationResult<InheritedTemplateDefinition>(
                 null,
                 [error]));
 
@@ -257,14 +257,14 @@ public sealed class EffectiveTemplateBuilderTests
     private static TemplateDefinition CreateTemplate(
         string name,
         string key,
-        IReadOnlyCollection<TemplateDefinition>? baseTemplates = null,
+        TemplateDefinition? baseTemplate = null,
         IReadOnlyCollection<TemplateSectionDefinition>? sections = null)
     {
         return new TemplateDefinition(
             Guid.NewGuid(),
             name,
             key,
-            baseTemplates,
+            baseTemplate,
             sections);
     }
 

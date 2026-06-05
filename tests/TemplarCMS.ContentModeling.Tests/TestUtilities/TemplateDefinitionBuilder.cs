@@ -8,7 +8,7 @@ namespace TemplarCMS.ContentModeling.Tests.TestUtilities
         private string _name = "Test Template";
         private string _key = "test-template";
 
-        private readonly List<TemplateDefinition> _baseTemplates = new List<TemplateDefinition>();
+        private TemplateDefinition? _baseTemplate;
         private readonly List<TemplateSectionDefinition> _sections = new List<TemplateSectionDefinition>();
 
         public TemplateDefinitionBuilder WithId(Guid id)
@@ -32,15 +32,15 @@ namespace TemplarCMS.ContentModeling.Tests.TestUtilities
         public TemplateDefinitionBuilder WithNameAndKey(
         string name,
         string key)
-            {
-                _name = name;
-                _key = key;
-                return this;
-            }
+        {
+            _name = name;
+            _key = key;
+            return this;
+        }
 
         public TemplateDefinitionBuilder WithBaseTemplate(TemplateDefinition template)
         {
-            _baseTemplates.Add(template);
+            _baseTemplate = template;
             return this;
         }
 
@@ -56,7 +56,7 @@ namespace TemplarCMS.ContentModeling.Tests.TestUtilities
                 _id,
                 _name,
                 _key,
-                _baseTemplates,
+                _baseTemplate,
                 _sections);
         }
     }
