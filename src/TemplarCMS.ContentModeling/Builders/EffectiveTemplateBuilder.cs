@@ -17,8 +17,8 @@ public sealed class EffectiveTemplateBuilder : IEffectiveTemplateBuilder
     }
 
     public async Task<ValidationResult<EffectiveTemplateDefinition>> BuildEffectiveTemplateAsync(
-    TemplateDefinition template,
-    CancellationToken cancellationToken = default)
+        TemplateDefinition template,
+        CancellationToken cancellationToken = default)
     {
         var inheritanceResult =
             await _inheritanceResolver.ResolveAsync(
