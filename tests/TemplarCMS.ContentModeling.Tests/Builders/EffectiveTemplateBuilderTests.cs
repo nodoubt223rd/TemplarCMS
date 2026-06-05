@@ -221,6 +221,129 @@ public sealed class EffectiveTemplateBuilderTests
     }
 
     [Fact]
+    public async Task BuildEffectiveTemplateAsync_MergesFieldsAcrossDeepInheritanceChain()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var baseContentSection = CreateSection(
+            "SEO",
+            "seo",
+            100,
+            CreateField("Meta Title", "meta-title"));
+
+        var basePageSection = CreateSection(
+            "SEO",
+            "seo",
+            100,
+            CreateField("Meta Description", "meta-description"));
+
+        var articleSection = CreateSection(
+            "Content",
+            "content",
+            200,
+            CreateField("Title", "title"));
+
+        var baseContent = CreateTemplate(
+            "Base Content",
+            "base-content",
+            sections: [baseContentSection]);
+
+        var basePage = CreateTemplate(
+            "Base Page",
+            "base-page",
+            baseTemplate: baseContent,
+            sections: [basePageSection]);
+
+        var articleTemplate = CreateTemplate(
+            "Article Page",
+            "article-page",
+            baseTemplate: basePage,
+            sections: [articleSection]);
+
+        var builder = CreateBuilder();
+
+        var result = await builder.BuildEffectiveTemplateAsync(articleTemplate, cancellationToken);
+
+        Assert.True(result.Succeeded);
+        Assert.NotNull(result.Value);
+
+        Assert.Collection(
+            result.Value!.Sections,
+            section =>
+            {
+                Assert.Equal("seo", section.Key);
+                Assert.Collection(
+                    section.Fields,
+                    field => Assert.Equal("meta-title", field.Key),
+                    field => Assert.Equal("meta-description", field.Key));
+            },
+            section =>
+            {
+                Assert.Equal("content", section.Key);
+                var field = Assert.Single(section.Fields);
+                Assert.Equal("title", field.Key);
+            });
+    }
+
+    [Fact]
+    public async Task BuildEffectiveTemplateAsync_AppliesOverrides_CaseInsensitively()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var baseTitleField = new FieldDefinition(
+            Guid.NewGuid(),
+            "Base Title",
+            "title",
+            FieldType.SingleLineText);
+
+        var derivedTitleField = new FieldDefinition(
+            Guid.NewGuid(),
+            "Article Title",
+            "Title",
+            FieldType.RichText);
+
+        var baseSection = CreateSection(
+            "Base Content",
+            "content",
+            100,
+            baseTitleField);
+
+        var derivedSection = CreateSection(
+            "Article Content",
+            "Content",
+            50,
+            derivedTitleField);
+
+        var baseTemplate = CreateTemplate(
+            "Base Page",
+            "base-page",
+            sections: [baseSection]);
+
+        var articleTemplate = CreateTemplate(
+            "Article Page",
+            "article-page",
+            baseTemplate: baseTemplate,
+            sections: [derivedSection]);
+
+        var builder = CreateBuilder();
+
+        var result = await builder.BuildEffectiveTemplateAsync(articleTemplate, cancellationToken);
+
+        Assert.True(result.Succeeded);
+        Assert.NotNull(result.Value);
+
+        var section = Assert.Single(result.Value!.Sections);
+        Assert.Equal(derivedSection.Id, section.Id);
+        Assert.Equal("Article Content", section.Name);
+        Assert.Equal("content", section.Key);
+        Assert.Equal(50, section.SortOrder);
+
+        var field = Assert.Single(section.Fields);
+        Assert.Equal(derivedTitleField.Id, field.Id);
+        Assert.Equal("Article Title", field.Name);
+        Assert.Equal("Title", field.Key);
+        Assert.Equal(FieldType.RichText, field.FieldType);
+    }
+
+    [Fact]
     public async Task BuildEffectiveTemplateAsync_ReturnsErrors_WhenInheritanceResolutionFails()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
