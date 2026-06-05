@@ -70,7 +70,7 @@ public sealed class JsonTemplateRepositoryTests
             CreateRepository(missingPath);
 
         await Assert.ThrowsAsync<DirectoryNotFoundException>(() =>
-            repository.GetTemplatesAsync());
+            repository.GetTemplatesAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -98,7 +98,7 @@ public sealed class JsonTemplateRepositoryTests
             CreateRepository(directory.Path);
 
         var result =
-            await repository.GetTemplatesAsync();
+            await repository.GetTemplatesAsync(TestContext.Current.CancellationToken);
 
         var template =
             Assert.Single(result);
@@ -161,7 +161,7 @@ public sealed class JsonTemplateRepositoryTests
             CreateRepository(directory.Path);
 
         var result =
-            await repository.GetTemplatesAsync();
+            await repository.GetTemplatesAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(
             new[]
@@ -198,7 +198,7 @@ public sealed class JsonTemplateRepositoryTests
             CreateRepository(directory.Path);
 
         await Assert.ThrowsAsync<JsonException>(() =>
-            repository.GetTemplatesAsync());
+            repository.GetTemplatesAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -214,7 +214,7 @@ public sealed class JsonTemplateRepositoryTests
             CreateRepository(directory.Path);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            repository.GetTemplatesAsync());
+            repository.GetTemplatesAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
