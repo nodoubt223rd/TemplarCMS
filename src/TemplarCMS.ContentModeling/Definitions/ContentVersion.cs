@@ -4,7 +4,7 @@ namespace TemplarCMS.ContentModeling.Definitions;
 /// Represents a content version number.
 /// </summary>
 /// <param name="Value">The version value.</param>
-public readonly record struct ContentVersion(int Value)
+public readonly record struct ContentVersion
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="ContentVersion" /> struct.
@@ -12,7 +12,6 @@ public readonly record struct ContentVersion(int Value)
     /// <param name="value">The version value.</param>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when the version value is negative.</exception>
     public ContentVersion(int value)
-        : this()
     {
         if (value < 0)
         {
@@ -23,6 +22,11 @@ public readonly record struct ContentVersion(int Value)
 
         Value = value;
     }
+
+    /// <summary>
+    ///    
+    /// </summary>
+    public int Value { get; }
 
     /// <summary>
     /// Gets the shared value version.
