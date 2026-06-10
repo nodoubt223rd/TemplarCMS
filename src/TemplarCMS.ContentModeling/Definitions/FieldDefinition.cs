@@ -90,4 +90,14 @@ public sealed class FieldDefinition
     /// Gets a value indicating whether this field is versioned.
     /// </summary>
     public bool IsVersioned => !IsShared && !IsUnversioned;
+
+    /// <summary>
+    /// Gets how the field value varies across languages and versions.
+    /// </summary>
+    public FieldValueScope ValueScope =>
+        IsShared
+            ? FieldValueScope.Shared
+            : IsUnversioned
+                ? FieldValueScope.Unversioned
+                : FieldValueScope.Versioned;
 }
