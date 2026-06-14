@@ -8,11 +8,18 @@ public interface IFieldValueResolutionPolicy
     /// <summary>
     /// Resolves the best matching field value for the supplied field definition and request.
     /// </summary>
-    /// <param name="fieldDefinition">The field definition that owns the value scope rules.</param>
-    /// <param name="values">The candidate values for the field.</param>
-    /// <param name="language">The requested content language.</param>
-    /// <param name="version">The requested content version.</param>
-    /// <returns>The resolved content field value, or <see langword="null" /> when no value matches.</returns>
+    /// <param name="fieldDefinition">
+    /// The field definition that owns the value scope rules.
+    /// </param>
+    /// <param name="values">
+    /// The candidate values for the field.
+    /// </param>
+    /// <param name="context">
+    /// The field value resolution request.
+    /// </param>
+    /// <returns>
+    /// The resolved content field value, or <see langword="null"/> when no value matches.
+    /// </returns>
     ContentFieldValue? Resolve(
         FieldDefinition fieldDefinition,
         IReadOnlyCollection<ContentFieldValue> values,
