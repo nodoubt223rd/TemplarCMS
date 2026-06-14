@@ -123,9 +123,7 @@ public sealed class ExactMatchFieldValueResolutionPolicyTests
     private static FieldDefinition CreateVersionedField() =>
         new(Guid.NewGuid(), "Title", "title", FieldType.SingleLineText);
 
-    private static FieldValueResolutionContext CreateContext(
-    string language,
-    ContentVersion version)
+    private static FieldValueResolutionContext CreateContext(string language, ContentVersion version)
     {
         return new(
             new ContentLanguage(language),

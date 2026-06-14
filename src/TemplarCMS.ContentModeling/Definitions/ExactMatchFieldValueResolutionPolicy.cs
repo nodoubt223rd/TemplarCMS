@@ -12,10 +12,9 @@ namespace TemplarCMS.ContentModeling.Definitions;
 public sealed class ExactMatchFieldValueResolutionPolicy : IFieldValueResolutionPolicy
 {
     /// <inheritdoc />
-    public ContentFieldValue? Resolve(
-    FieldDefinition fieldDefinition,
-    IReadOnlyCollection<ContentFieldValue> values,
-    FieldValueResolutionContext context)
+    public ContentFieldValue? Resolve(FieldDefinition fieldDefinition,
+        IReadOnlyCollection<ContentFieldValue> values,
+        FieldValueResolutionContext context)
     {
         ArgumentNullException.ThrowIfNull(fieldDefinition);
         ArgumentNullException.ThrowIfNull(values);
