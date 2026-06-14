@@ -12,7 +12,8 @@ public interface IFieldValueResolutionPolicy
     /// The field definition that owns the value scope rules.
     /// </param>
     /// <param name="values">
-    /// The candidate values for the field.
+    /// The candidate values for the field. Callers are expected
+    /// to provide values that belong to the supplied field definition.
     /// </param>
     /// <param name="context">
     /// The field value resolution request.
