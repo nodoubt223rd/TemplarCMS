@@ -1,7 +1,7 @@
 namespace TemplarCMS.ContentModeling.Definitions;
 
 /// <summary>
-/// Defines a strategy for resolving stored field values for a requested language and version.
+/// Defines a strategy for resolving stored field values for a field value resolution request.
 /// </summary>
 public interface IFieldValueResolutionPolicy
 {
