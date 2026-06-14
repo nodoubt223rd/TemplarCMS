@@ -13,13 +13,13 @@ public sealed class ExactMatchFieldValueResolutionPolicy : IFieldValueResolution
 {
     /// <inheritdoc />
     public ContentFieldValue? Resolve(
-        FieldDefinition fieldDefinition,
-        IReadOnlyCollection<ContentFieldValue> values,
-        ContentLanguage language,
-        ContentVersion version)
+    FieldDefinition fieldDefinition,
+    IReadOnlyCollection<ContentFieldValue> values,
+    FieldValueResolutionContext context)
     {
         ArgumentNullException.ThrowIfNull(fieldDefinition);
         ArgumentNullException.ThrowIfNull(values);
+        ArgumentNullException.ThrowIfNull(context);
 
         return fieldDefinition.ValueScope switch
         {
@@ -30,14 +30,14 @@ public sealed class ExactMatchFieldValueResolutionPolicy : IFieldValueResolution
             FieldValueScope.Unversioned =>
                 values.FirstOrDefault(
                     value =>
-                        value.Language == language &&
+                        value.Language == context.Language &&
                         value.Version == ContentVersion.Shared),
 
             FieldValueScope.Versioned =>
                 values.FirstOrDefault(
                     value =>
-                        value.Language == language &&
-                        value.Version == version),
+                        value.Language == context.Language &&
+                        value.Version == context.Version),
 
             _ => throw new InvalidOperationException(
                 $"Unsupported field value scope '{fieldDefinition.ValueScope}'.")

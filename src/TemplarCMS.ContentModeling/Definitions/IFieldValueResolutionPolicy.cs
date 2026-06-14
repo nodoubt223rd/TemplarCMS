@@ -16,6 +16,5 @@ public interface IFieldValueResolutionPolicy
     ContentFieldValue? Resolve(
         FieldDefinition fieldDefinition,
         IReadOnlyCollection<ContentFieldValue> values,
-        ContentLanguage language,
-        ContentVersion version);
+        FieldValueResolutionContext context);
 }
