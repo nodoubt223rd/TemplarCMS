@@ -6,11 +6,27 @@ namespace TemplarCMS.ContentModeling.Definitions;
 public interface IContentItemResolver
 {
     /// <summary>
-    /// Resolves a content item.
+    /// Resolves a content item using an effective template definition.
     /// </summary>
+    /// <param name="item">
+    /// The content item being resolved.
+    /// </param>
+    /// <param name="template">
+    /// The effective template definition that describes the final
+    /// runtime shape of the content item.
+    /// </param>
+    /// <param name="values">
+    /// The candidate field values for the content item.
+    /// </param>
+    /// <param name="context">
+    /// The field value resolution request.
+    /// </param>
+    /// <returns>
+    /// A resolved content item.
+    /// </returns>
     ResolvedContentItem Resolve(
         ContentItemDefinition item,
-        InheritedTemplateDefinition template,
+        EffectiveTemplateDefinition template,
         IReadOnlyCollection<ContentFieldValue> values,
         FieldValueResolutionContext context);
 }
