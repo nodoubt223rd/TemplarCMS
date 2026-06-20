@@ -76,10 +76,11 @@ TemplarCMS/
 
 Contains core entities and domain concepts:
 
-- Template
-- TemplateSection
-- TemplateField
-- TemplateBaseTemplate
+- TemplateDefinition
+- TemplateSectionDefinition
+- FieldDefinition
+- InheritedTemplateDefinition
+- EffectiveTemplateDefinition
 - ContentItem
 - FieldValue
 - FieldType
@@ -149,7 +150,7 @@ Contains the Vue.js authoring and administration interface:
 
 ### Template
 
-A template defines the structure of a content item. It contains sections and can inherit from one or more base templates.
+A template defines the structure of a content item. It contains sections and can inherit from a single base template.
 
 Key properties:
 
@@ -158,7 +159,7 @@ Key properties:
 - Key
 - Description
 - Sections
-- BaseTemplates
+- BaseTemplate
 - CreatedUtc
 - UpdatedUtc
 
@@ -191,11 +192,26 @@ Key properties:
 - SettingsJson
 - SortOrder
 
-### TemplateBaseTemplate
+### InheritedTemplateDefinition
 
-Defines template inheritance.
+Represents a template after inheritance resolution but before effective template generation.
 
-A template can inherit fields from one or more base templates. Child templates can override inherited fields by key.
+Key properties:
+
+- Template
+- InheritanceChain
+
+### EffectiveTemplateDefinition
+
+Represents the flattened runtime view after base-to-derived inheritance has been applied.
+
+Key properties:
+
+- Id
+- Name
+- Key
+- Sections
+- Fields
 
 ### ContentItem
 
@@ -269,17 +285,38 @@ Template inheritance allows common fields to be defined once and reused.
 Example:
 
 ```text
-_Base SEO
- ├── Meta Title
- └── Meta Description
-
-Article
- ├── inherits _Base SEO
- ├── Title
- └── Body
+BaseContent
+    ↓
+BasePage
+    ↓
+ArticlePage
 ```
 
-The effective field list for `Article` includes:
+The effective field list for `ArticlePage` includes fields from each template in the chain, resolved from root base template to derived template.
+
+Current content-modeling pipeline:
+
+```text
+JSON
+    ↓
+JsonTemplateRepository
+    ↓
+TemplateDefinition
+    ↓
+TemplateValidator
+    ↓
+TemplateInheritanceResolver
+    ↓
+InheritedTemplateDefinition
+    ↓
+EffectiveTemplateBuilder
+    ↓
+EffectiveTemplateDefinition
+```
+
+For example, if `BaseContent`, `BasePage`, and `ArticlePage` define fields, the effective field list for `ArticlePage` includes the merged result of that ordered chain.
+
+Example effective field list:
 
 - Meta Title
 - Meta Description
@@ -288,11 +325,13 @@ The effective field list for `Article` includes:
 
 Inheritance rules:
 
+- Single inheritance only.
 - Base template fields are resolved first.
 - Child template fields are resolved after base fields.
+- Child definitions override parent definitions by key.
+- Sections with matching keys are merged case-insensitively.
 - If a child field has the same key as a base field, the child definition wins.
 - Cycles are not allowed.
-- Multiple base templates are allowed.
 
 ## 9. Content Tree
 
@@ -396,6 +435,7 @@ GET /api/v1/content/{id}/children?page=1&pageSize=20
 {
   "Name": "Article",
   "Key": "article",
+  "BaseTemplate": null,
   "Sections": [
     {
       "Name": "Content",
@@ -414,10 +454,11 @@ GET /api/v1/content/{id}/children?page=1&pageSize=20
         }
       ]
     }
-  ],
-  "BaseTemplates": []
+  ]
 }
 ```
+
+The authored JSON repository format is documented separately. It currently uses `baseTemplates`, but only a single base template relationship is supported by the domain model and inheritance pipeline.
 
 ## 14. Example Template Response
 
@@ -490,7 +531,9 @@ Initial validations:
 - Template key must be unique.
 - Field keys must be normalized.
 - Field keys must be unique within a template section.
-- Effective field keys should not conflict unless intentionally overridden.
+- Duplicate field keys across a template are rejected unless they are valid inheritance overrides.
+- Section and field key collisions are rejected.
+- Key comparisons are case-insensitive.
 - Template inheritance cycles are rejected.
 - Content item template must exist.
 - Field values can only be set for fields defined by the item’s effective template.
@@ -690,7 +733,7 @@ Before implementation, the following should be confirmed:
 2. Primary database: SQL Server or PostgreSQL.
 3. Whether REST should use pure HAL or a custom HAL-inspired format.
 4. Whether template fields should support strongly typed storage or string/JSON storage.
-5. Whether template inheritance should allow multiple base templates.
+5. Whether the current single-inheritance model is sufficient for foreseeable authoring scenarios.
 6. Whether content paths should be stored or computed.
 7. Whether field value history should be retained after edits.
 8. Whether publishing should be part of the first release or deferred.
@@ -705,7 +748,7 @@ Recommended choices for the first implementation:
 - HAL-inspired JSON.
 - Vue.js admin UI.
 - String/JSON field value storage.
-- Multiple base templates.
+- Single base template inheritance.
 - Stored paths.
 - No publishing in MVP.
 - No auth in MVP.
