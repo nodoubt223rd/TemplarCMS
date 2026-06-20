@@ -8,7 +8,13 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.8" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.22" />
     <PackageReference Include="xunit.v3" Version="3.2.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\TemplarCMS.ContentModeling\TemplarCMS.ContentModeling.csproj" />
+    <ProjectReference Include="..\..\src\TemplarCMS.Persistence\TemplarCMS.Persistence.csproj" />
   </ItemGroup>
 
 </Project>
