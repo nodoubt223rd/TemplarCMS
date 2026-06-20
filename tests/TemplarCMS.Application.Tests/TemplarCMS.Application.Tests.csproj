@@ -11,4 +11,9 @@
     <PackageReference Include="xunit.v3" Version="3.2.2" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\TemplarCMS.Application\TemplarCMS.Application.csproj" />
+    <ProjectReference Include="..\..\src\TemplarCMS.ContentModeling\TemplarCMS.ContentModeling.csproj" />
+  </ItemGroup>
+
 </Project>

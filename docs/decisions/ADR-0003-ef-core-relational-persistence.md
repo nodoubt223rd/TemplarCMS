@@ -74,8 +74,17 @@ Dedicated repositories may be introduced later only when they provide clear valu
 - Published content read models.
 - Search projections.
 - Specialized template lookup behavior.
+- Coordinating content item records with stored field value records.
 
 Avoiding premature repository abstractions keeps the early codebase simpler.
+
+Where a dedicated content repository is introduced, it should be
+purpose-built around content item and field value persistence rather
+than general-purpose CRUD wrappers.
+
+The initial content repository contract uses replace semantics for
+persisting a content item's stored field value set. Merge behavior can
+be introduced later if a concrete use case requires it.
 
 ## Audit Strategy
 
