@@ -82,21 +82,119 @@ public sealed class ContentItemService : IContentItemService
         return resolvedItems;
     }
 
+    /// <inheritdoc />
+    public async Task SaveItemAsync(
+        ContentItemDefinition item,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        await EnsureEffectiveTemplateExistsAsync(
+            item.TemplateId,
+            item.Id,
+            cancellationToken);
+
+        await _contentRepository.SaveItemAsync(
+            item,
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task SaveFieldValuesAsync(
+        Guid itemId,
+        IReadOnlyCollection<ContentFieldValue> values,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(values);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var item =
+            await _contentRepository.GetItemAsync(
+                itemId,
+                cancellationToken);
+
+        if (item == null)
+        {
+            throw new InvalidOperationException(
+                $"Content item '{itemId}' was not found.");
+        }
+
+        var template =
+            await EnsureEffectiveTemplateExistsAsync(
+                item.TemplateId,
+                item.Id,
+                cancellationToken);
+
+        var fieldsById =
+            template.Fields.ToDictionary(
+                field => field.Id);
+
+        foreach (var value in values)
+        {
+            ArgumentNullException.ThrowIfNull(value);
+
+            if (value.ItemId != itemId)
+            {
+                throw new InvalidOperationException(
+                    $"Field value '{value.FieldKey}' does not belong to content item '{itemId}'.");
+            }
+
+            if (!fieldsById.TryGetValue(value.FieldId, out var field))
+            {
+                throw new InvalidOperationException(
+                    $"Field '{value.FieldId}' is not defined by template '{template.Id}'.");
+            }
+
+            if (!string.Equals(
+                    field.Key,
+                    value.FieldKey,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException(
+                    $"Field key '{value.FieldKey}' does not match template field key '{field.Key}' for field '{field.Id}'.");
+            }
+        }
+
+        await _contentRepository.SaveFieldValuesAsync(
+            itemId,
+            values,
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task DeleteItemAsync(
+        Guid itemId,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var children =
+            await _contentRepository.GetChildItemsAsync(
+                itemId,
+                cancellationToken);
+
+        if (children.Count > 0)
+        {
+            throw new InvalidOperationException(
+                $"Content item '{itemId}' cannot be deleted because it has direct child items.");
+        }
+
+        await _contentRepository.DeleteItemAsync(
+            itemId,
+            cancellationToken);
+    }
+
     private async Task<ResolvedContentItem> ResolveItemAsync(
         ContentItemDefinition item,
         FieldValueResolutionContext context,
         CancellationToken cancellationToken)
     {
         var template =
-            await _contentModelCatalog.GetEffectiveTemplateAsync(
+            await EnsureEffectiveTemplateExistsAsync(
                 item.TemplateId,
+                item.Id,
                 cancellationToken);
-
-        if (template == null)
-        {
-            throw new InvalidOperationException(
-                $"Effective template '{item.TemplateId}' was not found for content item '{item.Id}'.");
-        }
 
         var values =
             await _contentRepository.GetFieldValuesAsync(
@@ -108,5 +206,24 @@ public sealed class ContentItemService : IContentItemService
             template,
             values,
             context);
+    }
+
+    private async Task<EffectiveTemplateDefinition> EnsureEffectiveTemplateExistsAsync(
+        Guid templateId,
+        Guid itemId,
+        CancellationToken cancellationToken)
+    {
+        var template =
+            await _contentModelCatalog.GetEffectiveTemplateAsync(
+                templateId,
+                cancellationToken);
+
+        if (template == null)
+        {
+            throw new InvalidOperationException(
+                $"Effective template '{templateId}' was not found for content item '{itemId}'.");
+        }
+
+        return template;
     }
 }

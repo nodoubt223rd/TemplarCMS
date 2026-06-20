@@ -11,7 +11,7 @@ public sealed class ContentItemServiceTests
     [Fact]
     public async Task GetItemAsync_ShouldReturnNull_WhenItemDoesNotExist()
     {
-        var service = CreateService();
+        var (service, _) = CreateService();
 
         var result =
             await service.GetItemAsync(
@@ -30,11 +30,11 @@ public sealed class ContentItemServiceTests
         var values =
             new[]
             {
-                CreateValue(item.Id, template.Fields.Single(field => field.Key == "title").Id, "title", "Home"),
+                CreateValue(item.Id, template.Fields.Single(field => field.Key == "title").Id, "title", "Home", ContentVersion.Shared),
                 CreateValue(item.Id, template.Fields.Single(field => field.Key == "body").Id, "body", "Welcome")
             };
 
-        var service = CreateService(
+        var (service, _) = CreateService(
             new[] { template },
             new[] { item },
             values);
@@ -56,7 +56,7 @@ public sealed class ContentItemServiceTests
     {
         var item = CreateItem(Guid.NewGuid());
 
-        var service = CreateService(
+        var (service, _) = CreateService(
             Array.Empty<EffectiveTemplateDefinition>(),
             new[] { item },
             Array.Empty<ContentFieldValue>());
@@ -83,12 +83,12 @@ public sealed class ContentItemServiceTests
         var values =
             new[]
             {
-                CreateValue(childA.Id, titleFieldId, "title", "A"),
-                CreateValue(childB.Id, titleFieldId, "title", "B"),
-                CreateValue(grandChild.Id, titleFieldId, "title", "C")
+                CreateValue(childA.Id, titleFieldId, "title", "A", ContentVersion.Shared),
+                CreateValue(childB.Id, titleFieldId, "title", "B", ContentVersion.Shared),
+                CreateValue(grandChild.Id, titleFieldId, "title", "C", ContentVersion.Shared)
             };
 
-        var service = CreateService(
+        var (service, _) = CreateService(
             new[] { template },
             new[] { parent, childB, childA, grandChild },
             values);
@@ -108,7 +108,210 @@ public sealed class ContentItemServiceTests
             result.Select(item => item.Fields["title"]?.Value));
     }
 
-    private static ContentItemService CreateService(
+    [Fact]
+    public async Task SaveItemAsync_ShouldPersistItem_WhenTemplateExists()
+    {
+        var template = CreateTemplate("article-page");
+        var item = CreateItem(template.Id);
+        var (service, repository) =
+            CreateService(
+                new[] { template });
+
+        await service.SaveItemAsync(
+            item,
+            TestContext.Current.CancellationToken);
+
+        var stored =
+            await repository.GetItemAsync(
+                item.Id,
+                TestContext.Current.CancellationToken);
+
+        Assert.Same(item, stored);
+    }
+
+    [Fact]
+    public async Task SaveItemAsync_ShouldThrow_WhenTemplateMissing()
+    {
+        var item = CreateItem(Guid.NewGuid());
+        var (service, _) = CreateService();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.SaveItemAsync(
+                item,
+                TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task SaveFieldValuesAsync_ShouldPersistValues_WhenItemAndTemplateFieldExist()
+    {
+        var template = CreateTemplate("article-page");
+        var item = CreateItem(template.Id);
+        var titleField =
+            template.Fields.Single(field => field.Key == "title");
+
+        var values =
+            new[]
+            {
+                CreateValue(item.Id, titleField.Id, "title", "Saved")
+            };
+
+        var (service, repository) =
+            CreateService(
+                new[] { template },
+                new[] { item });
+
+        await service.SaveFieldValuesAsync(
+            item.Id,
+            values,
+            TestContext.Current.CancellationToken);
+
+        var stored =
+            await repository.GetFieldValuesAsync(
+                item.Id,
+                TestContext.Current.CancellationToken);
+
+        var value = Assert.Single(stored);
+        Assert.Equal("Saved", value.Value);
+    }
+
+    [Fact]
+    public async Task SaveFieldValuesAsync_ShouldThrow_WhenItemMissing()
+    {
+        var template = CreateTemplate("article-page");
+        var field =
+            template.Fields.Single(item => item.Key == "title");
+
+        var values =
+            new[]
+            {
+                CreateValue(Guid.NewGuid(), field.Id, "title", "Saved")
+            };
+
+        var (service, _) =
+            CreateService(
+                new[] { template });
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.SaveFieldValuesAsync(
+                Guid.NewGuid(),
+                values,
+                TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task SaveFieldValuesAsync_ShouldThrow_WhenFieldIdMissingFromTemplate()
+    {
+        var template = CreateTemplate("article-page");
+        var item = CreateItem(template.Id);
+
+        var values =
+            new[]
+            {
+                CreateValue(item.Id, Guid.NewGuid(), "title", "Saved")
+            };
+
+        var (service, _) =
+            CreateService(
+                new[] { template },
+                new[] { item });
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.SaveFieldValuesAsync(
+                item.Id,
+                values,
+                TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task SaveFieldValuesAsync_ShouldThrow_WhenFieldKeyDoesNotMatchTemplateField()
+    {
+        var template = CreateTemplate("article-page");
+        var item = CreateItem(template.Id);
+        var titleField =
+            template.Fields.Single(field => field.Key == "title");
+
+        var values =
+            new[]
+            {
+                CreateValue(item.Id, titleField.Id, "headline", "Saved")
+            };
+
+        var (service, _) =
+            CreateService(
+                new[] { template },
+                new[] { item });
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.SaveFieldValuesAsync(
+                item.Id,
+                values,
+                TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task DeleteItemAsync_ShouldDeleteItem_WhenNoDirectChildrenExist()
+    {
+        var template = CreateTemplate("article-page");
+        var item = CreateItem(template.Id);
+        var titleField =
+            template.Fields.Single(field => field.Key == "title");
+
+        var values =
+            new[]
+            {
+                CreateValue(item.Id, titleField.Id, "title", "Saved")
+            };
+
+        var (service, repository) =
+            CreateService(
+                new[] { template },
+                new[] { item },
+                values);
+
+        await service.DeleteItemAsync(
+            item.Id,
+            TestContext.Current.CancellationToken);
+
+        var storedItem =
+            await repository.GetItemAsync(
+                item.Id,
+                TestContext.Current.CancellationToken);
+
+        var storedValues =
+            await repository.GetFieldValuesAsync(
+                item.Id,
+                TestContext.Current.CancellationToken);
+
+        Assert.Null(storedItem);
+        Assert.Empty(storedValues);
+    }
+
+    [Fact]
+    public async Task DeleteItemAsync_ShouldThrow_WhenDirectChildrenExist()
+    {
+        var template = CreateTemplate("article-page");
+        var parent = CreateItem(template.Id);
+        var child = CreateItem(template.Id, parent.Id, "Child", "child");
+
+        var (service, repository) =
+            CreateService(
+                new[] { template },
+                new[] { parent, child });
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.DeleteItemAsync(
+                parent.Id,
+                TestContext.Current.CancellationToken));
+
+        var storedParent =
+            await repository.GetItemAsync(
+                parent.Id,
+                TestContext.Current.CancellationToken);
+
+        Assert.NotNull(storedParent);
+    }
+
+    private static (ContentItemService Service, InMemoryContentRepository Repository) CreateService(
         IReadOnlyCollection<EffectiveTemplateDefinition>? templates = null,
         IReadOnlyCollection<ContentItemDefinition>? items = null,
         IReadOnlyCollection<ContentFieldValue>? values = null)
@@ -144,10 +347,12 @@ public sealed class ContentItemServiceTests
                 new FieldValueResolver(
                     new ExactMatchFieldValueResolutionPolicy()));
 
-        return new ContentItemService(
-            repository,
-            catalog,
-            resolver);
+        return (
+            new ContentItemService(
+                repository,
+                catalog,
+                resolver),
+            repository);
     }
 
     private static FieldValueResolutionContext CreateContext()
@@ -175,14 +380,15 @@ public sealed class ContentItemServiceTests
         Guid itemId,
         Guid fieldId,
         string fieldKey,
-        string? value)
+        string? value,
+        ContentVersion? version = null)
     {
         return new ContentFieldValue(
             itemId,
             fieldId,
             fieldKey,
             new ContentLanguage("en"),
-            ContentVersion.First,
+            version ?? ContentVersion.First,
             value);
     }
 
