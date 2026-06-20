@@ -47,4 +47,47 @@ public interface IContentItemService
         Guid? parentId,
         FieldValueResolutionContext context,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Persists a stored content item.
+    /// </summary>
+    /// <param name="item">
+    /// The content item to create or update.
+    /// </param>
+    /// <param name="cancellationToken">
+    /// A token used to cancel the operation.
+    /// </param>
+    Task SaveItemAsync(
+        ContentItemDefinition item,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Persists stored field values for a content item.
+    /// </summary>
+    /// <param name="itemId">
+    /// The content item identifier that owns the values.
+    /// </param>
+    /// <param name="values">
+    /// The field values to persist.
+    /// </param>
+    /// <param name="cancellationToken">
+    /// A token used to cancel the operation.
+    /// </param>
+    Task SaveFieldValuesAsync(
+        Guid itemId,
+        IReadOnlyCollection<ContentFieldValue> values,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Deletes a stored content item when it has no direct children.
+    /// </summary>
+    /// <param name="itemId">
+    /// The content item identifier to delete.
+    /// </param>
+    /// <param name="cancellationToken">
+    /// A token used to cancel the operation.
+    /// </param>
+    Task DeleteItemAsync(
+        Guid itemId,
+        CancellationToken cancellationToken = default);
 }
