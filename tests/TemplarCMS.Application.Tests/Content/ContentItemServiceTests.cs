@@ -142,6 +142,96 @@ public sealed class ContentItemServiceTests
     }
 
     [Fact]
+    public async Task SaveItemAsync_ShouldThrow_WhenParentMissing()
+    {
+        var template = CreateTemplate("article-page");
+        var item = CreateItem(template.Id, Guid.NewGuid());
+        var (service, _) =
+            CreateService(
+                new[] { template });
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.SaveItemAsync(
+                item,
+                TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task SaveItemAsync_ShouldThrow_WhenItemIsItsOwnParent()
+    {
+        var template = CreateTemplate("article-page");
+        var itemId = Guid.NewGuid();
+        var item =
+            new ContentItemDefinition(
+                itemId,
+                "Home",
+                "home",
+                template.Id,
+                itemId);
+
+        var (service, _) =
+            CreateService(
+                new[] { template });
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.SaveItemAsync(
+                item,
+                TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task SaveItemAsync_ShouldThrow_WhenSiblingKeyAlreadyExists()
+    {
+        var template = CreateTemplate("article-page");
+        var parent = CreateItem(template.Id, name: "Parent", key: "parent");
+        var existingChild = CreateItem(template.Id, parent.Id, "Child A", "home");
+        var newChild = CreateItem(template.Id, parent.Id, "Child B", "HOME");
+
+        var (service, _) =
+            CreateService(
+                new[] { template },
+                new[] { parent, existingChild });
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.SaveItemAsync(
+                newChild,
+                TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task SaveItemAsync_ShouldAllowExistingItemToKeepItsSiblingKey()
+    {
+        var template = CreateTemplate("article-page");
+        var parent = CreateItem(template.Id, name: "Parent", key: "parent");
+        var existingChild = CreateItem(template.Id, parent.Id, "Child A", "home");
+        var updatedChild =
+            new ContentItemDefinition(
+                existingChild.Id,
+                "Child A Updated",
+                "HOME",
+                template.Id,
+                parent.Id);
+
+        var (service, repository) =
+            CreateService(
+                new[] { template },
+                new[] { parent, existingChild });
+
+        await service.SaveItemAsync(
+            updatedChild,
+            TestContext.Current.CancellationToken);
+
+        var stored =
+            await repository.GetItemAsync(
+                existingChild.Id,
+                TestContext.Current.CancellationToken);
+
+        Assert.NotNull(stored);
+        Assert.Equal("Child A Updated", stored.Name);
+        Assert.Equal("HOME", stored.Key);
+    }
+
+    [Fact]
     public async Task SaveFieldValuesAsync_ShouldPersistValues_WhenItemAndTemplateFieldExist()
     {
         var template = CreateTemplate("article-page");
