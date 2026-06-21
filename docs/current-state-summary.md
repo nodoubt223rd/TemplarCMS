@@ -262,11 +262,11 @@ TemplarCMS.Domain.Content
 Contains:
 
 ```csharp
-Id
+ContentItemId Id
 Name
 Key
-TemplateId
-ParentId
+TemplateId TemplateId
+ContentItemId? ParentId
 ```
 
 Intentionally does NOT contain:

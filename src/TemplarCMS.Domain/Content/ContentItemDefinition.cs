@@ -14,25 +14,15 @@ public sealed class ContentItemDefinition
     /// <param name="templateId">The template used by the content item.</param>
     /// <param name="parentId">The optional parent content item identifier.</param>
     public ContentItemDefinition(
-        Guid id,
+        ContentItemId id,
         string name,
         ContentItemKey key,
-        Guid templateId,
-        Guid? parentId = null)
+        TemplateId templateId,
+        ContentItemId? parentId = null)
     {
-        if (id == Guid.Empty)
-        {
-            throw new ArgumentException("Content item id is required.", nameof(id));
-        }
-
         if (string.IsNullOrWhiteSpace(name))
         {
             throw new ArgumentException("Content item name is required.", nameof(name));
-        }
-
-        if (templateId == Guid.Empty)
-        {
-            throw new ArgumentException("Content item template id is required.", nameof(templateId));
         }
 
         Id = id;
@@ -45,7 +35,7 @@ public sealed class ContentItemDefinition
     /// <summary>
     /// Gets the stable content item identifier.
     /// </summary>
-    public Guid Id { get; }
+    public ContentItemId Id { get; }
 
     /// <summary>
     /// Gets the display name of the content item.
@@ -60,10 +50,10 @@ public sealed class ContentItemDefinition
     /// <summary>
     /// Gets the template used by the content item.
     /// </summary>
-    public Guid TemplateId { get; }
+    public TemplateId TemplateId { get; }
 
     /// <summary>
     /// Gets the optional parent content item identifier.
     /// </summary>
-    public Guid? ParentId { get; }
+    public ContentItemId? ParentId { get; }
 }

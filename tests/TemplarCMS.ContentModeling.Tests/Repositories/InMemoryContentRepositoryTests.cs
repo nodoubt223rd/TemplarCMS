@@ -13,7 +13,7 @@ public sealed class InMemoryContentRepositoryTests
 
         var result =
             await repository.GetItemAsync(
-                Guid.NewGuid(),
+                new ContentItemId(Guid.NewGuid()),
                 TestContext.Current.CancellationToken);
 
         Assert.Null(result);
@@ -95,7 +95,7 @@ public sealed class InMemoryContentRepositoryTests
 
         var values =
             await repository.GetFieldValuesAsync(
-                Guid.NewGuid(),
+                new ContentItemId(Guid.NewGuid()),
                 TestContext.Current.CancellationToken);
 
         Assert.Empty(values);
@@ -159,33 +159,15 @@ public sealed class InMemoryContentRepositoryTests
     }
 
     [Fact]
-    public async Task SaveFieldValuesAsync_ShouldThrow_WhenItemIdMissing()
-    {
-        var repository = new InMemoryContentRepository();
-
-        var values =
-            new[]
-            {
-                CreateValue(Guid.NewGuid(), Guid.NewGuid(), "title", "Home")
-            };
-
-        await Assert.ThrowsAsync<ArgumentException>(() =>
-            repository.SaveFieldValuesAsync(
-                Guid.Empty,
-                values,
-                TestContext.Current.CancellationToken));
-    }
-
-    [Fact]
     public async Task SaveFieldValuesAsync_ShouldThrow_WhenValueDoesNotBelongToRequestedItem()
     {
         var repository = new InMemoryContentRepository();
 
-        var itemId = Guid.NewGuid();
+        var itemId = new ContentItemId(Guid.NewGuid());
         var values =
             new[]
             {
-                CreateValue(Guid.NewGuid(), Guid.NewGuid(), "title", "Home")
+                CreateValue(new ContentItemId(Guid.NewGuid()), Guid.NewGuid(), "title", "Home")
             };
 
         await Assert.ThrowsAsync<ArgumentException>(() =>
@@ -229,20 +211,20 @@ public sealed class InMemoryContentRepositoryTests
     }
 
     private static ContentItemDefinition CreateItem(
-        Guid? parentId = null,
+        ContentItemId? parentId = null,
         string name = "Home",
         string key = "home")
     {
         return new ContentItemDefinition(
-            Guid.NewGuid(),
+            new ContentItemId(Guid.NewGuid()),
             name,
             new ContentItemKey(key),
-            Guid.NewGuid(),
+            new TemplateId(Guid.NewGuid()),
             parentId);
     }
 
     private static ContentFieldValue CreateValue(
-        Guid itemId,
+        ContentItemId itemId,
         Guid fieldId,
         string fieldKey,
         string? value)

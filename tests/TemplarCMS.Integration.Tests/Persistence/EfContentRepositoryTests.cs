@@ -106,23 +106,6 @@ public sealed class EfContentRepositoryTests : IDisposable
     }
 
     [Fact]
-    public async Task SaveFieldValuesAsync_ShouldThrow_WhenItemIdMissing()
-    {
-        var repository = CreateRepository();
-        var values =
-            new[]
-            {
-                CreateValue(Guid.NewGuid(), Guid.NewGuid(), "title", "Home")
-            };
-
-        await Assert.ThrowsAsync<ArgumentException>(() =>
-            repository.SaveFieldValuesAsync(
-                Guid.Empty,
-                values,
-                TestContext.Current.CancellationToken));
-    }
-
-    [Fact]
     public async Task SaveFieldValuesAsync_ShouldThrow_WhenValueDoesNotBelongToRequestedItem()
     {
         var repository = CreateRepository();
@@ -130,7 +113,7 @@ public sealed class EfContentRepositoryTests : IDisposable
         var values =
             new[]
             {
-                CreateValue(Guid.NewGuid(), Guid.NewGuid(), "title", "Home")
+                CreateValue(new ContentItemId(Guid.NewGuid()), Guid.NewGuid(), "title", "Home")
             };
 
         await repository.SaveItemAsync(item, TestContext.Current.CancellationToken);
@@ -188,20 +171,20 @@ public sealed class EfContentRepositoryTests : IDisposable
     }
 
     private static ContentItemDefinition CreateItem(
-        Guid? parentId = null,
+        ContentItemId? parentId = null,
         string name = "Home",
         string key = "home")
     {
         return new ContentItemDefinition(
-            Guid.NewGuid(),
+            new ContentItemId(Guid.NewGuid()),
             name,
             new ContentItemKey(key),
-            Guid.NewGuid(),
+            new TemplateId(Guid.NewGuid()),
             parentId);
     }
 
     private static ContentFieldValue CreateValue(
-        Guid itemId,
+        ContentItemId itemId,
         Guid fieldId,
         string fieldKey,
         string? value,

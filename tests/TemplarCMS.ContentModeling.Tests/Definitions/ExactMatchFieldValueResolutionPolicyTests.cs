@@ -112,7 +112,13 @@ public sealed class ExactMatchFieldValueResolutionPolicyTests
 
     private static ContentFieldValue CreateValue(ContentLanguage language, ContentVersion version)
     {
-        return new ContentFieldValue(Guid.NewGuid(), Guid.NewGuid(), "title", language, version, "Home");
+        return new ContentFieldValue(
+            new ContentItemId(Guid.NewGuid()),
+            Guid.NewGuid(),
+            "title",
+            language,
+            version,
+            "Home");
     }
 
     private static FieldDefinition CreateSharedField() =>

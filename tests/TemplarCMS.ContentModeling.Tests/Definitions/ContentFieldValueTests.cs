@@ -10,7 +10,7 @@ public sealed class ContentFieldValueTests
     {
         Assert.Throws<ArgumentException>(
             () => new ContentFieldValue(
-                Guid.Empty,
+                new ContentItemId(Guid.Empty),
                 Guid.NewGuid(),
                 "title",
                 new ContentLanguage("en"),
@@ -23,7 +23,7 @@ public sealed class ContentFieldValueTests
     {
         Assert.Throws<ArgumentException>(
             () => new ContentFieldValue(
-                Guid.NewGuid(),
+                new ContentItemId(Guid.NewGuid()),
                 Guid.Empty,
                 "title",
                 new ContentLanguage("en"),
@@ -36,7 +36,7 @@ public sealed class ContentFieldValueTests
     {
         Assert.Throws<ArgumentException>(
             () => new ContentFieldValue(
-                Guid.NewGuid(),
+                new ContentItemId(Guid.NewGuid()),
                 Guid.NewGuid(),
                 string.Empty,
                 new ContentLanguage("en"),
@@ -48,7 +48,7 @@ public sealed class ContentFieldValueTests
     public void Constructor_TrimsFieldKey()
     {
         var value = new ContentFieldValue(
-            Guid.NewGuid(),
+            new ContentItemId(Guid.NewGuid()),
             Guid.NewGuid(),
             " title ",
             new ContentLanguage("en"),
@@ -65,7 +65,7 @@ public sealed class ContentFieldValueTests
         var version = new ContentVersion(2);
 
         var value = new ContentFieldValue(
-            Guid.NewGuid(),
+            new ContentItemId(Guid.NewGuid()),
             Guid.NewGuid(),
             "title",
             language,
@@ -80,7 +80,7 @@ public sealed class ContentFieldValueTests
     public void Constructor_AllowsNullValue()
     {
         var value = new ContentFieldValue(
-            Guid.NewGuid(),
+            new ContentItemId(Guid.NewGuid()),
             Guid.NewGuid(),
             "title",
             new ContentLanguage("en"),

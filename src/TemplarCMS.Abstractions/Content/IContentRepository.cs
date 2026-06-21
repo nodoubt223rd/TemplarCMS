@@ -30,7 +30,7 @@ namespace TemplarCMS.Abstractions.Content
         /// The stored content item when found; otherwise <see langword="null" />.
         /// </returns>
         Task<ContentItemDefinition?> GetItemAsync(
-            Guid itemId,
+            ContentItemId itemId,
             CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -48,7 +48,7 @@ namespace TemplarCMS.Abstractions.Content
         /// the requested parent.
         /// </returns>
         Task<IReadOnlyCollection<ContentItemDefinition>> GetChildItemsAsync(
-            Guid? parentId,
+            ContentItemId? parentId,
             CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -65,7 +65,7 @@ namespace TemplarCMS.Abstractions.Content
         /// the specified content item.
         /// </returns>
         Task<IReadOnlyCollection<ContentFieldValue>> GetFieldValuesAsync(
-            Guid itemId,
+            ContentItemId itemId,
             CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -104,7 +104,7 @@ namespace TemplarCMS.Abstractions.Content
         /// replace the current stored set or merge into it.
         /// </remarks>
         Task SaveFieldValuesAsync(
-            Guid itemId,
+            ContentItemId itemId,
             IReadOnlyCollection<ContentFieldValue> values,
             CancellationToken cancellationToken = default);
 
@@ -118,7 +118,7 @@ namespace TemplarCMS.Abstractions.Content
         /// A token used to cancel the operation.
         /// </param>
         Task DeleteItemAsync(
-            Guid itemId,
+            ContentItemId itemId,
             CancellationToken cancellationToken = default);
     }
 }
