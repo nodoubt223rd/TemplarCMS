@@ -395,15 +395,15 @@ Potential starting point:
 ```csharp
 public sealed class ContentItemDefinition
 {
-    public Guid Id { get; }
+    public ContentItemId Id { get; }
 
     public string Name { get; }
 
-    public string Key { get; }
+    public ContentItemKey Key { get; }
 
-    public Guid TemplateId { get; }
+    public TemplateId TemplateId { get; }
 
-    public Guid? ParentId { get; }
+    public ContentItemId? ParentId { get; }
 
     public string Path { get; }
 }
@@ -425,6 +425,11 @@ public sealed class ContentFieldValue
 ```
 
 These are only starting sketches. They should be refined before implementation.
+
+Current implementation note:
+
+- `ContentItemId` and `TemplateId` are now first-class strong types in
+  the runtime content model and content service/repository boundaries.
 
 ## Design Questions for the Next Session
 

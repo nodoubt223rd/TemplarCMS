@@ -10,10 +10,10 @@ public sealed class ContentItemDefinitionTests
     {
         Assert.Throws<ArgumentException>(
             () => new ContentItemDefinition(
-                Guid.Empty,
+                new ContentItemId(Guid.Empty),
                 "Home",
                 new ContentItemKey("home"),
-                Guid.NewGuid()));
+                new TemplateId(Guid.NewGuid())));
     }
 
     [Fact]
@@ -21,20 +21,20 @@ public sealed class ContentItemDefinitionTests
     {
         Assert.Throws<ArgumentException>(
             () => new ContentItemDefinition(
-                Guid.NewGuid(),
+                new ContentItemId(Guid.NewGuid()),
                 "Home",
                 new ContentItemKey("home"),
-                Guid.Empty));
+                new TemplateId(Guid.Empty)));
     }
 
     [Fact]
     public void Constructor_TrimsNameAndNormalizesContentItemKey()
     {
         var item = new ContentItemDefinition(
-            Guid.NewGuid(),
+            new ContentItemId(Guid.NewGuid()),
             " Home ",
             new ContentItemKey(" HOME PAGE "),
-            Guid.NewGuid());
+            new TemplateId(Guid.NewGuid()));
 
         Assert.Equal("Home", item.Name);
         Assert.Equal(new ContentItemKey("home-page"), item.Key);
@@ -43,13 +43,13 @@ public sealed class ContentItemDefinitionTests
     [Fact]
     public void Constructor_AllowsParentId()
     {
-        var parentId = Guid.NewGuid();
+        var parentId = new ContentItemId(Guid.NewGuid());
 
         var item = new ContentItemDefinition(
-            Guid.NewGuid(),
+            new ContentItemId(Guid.NewGuid()),
             "Home",
             new ContentItemKey("home"),
-            Guid.NewGuid(),
+            new TemplateId(Guid.NewGuid()),
             parentId);
 
         Assert.Equal(parentId, item.ParentId);
@@ -85,5 +85,19 @@ public sealed class ContentItemDefinitionTests
         var key = new ContentItemKey("  New   Campaign  ");
 
         Assert.Equal("new-campaign", key.Value);
+    }
+
+    [Fact]
+    public void ContentItemId_Throws_WhenValueIsEmpty()
+    {
+        Assert.Throws<ArgumentException>(
+            () => new ContentItemId(Guid.Empty));
+    }
+
+    [Fact]
+    public void TemplateId_Throws_WhenValueIsEmpty()
+    {
+        Assert.Throws<ArgumentException>(
+            () => new TemplateId(Guid.Empty));
     }
 }

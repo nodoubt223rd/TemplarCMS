@@ -91,10 +91,12 @@ API implementations.
 Contains core entities and domain concepts:
 
 - `ContentItemDefinition`
+- `ContentItemId`
 - `ContentItemKey`
 - `ContentFieldValue`
 - `ContentLanguage`
 - `ContentVersion`
+- `TemplateId`
 - `FieldValueResolutionContext`
 - `ResolvedContentItem`
 - `FieldValueScope`
@@ -249,9 +251,9 @@ A content item is an instance of a template and can exist in a tree.
 
 Key properties:
 
-- Id
-- TemplateId
-- ParentId
+- Id (`ContentItemId`)
+- TemplateId (`TemplateId`)
+- ParentId (`ContentItemId?`)
 - Name
 - Slug
 - Path

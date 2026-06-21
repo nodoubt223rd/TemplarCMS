@@ -57,7 +57,7 @@ public sealed class FieldValueResolverTests
             ContentVersion.First);
 
         var expected = new ContentFieldValue(
-            Guid.NewGuid(),
+            new ContentItemId(Guid.NewGuid()),
             Guid.NewGuid(),
             "title",
             new ContentLanguage("en"),

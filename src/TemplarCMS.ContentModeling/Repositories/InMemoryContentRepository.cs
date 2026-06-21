@@ -13,15 +13,15 @@ namespace TemplarCMS.ContentModeling.Repositories
     /// </remarks>
     public sealed class InMemoryContentRepository : IContentRepository
     {
-        private readonly Dictionary<Guid, ContentItemDefinition> _items =
+        private readonly Dictionary<ContentItemId, ContentItemDefinition> _items =
             new();
 
-        private readonly Dictionary<Guid, List<ContentFieldValue>> _fieldValues =
+        private readonly Dictionary<ContentItemId, List<ContentFieldValue>> _fieldValues =
             new();
 
         /// <inheritdoc />
         public Task<ContentItemDefinition?> GetItemAsync(
-            Guid itemId,
+            ContentItemId itemId,
             CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -33,7 +33,7 @@ namespace TemplarCMS.ContentModeling.Repositories
 
         /// <inheritdoc />
         public Task<IReadOnlyCollection<ContentItemDefinition>> GetChildItemsAsync(
-            Guid? parentId,
+            ContentItemId? parentId,
             CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -49,7 +49,7 @@ namespace TemplarCMS.ContentModeling.Repositories
 
         /// <inheritdoc />
         public Task<IReadOnlyCollection<ContentFieldValue>> GetFieldValuesAsync(
-            Guid itemId,
+            ContentItemId itemId,
             CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -79,19 +79,12 @@ namespace TemplarCMS.ContentModeling.Repositories
 
         /// <inheritdoc />
         public Task SaveFieldValuesAsync(
-            Guid itemId,
+            ContentItemId itemId,
             IReadOnlyCollection<ContentFieldValue> values,
             CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ArgumentNullException.ThrowIfNull(values);
-
-            if (itemId == Guid.Empty)
-            {
-                throw new ArgumentException(
-                    "Content item id is required.",
-                    nameof(itemId));
-            }
 
             foreach (var value in values)
             {
@@ -112,7 +105,7 @@ namespace TemplarCMS.ContentModeling.Repositories
 
         /// <inheritdoc />
         public Task DeleteItemAsync(
-            Guid itemId,
+            ContentItemId itemId,
             CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();

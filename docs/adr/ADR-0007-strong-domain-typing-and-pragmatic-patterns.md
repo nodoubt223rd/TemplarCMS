@@ -16,6 +16,9 @@ behavior.
 
 Several parts of the codebase already lean toward explicit modeling:
 
+- `ContentItemId`
+- `TemplateId`
+- `ContentItemKey`
 - `ContentLanguage`
 - `ContentVersion`
 - dedicated application services
@@ -119,7 +122,7 @@ replacement pass. Instead, new types should be introduced when:
 
 The following follow-up work is encouraged:
 
-- identify the next high-value primitive wrappers in content item APIs
+- identify the next high-value primitive wrappers that still remain in content APIs
 - document naming guidance for ids, keys, slugs, and paths
 - keep repository and persistence models explicit when mapping to domain types
 - revisit existing APIs when ambiguity or misuse appears in tests or implementation work

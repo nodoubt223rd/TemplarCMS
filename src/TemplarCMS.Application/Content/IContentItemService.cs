@@ -24,7 +24,7 @@ public interface IContentItemService
     /// The resolved content item when found; otherwise <see langword="null" />.
     /// </returns>
     Task<ResolvedContentItem?> GetItemAsync(
-        Guid itemId,
+        ContentItemId itemId,
         FieldValueResolutionContext context,
         CancellationToken cancellationToken = default);
 
@@ -45,7 +45,7 @@ public interface IContentItemService
     /// A read-only collection of resolved direct child items.
     /// </returns>
     Task<IReadOnlyCollection<ResolvedContentItem>> GetChildItemsAsync(
-        Guid? parentId,
+        ContentItemId? parentId,
         FieldValueResolutionContext context,
         CancellationToken cancellationToken = default);
 
@@ -75,7 +75,7 @@ public interface IContentItemService
     /// A token used to cancel the operation.
     /// </param>
     Task SaveFieldValuesAsync(
-        Guid itemId,
+        ContentItemId itemId,
         IReadOnlyCollection<ContentFieldValue> values,
         CancellationToken cancellationToken = default);
 
@@ -89,6 +89,6 @@ public interface IContentItemService
     /// A token used to cancel the operation.
     /// </param>
     Task DeleteItemAsync(
-        Guid itemId,
+        ContentItemId itemId,
         CancellationToken cancellationToken = default);
 }

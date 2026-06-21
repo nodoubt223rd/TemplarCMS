@@ -29,7 +29,7 @@ public sealed class ContentItemService : IContentItemService
 
     /// <inheritdoc />
     public async Task<ResolvedContentItem?> GetItemAsync(
-        Guid itemId,
+        ContentItemId itemId,
         FieldValueResolutionContext context,
         CancellationToken cancellationToken = default)
     {
@@ -54,7 +54,7 @@ public sealed class ContentItemService : IContentItemService
 
     /// <inheritdoc />
     public async Task<IReadOnlyCollection<ResolvedContentItem>> GetChildItemsAsync(
-        Guid? parentId,
+        ContentItemId? parentId,
         FieldValueResolutionContext context,
         CancellationToken cancellationToken = default)
     {
@@ -111,7 +111,7 @@ public sealed class ContentItemService : IContentItemService
 
     /// <inheritdoc />
     public async Task SaveFieldValuesAsync(
-        Guid itemId,
+        ContentItemId itemId,
         IReadOnlyCollection<ContentFieldValue> values,
         CancellationToken cancellationToken = default)
     {
@@ -173,7 +173,7 @@ public sealed class ContentItemService : IContentItemService
 
     /// <inheritdoc />
     public async Task DeleteItemAsync(
-        Guid itemId,
+        ContentItemId itemId,
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -267,13 +267,13 @@ public sealed class ContentItemService : IContentItemService
     }
 
     private async Task<EffectiveTemplateDefinition> EnsureEffectiveTemplateExistsAsync(
-        Guid templateId,
-        Guid itemId,
+        TemplateId templateId,
+        ContentItemId itemId,
         CancellationToken cancellationToken)
     {
         var template =
             await _contentModelCatalog.GetEffectiveTemplateAsync(
-                templateId,
+                templateId.Value,
                 cancellationToken);
 
         if (template == null)

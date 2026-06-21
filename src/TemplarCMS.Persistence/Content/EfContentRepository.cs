@@ -18,27 +18,32 @@ public sealed class EfContentRepository : IContentRepository
     }
 
     public async Task<ContentItemDefinition?> GetItemAsync(
-        Guid itemId,
+        ContentItemId itemId,
         CancellationToken cancellationToken = default)
     {
         var item =
             await _dbContext.ContentItems
                 .AsNoTracking()
                 .FirstOrDefaultAsync(
-                    value => value.Id == itemId,
+                    value => value.Id == itemId.Value,
                     cancellationToken);
 
         return item == null ? null : MapItem(item);
     }
 
     public async Task<IReadOnlyCollection<ContentItemDefinition>> GetChildItemsAsync(
-        Guid? parentId,
+        ContentItemId? parentId,
         CancellationToken cancellationToken = default)
     {
+        var parentValue =
+            parentId.HasValue
+                ? parentId.Value.Value
+                : (Guid?)null;
+
         var items =
             await _dbContext.ContentItems
                 .AsNoTracking()
-                .Where(value => value.ParentId == parentId)
+                .Where(value => value.ParentId == parentValue)
                 .OrderBy(value => value.Key)
                 .ToListAsync(cancellationToken);
 
@@ -48,13 +53,13 @@ public sealed class EfContentRepository : IContentRepository
     }
 
     public async Task<IReadOnlyCollection<ContentFieldValue>> GetFieldValuesAsync(
-        Guid itemId,
+        ContentItemId itemId,
         CancellationToken cancellationToken = default)
     {
         var values =
             await _dbContext.ContentFieldValues
                 .AsNoTracking()
-                .Where(value => value.ItemId == itemId)
+                .Where(value => value.ItemId == itemId.Value)
                 .OrderBy(value => value.FieldKey)
                 .ThenBy(value => value.Language)
                 .ThenBy(value => value.Version)
@@ -74,7 +79,7 @@ public sealed class EfContentRepository : IContentRepository
         var existing =
             await _dbContext.ContentItems
                 .FirstOrDefaultAsync(
-                    value => value.Id == item.Id,
+                    value => value.Id == item.Id.Value,
                     cancellationToken);
 
         if (existing == null)
@@ -82,37 +87,30 @@ public sealed class EfContentRepository : IContentRepository
             _dbContext.ContentItems.Add(
                 new PersistenceContentItem
                 {
-                    Id = item.Id,
+                    Id = item.Id.Value,
                     Name = item.Name,
                     Key = item.Key.Value,
-                    TemplateId = item.TemplateId,
-                    ParentId = item.ParentId
+                    TemplateId = item.TemplateId.Value,
+                    ParentId = item.ParentId?.Value
                 });
         }
         else
         {
             existing.Name = item.Name;
             existing.Key = item.Key.Value;
-            existing.TemplateId = item.TemplateId;
-            existing.ParentId = item.ParentId;
+            existing.TemplateId = item.TemplateId.Value;
+            existing.ParentId = item.ParentId?.Value;
         }
 
         await _dbContext.SaveChangesAsync(cancellationToken);
     }
 
     public async Task SaveFieldValuesAsync(
-        Guid itemId,
+        ContentItemId itemId,
         IReadOnlyCollection<ContentFieldValue> values,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(values);
-
-        if (itemId == Guid.Empty)
-        {
-            throw new ArgumentException(
-                "Content item id is required.",
-                nameof(itemId));
-        }
 
         foreach (var value in values)
         {
@@ -128,7 +126,7 @@ public sealed class EfContentRepository : IContentRepository
 
         var existingValues =
             await _dbContext.ContentFieldValues
-                .Where(value => value.ItemId == itemId)
+                .Where(value => value.ItemId == itemId.Value)
                 .ToListAsync(cancellationToken);
 
         _dbContext.ContentFieldValues.RemoveRange(existingValues);
@@ -139,7 +137,7 @@ public sealed class EfContentRepository : IContentRepository
                 new PersistenceContentFieldValue
                 {
                     Id = Guid.NewGuid(),
-                    ItemId = value.ItemId,
+                    ItemId = value.ItemId.Value,
                     FieldId = value.FieldId,
                     FieldKey = value.FieldKey,
                     Language = value.Language.ToString(),
@@ -152,13 +150,13 @@ public sealed class EfContentRepository : IContentRepository
     }
 
     public async Task DeleteItemAsync(
-        Guid itemId,
+        ContentItemId itemId,
         CancellationToken cancellationToken = default)
     {
         var item =
             await _dbContext.ContentItems
                 .FirstOrDefaultAsync(
-                    value => value.Id == itemId,
+                    value => value.Id == itemId.Value,
                     cancellationToken);
 
         if (item == null)
@@ -174,18 +172,18 @@ public sealed class EfContentRepository : IContentRepository
         PersistenceContentItem item)
     {
         return new ContentItemDefinition(
-            item.Id,
+            new ContentItemId(item.Id),
             item.Name,
             new ContentItemKey(item.Key),
-            item.TemplateId,
-            item.ParentId);
+            new TemplateId(item.TemplateId),
+            item.ParentId == null ? null : new ContentItemId(item.ParentId.Value));
     }
 
     private static ContentFieldValue MapFieldValue(
         PersistenceContentFieldValue value)
     {
         return new ContentFieldValue(
-            value.ItemId,
+            new ContentItemId(value.ItemId),
             value.FieldId,
             value.FieldKey,
             new ContentLanguage(value.Language),
