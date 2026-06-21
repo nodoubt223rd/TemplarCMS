@@ -16,7 +16,7 @@ public sealed class ContentItemDefinition
     public ContentItemDefinition(
         Guid id,
         string name,
-        string key,
+        ContentItemKey key,
         Guid templateId,
         Guid? parentId = null)
     {
@@ -30,11 +30,6 @@ public sealed class ContentItemDefinition
             throw new ArgumentException("Content item name is required.", nameof(name));
         }
 
-        if (string.IsNullOrWhiteSpace(key))
-        {
-            throw new ArgumentException("Content item key is required.", nameof(key));
-        }
-
         if (templateId == Guid.Empty)
         {
             throw new ArgumentException("Content item template id is required.", nameof(templateId));
@@ -42,7 +37,7 @@ public sealed class ContentItemDefinition
 
         Id = id;
         Name = name.Trim();
-        Key = key.Trim();
+        Key = key;
         TemplateId = templateId;
         ParentId = parentId;
     }
@@ -60,7 +55,7 @@ public sealed class ContentItemDefinition
     /// <summary>
     /// Gets the stable key used to identify the content item among siblings.
     /// </summary>
-    public string Key { get; }
+    public ContentItemKey Key { get; }
 
     /// <summary>
     /// Gets the template used by the content item.

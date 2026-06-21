@@ -236,7 +236,7 @@ public sealed class InMemoryContentRepositoryTests
         return new ContentItemDefinition(
             Guid.NewGuid(),
             name,
-            key,
+            new ContentItemKey(key),
             Guid.NewGuid(),
             parentId);
     }

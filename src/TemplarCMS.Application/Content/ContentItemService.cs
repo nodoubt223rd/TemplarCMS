@@ -256,10 +256,7 @@ public sealed class ContentItemService : IContentItemService
             siblings.FirstOrDefault(
                 sibling =>
                     sibling.Id != item.Id &&
-                    string.Equals(
-                        sibling.Key,
-                        item.Key,
-                        StringComparison.OrdinalIgnoreCase));
+                    sibling.Key == item.Key);
 
         if (conflictingSibling != null)
         {

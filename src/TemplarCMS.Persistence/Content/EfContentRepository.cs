@@ -84,7 +84,7 @@ public sealed class EfContentRepository : IContentRepository
                 {
                     Id = item.Id,
                     Name = item.Name,
-                    Key = item.Key,
+                    Key = item.Key.Value,
                     TemplateId = item.TemplateId,
                     ParentId = item.ParentId
                 });
@@ -92,7 +92,7 @@ public sealed class EfContentRepository : IContentRepository
         else
         {
             existing.Name = item.Name;
-            existing.Key = item.Key;
+            existing.Key = item.Key.Value;
             existing.TemplateId = item.TemplateId;
             existing.ParentId = item.ParentId;
         }
@@ -176,7 +176,7 @@ public sealed class EfContentRepository : IContentRepository
         return new ContentItemDefinition(
             item.Id,
             item.Name,
-            item.Key,
+            new ContentItemKey(item.Key),
             item.TemplateId,
             item.ParentId);
     }
