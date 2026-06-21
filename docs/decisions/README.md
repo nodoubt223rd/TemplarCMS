@@ -41,3 +41,5 @@ Optional follow-up decisions or implementation work.
 | ADR-0003 | Use EF Core and Relational Persistence for MVP | Accepted |
 | ADR-0004 | Use Vue 3 for the Admin Experience | Accepted |
 | ADR-0005 | Define the Template Inheritance Model | Accepted |
+| ADR-0006 | Effective Template Runtime Model | Accepted |
+| ADR-0007 | Strong Domain Typing and Pragmatic Patterns | Accepted |
