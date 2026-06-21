@@ -1,4 +1,4 @@
-namespace TemplarCMS.ContentModeling.Definitions;
+namespace TemplarCMS.Domain.Content;
 
 /// <summary>
 /// Defines how a field value varies across languages and versions.

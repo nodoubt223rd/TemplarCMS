@@ -1,4 +1,4 @@
-namespace TemplarCMS.ContentModeling.Definitions;
+namespace TemplarCMS.Domain.Content;
 
 /// <summary>
 /// Represents a content item within the content tree.

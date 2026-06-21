@@ -1,4 +1,4 @@
-namespace TemplarCMS.ContentModeling.Definitions;
+namespace TemplarCMS.Domain.Content;
 
 /// <summary>
 /// Represents a stable content item key used for sibling lookup.

@@ -1,4 +1,5 @@
-using TemplarCMS.ContentModeling.Definitions;
+using TemplarCMS.Abstractions.Content;
+using TemplarCMS.Domain.Content;
 
 namespace TemplarCMS.ContentModeling.Repositories
 {
