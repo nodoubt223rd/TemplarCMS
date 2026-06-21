@@ -1,5 +1,6 @@
 using TemplarCMS.ContentModeling.Definitions;
 using TemplarCMS.ContentModeling.Serialization;
+using TemplarCMS.Domain.Content;
 using Xunit;
 
 namespace TemplarCMS.ContentModeling.Tests.Serialization;
@@ -75,7 +76,7 @@ public sealed class JsonTemplateMapperTests
         var section = Assert.Single(result.Sections);
         var field = Assert.Single(section.Fields);
 
-        Assert.Equal(fieldId, field.Id);
+        Assert.Equal(new FieldId(fieldId), field.Id);
         Assert.Equal("Title", field.Name);
         Assert.Equal("title", field.Key);
         Assert.Equal(FieldType.SingleLineText, field.FieldType);
@@ -102,7 +103,7 @@ public sealed class JsonTemplateMapperTests
         var section = Assert.Single(result.Sections);
         var field = Assert.Single(section.Fields);
 
-        Assert.Equal(fieldId, field.Id);
+        Assert.Equal(new FieldId(fieldId), field.Id);
     }
 
     [Theory]

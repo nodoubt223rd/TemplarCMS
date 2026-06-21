@@ -412,13 +412,13 @@ public sealed class ContentItemDefinition
 ```csharp
 public sealed class ContentFieldValue
 {
-    public Guid FieldId { get; }
+    public FieldId FieldId { get; }
 
     public string FieldKey { get; }
 
-    public string Language { get; }
+    public ContentLanguage Language { get; }
 
-    public int Version { get; }
+    public ContentVersion Version { get; }
 
     public string? Value { get; }
 }
@@ -430,6 +430,8 @@ Current implementation note:
 
 - `ContentItemId` and `TemplateId` are now first-class strong types in
   the runtime content model and content service/repository boundaries.
+- `FieldId` is now a first-class strong type shared between template
+  field definitions and stored content field values.
 
 ## Design Questions for the Next Session
 

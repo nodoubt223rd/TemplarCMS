@@ -294,11 +294,11 @@ TemplarCMS.Domain.Content
 Contains:
 
 ```csharp
-ItemId
-FieldId
-FieldKey
-Language
-Version
+ContentItemId ItemId
+FieldId FieldId
+string FieldKey
+ContentLanguage Language
+ContentVersion Version
 Value
 ```
 

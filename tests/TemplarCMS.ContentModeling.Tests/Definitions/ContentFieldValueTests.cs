@@ -11,7 +11,7 @@ public sealed class ContentFieldValueTests
         Assert.Throws<ArgumentException>(
             () => new ContentFieldValue(
                 new ContentItemId(Guid.Empty),
-                Guid.NewGuid(),
+                new FieldId(Guid.NewGuid()),
                 "title",
                 new ContentLanguage("en"),
                 ContentVersion.First,
@@ -24,7 +24,7 @@ public sealed class ContentFieldValueTests
         Assert.Throws<ArgumentException>(
             () => new ContentFieldValue(
                 new ContentItemId(Guid.NewGuid()),
-                Guid.Empty,
+                new FieldId(Guid.Empty),
                 "title",
                 new ContentLanguage("en"),
                 ContentVersion.First,
@@ -37,7 +37,7 @@ public sealed class ContentFieldValueTests
         Assert.Throws<ArgumentException>(
             () => new ContentFieldValue(
                 new ContentItemId(Guid.NewGuid()),
-                Guid.NewGuid(),
+                new FieldId(Guid.NewGuid()),
                 string.Empty,
                 new ContentLanguage("en"),
                 ContentVersion.First,
@@ -49,7 +49,7 @@ public sealed class ContentFieldValueTests
     {
         var value = new ContentFieldValue(
             new ContentItemId(Guid.NewGuid()),
-            Guid.NewGuid(),
+            new FieldId(Guid.NewGuid()),
             " title ",
             new ContentLanguage("en"),
             ContentVersion.First,
@@ -66,7 +66,7 @@ public sealed class ContentFieldValueTests
 
         var value = new ContentFieldValue(
             new ContentItemId(Guid.NewGuid()),
-            Guid.NewGuid(),
+            new FieldId(Guid.NewGuid()),
             "title",
             language,
             version,
@@ -81,7 +81,7 @@ public sealed class ContentFieldValueTests
     {
         var value = new ContentFieldValue(
             new ContentItemId(Guid.NewGuid()),
-            Guid.NewGuid(),
+            new FieldId(Guid.NewGuid()),
             "title",
             new ContentLanguage("en"),
             ContentVersion.First,

@@ -138,7 +138,7 @@ public sealed class EfContentRepository : IContentRepository
                 {
                     Id = Guid.NewGuid(),
                     ItemId = value.ItemId.Value,
-                    FieldId = value.FieldId,
+                    FieldId = value.FieldId.Value,
                     FieldKey = value.FieldKey,
                     Language = value.Language.ToString(),
                     Version = value.Version.Value,
@@ -184,7 +184,7 @@ public sealed class EfContentRepository : IContentRepository
     {
         return new ContentFieldValue(
             new ContentItemId(value.ItemId),
-            value.FieldId,
+            new FieldId(value.FieldId),
             value.FieldKey,
             new ContentLanguage(value.Language),
             new ContentVersion(value.Version),

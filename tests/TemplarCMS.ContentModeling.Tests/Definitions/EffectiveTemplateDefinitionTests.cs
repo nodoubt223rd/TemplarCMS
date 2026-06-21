@@ -1,4 +1,5 @@
 using TemplarCMS.ContentModeling.Definitions;
+using TemplarCMS.Domain.Content;
 using Xunit;
 
 namespace TemplarCMS.ContentModeling.Tests.Definitions;
@@ -143,7 +144,7 @@ public sealed class EffectiveTemplateDefinitionTests
         FieldType fieldType = FieldType.SingleLineText)
     {
         return new FieldDefinition(
-            Guid.NewGuid(),
+            new FieldId(Guid.NewGuid()),
             name,
             key,
             fieldType);

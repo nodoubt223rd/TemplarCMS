@@ -114,7 +114,7 @@ public sealed class ExactMatchFieldValueResolutionPolicyTests
     {
         return new ContentFieldValue(
             new ContentItemId(Guid.NewGuid()),
-            Guid.NewGuid(),
+            new FieldId(Guid.NewGuid()),
             "title",
             language,
             version,
@@ -122,13 +122,13 @@ public sealed class ExactMatchFieldValueResolutionPolicyTests
     }
 
     private static FieldDefinition CreateSharedField() =>
-        new(Guid.NewGuid(), "Title", "title", FieldType.SingleLineText, isShared: true);
+        new(new FieldId(Guid.NewGuid()), "Title", "title", FieldType.SingleLineText, isShared: true);
 
     private static FieldDefinition CreateUnversionedField() =>
-        new(Guid.NewGuid(), "Title", "title", FieldType.SingleLineText, isUnversioned: true);
+        new(new FieldId(Guid.NewGuid()), "Title", "title", FieldType.SingleLineText, isUnversioned: true);
 
     private static FieldDefinition CreateVersionedField() =>
-        new(Guid.NewGuid(), "Title", "title", FieldType.SingleLineText);
+        new(new FieldId(Guid.NewGuid()), "Title", "title", FieldType.SingleLineText);
 
     private static FieldValueResolutionContext CreateContext(string language, ContentVersion version)
     {

@@ -107,8 +107,8 @@ public sealed class InMemoryContentRepositoryTests
         var repository = new InMemoryContentRepository();
 
         var item = CreateItem();
-        var titleFieldId = Guid.NewGuid();
-        var bodyFieldId = Guid.NewGuid();
+        var titleFieldId = new FieldId(Guid.NewGuid());
+        var bodyFieldId = new FieldId(Guid.NewGuid());
         var values = new[]
         {
             CreateValue(item.Id, titleFieldId, "title", "Home"),
@@ -136,13 +136,13 @@ public sealed class InMemoryContentRepositoryTests
         var item = CreateItem();
         var initialValues = new[]
         {
-            CreateValue(item.Id, Guid.NewGuid(), "title", "Home"),
-            CreateValue(item.Id, Guid.NewGuid(), "body", "Old Body")
+            CreateValue(item.Id, new FieldId(Guid.NewGuid()), "title", "Home"),
+            CreateValue(item.Id, new FieldId(Guid.NewGuid()), "body", "Old Body")
         };
 
         var replacementValues = new[]
         {
-            CreateValue(item.Id, Guid.NewGuid(), "summary", "New Summary")
+            CreateValue(item.Id, new FieldId(Guid.NewGuid()), "summary", "New Summary")
         };
 
         await repository.SaveItemAsync(item, TestContext.Current.CancellationToken);
@@ -167,7 +167,7 @@ public sealed class InMemoryContentRepositoryTests
         var values =
             new[]
             {
-                CreateValue(new ContentItemId(Guid.NewGuid()), Guid.NewGuid(), "title", "Home")
+                CreateValue(new ContentItemId(Guid.NewGuid()), new FieldId(Guid.NewGuid()), "title", "Home")
             };
 
         await Assert.ThrowsAsync<ArgumentException>(() =>
@@ -186,7 +186,7 @@ public sealed class InMemoryContentRepositoryTests
         var values =
             new[]
             {
-                CreateValue(item.Id, Guid.NewGuid(), "title", "Home")
+                CreateValue(item.Id, new FieldId(Guid.NewGuid()), "title", "Home")
             };
 
         await repository.SaveItemAsync(item, TestContext.Current.CancellationToken);
@@ -225,7 +225,7 @@ public sealed class InMemoryContentRepositoryTests
 
     private static ContentFieldValue CreateValue(
         ContentItemId itemId,
-        Guid fieldId,
+        FieldId fieldId,
         string fieldKey,
         string? value)
     {

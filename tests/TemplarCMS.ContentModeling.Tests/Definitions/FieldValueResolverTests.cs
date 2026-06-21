@@ -58,7 +58,7 @@ public sealed class FieldValueResolverTests
 
         var expected = new ContentFieldValue(
             new ContentItemId(Guid.NewGuid()),
-            Guid.NewGuid(),
+            new FieldId(Guid.NewGuid()),
             "title",
             new ContentLanguage("en"),
             ContentVersion.First,
@@ -110,7 +110,7 @@ public sealed class FieldValueResolverTests
     private static FieldDefinition CreateFieldDefinition()
     {
         return new FieldDefinition(
-            Guid.NewGuid(),
+            new FieldId(Guid.NewGuid()),
             "Title",
             "title",
             FieldType.SingleLineText);

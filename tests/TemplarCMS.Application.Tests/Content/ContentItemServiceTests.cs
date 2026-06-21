@@ -298,7 +298,7 @@ public sealed class ContentItemServiceTests
         var values =
             new[]
             {
-                CreateValue(item.Id, Guid.NewGuid(), "title", "Saved")
+                CreateValue(item.Id, new FieldId(Guid.NewGuid()), "title", "Saved")
             };
 
         var (service, _) =
@@ -469,7 +469,7 @@ public sealed class ContentItemServiceTests
 
     private static ContentFieldValue CreateValue(
         ContentItemId itemId,
-        Guid fieldId,
+        FieldId fieldId,
         string fieldKey,
         string? value,
         ContentVersion? version = null)
@@ -487,7 +487,7 @@ public sealed class ContentItemServiceTests
     {
         var titleField =
             new FieldDefinition(
-                Guid.NewGuid(),
+                new FieldId(Guid.NewGuid()),
                 "Title",
                 "title",
                 FieldType.SingleLineText,
@@ -495,7 +495,7 @@ public sealed class ContentItemServiceTests
 
         var bodyField =
             new FieldDefinition(
-                Guid.NewGuid(),
+                new FieldId(Guid.NewGuid()),
                 "Body",
                 "body",
                 FieldType.RichText);

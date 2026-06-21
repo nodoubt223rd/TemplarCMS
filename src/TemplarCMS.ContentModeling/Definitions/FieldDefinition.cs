@@ -18,7 +18,7 @@ public sealed class FieldDefinition
     /// <param name="isUnversioned">Whether the field value varies by language but not by version.</param>
     /// <param name="metadata">Additional field metadata used by editors, validators, and schema generation.</param>
     public FieldDefinition(
-        Guid id,
+        FieldId id,
         string name,
         string key,
         FieldType fieldType,
@@ -26,12 +26,6 @@ public sealed class FieldDefinition
         bool isUnversioned = false,
         IReadOnlyDictionary<string, string>? metadata = null)
     {
-        if (id == Guid.Empty)
-        {
-            throw new ArgumentException(
-                "Field id is required.",
-                nameof(id));
-        }
         if (string.IsNullOrWhiteSpace(name))
         {
             throw new ArgumentException("Field name is required.", nameof(name));
@@ -56,7 +50,7 @@ public sealed class FieldDefinition
     /// <summary>
     /// Gets the stable field identifier. 
     /// </summary>
-    public Guid Id { get; }
+    public FieldId Id { get; }
 
     /// <summary>
     /// Gets the display name of the field.

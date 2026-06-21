@@ -11,7 +11,7 @@ public sealed class FieldDefinitionTests
     {
         Assert.Throws<ArgumentException>(
             () => new FieldDefinition(
-                Guid.Empty,
+                new FieldId(Guid.Empty),
                 "Title",
                 "title",
                 FieldType.SingleLineText));
@@ -22,7 +22,7 @@ public sealed class FieldDefinitionTests
     {
         Assert.Throws<ArgumentException>(
             () => new FieldDefinition(
-                Guid.NewGuid(),
+                new FieldId(Guid.NewGuid()),
                 string.Empty,
                 "title",
                 FieldType.SingleLineText));
@@ -33,7 +33,7 @@ public sealed class FieldDefinitionTests
     {
         Assert.Throws<ArgumentException>(
             () => new FieldDefinition(
-                Guid.NewGuid(),
+                new FieldId(Guid.NewGuid()),
                 "Title",
                 string.Empty,
                 FieldType.SingleLineText));
@@ -43,7 +43,7 @@ public sealed class FieldDefinitionTests
     public void Constructor_TrimsNameAndKey()
     {
         var field = new FieldDefinition(
-            Guid.NewGuid(),
+            new FieldId(Guid.NewGuid()),
             " Title ",
             " title ",
             FieldType.SingleLineText);
@@ -61,7 +61,7 @@ public sealed class FieldDefinitionTests
         };
 
         var field = new FieldDefinition(
-            Guid.NewGuid(),
+            new FieldId(Guid.NewGuid()),
             "Title",
             "title",
             FieldType.SingleLineText,
@@ -76,7 +76,7 @@ public sealed class FieldDefinitionTests
     public void IsVersioned_ReturnsFalse_WhenFieldIsShared()
     {
         var field = new FieldDefinition(
-            Guid.NewGuid(),
+            new FieldId(Guid.NewGuid()),
             "Title",
             "title",
             FieldType.SingleLineText,
@@ -89,7 +89,7 @@ public sealed class FieldDefinitionTests
     public void IsVersioned_ReturnsFalse_WhenFieldIsUnversioned()
     {
         var field = new FieldDefinition(
-            Guid.NewGuid(),
+            new FieldId(Guid.NewGuid()),
             "Title",
             "title",
             FieldType.SingleLineText,
@@ -102,7 +102,7 @@ public sealed class FieldDefinitionTests
     public void IsVersioned_ReturnsTrue_WhenFieldIsNeitherSharedNorUnversioned()
     {
         var field = new FieldDefinition(
-            Guid.NewGuid(),
+            new FieldId(Guid.NewGuid()),
             "Title",
             "title",
             FieldType.SingleLineText);
@@ -114,7 +114,7 @@ public sealed class FieldDefinitionTests
     public void ValueScope_ReturnsShared_WhenFieldIsShared()
     {
         var field = new FieldDefinition(
-            Guid.NewGuid(),
+            new FieldId(Guid.NewGuid()),
             "Title",
             "title",
             FieldType.SingleLineText,
@@ -127,7 +127,7 @@ public sealed class FieldDefinitionTests
     public void ValueScope_ReturnsUnversioned_WhenFieldIsUnversioned()
     {
         var field = new FieldDefinition(
-            Guid.NewGuid(),
+            new FieldId(Guid.NewGuid()),
             "Title",
             "title",
             FieldType.SingleLineText,
@@ -140,7 +140,7 @@ public sealed class FieldDefinitionTests
     public void ValueScope_ReturnsVersioned_WhenFieldIsNeitherSharedNorUnversioned()
     {
         var field = new FieldDefinition(
-            Guid.NewGuid(),
+            new FieldId(Guid.NewGuid()),
             "Title",
             "title",
             FieldType.SingleLineText);
