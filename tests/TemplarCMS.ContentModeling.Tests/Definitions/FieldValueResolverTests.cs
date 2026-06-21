@@ -1,4 +1,5 @@
 using NSubstitute;
+using TemplarCMS.ContentModeling.Abstractions;
 using TemplarCMS.ContentModeling.Definitions;
 using TemplarCMS.Domain.Content;
 using Xunit;

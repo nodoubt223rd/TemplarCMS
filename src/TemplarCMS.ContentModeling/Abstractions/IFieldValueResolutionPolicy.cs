@@ -1,6 +1,7 @@
 using TemplarCMS.Domain.Content;
+using TemplarCMS.ContentModeling.Definitions;
 
-namespace TemplarCMS.ContentModeling.Definitions;
+namespace TemplarCMS.ContentModeling.Abstractions;
 
 /// <summary>
 /// Defines a strategy for resolving stored field values for a field value resolution request.

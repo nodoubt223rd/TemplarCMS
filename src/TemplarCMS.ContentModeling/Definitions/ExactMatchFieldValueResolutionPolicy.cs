@@ -1,4 +1,5 @@
 using TemplarCMS.Domain.Content;
+using TemplarCMS.ContentModeling.Abstractions;
 
 namespace TemplarCMS.ContentModeling.Definitions;
 
