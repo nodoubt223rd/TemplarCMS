@@ -165,7 +165,7 @@ public sealed class ContentItemServiceTests
             new ContentItemDefinition(
                 itemId,
                 "Home",
-                "home",
+                new ContentItemKey("home"),
                 template.Id,
                 itemId);
 
@@ -208,7 +208,7 @@ public sealed class ContentItemServiceTests
             new ContentItemDefinition(
                 existingChild.Id,
                 "Child A Updated",
-                "HOME",
+                new ContentItemKey("HOME"),
                 template.Id,
                 parent.Id);
 
@@ -228,7 +228,7 @@ public sealed class ContentItemServiceTests
 
         Assert.NotNull(stored);
         Assert.Equal("Child A Updated", stored.Name);
-        Assert.Equal("HOME", stored.Key);
+        Assert.Equal(new ContentItemKey("home"), stored.Key);
     }
 
     [Fact]
@@ -461,7 +461,7 @@ public sealed class ContentItemServiceTests
         return new ContentItemDefinition(
             Guid.NewGuid(),
             name,
-            key,
+            new ContentItemKey(key),
             templateId,
             parentId);
     }

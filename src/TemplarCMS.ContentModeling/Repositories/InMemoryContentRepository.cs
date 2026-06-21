@@ -40,7 +40,7 @@ namespace TemplarCMS.ContentModeling.Repositories
             var items =
                 _items.Values
                     .Where(item => item.ParentId == parentId)
-                    .OrderBy(item => item.Key, StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(item => item.Key.Value, StringComparer.Ordinal)
                     .ToArray();
 
             return Task.FromResult<IReadOnlyCollection<ContentItemDefinition>>(items);
