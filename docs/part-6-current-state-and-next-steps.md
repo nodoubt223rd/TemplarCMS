@@ -445,6 +445,18 @@ Use the next session to design content item and field value models before writin
 
 The template subsystem is now strong enough to serve as the foundation for runtime content behavior.
 
+## Boundary Update
+
+The runtime content concepts discussed in this document now belong in
+`TemplarCMS.Domain.Content`, while `TemplarCMS.ContentModeling` remains
+focused on template definitions, inheritance, validation, effective
+template building, and related schema concerns.
+
+Cross-layer contracts such as `IContentRepository` now belong in
+`TemplarCMS.Abstractions.Content` so application and persistence code
+can share them without pushing those contracts back into the modeling
+assembly.
+
 ## Current Mood
 
 ```text

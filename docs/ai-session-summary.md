@@ -40,14 +40,24 @@ Current projects:
 - TemplarCMS.Domain
 - TemplarCMS.ContentModeling
 - TemplarCMS.Application
+- TemplarCMS.Persistence
 
 Planned:
 
-- TemplarCMS.Persistence
 - TemplarCMS.Infrastructure
 - TemplarCMS.Contracts
 - TemplarCMS.Api
 - Test projects
+
+Current boundary snapshot:
+
+- `TemplarCMS.Domain` owns runtime content concepts such as content
+  items, field values, language/version value objects, resolution
+  context, and resolved content shapes.
+- `TemplarCMS.Abstractions` owns shared contracts such as
+  `IContentRepository`.
+- `TemplarCMS.ContentModeling` owns template definitions, inheritance,
+  validation, effective template building, and JSON template mapping.
 
 ## Content Modeling
 

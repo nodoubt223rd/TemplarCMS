@@ -39,11 +39,22 @@ The project must not depend on EF Core, ASP.NET Core, infrastructure services, o
 
 ## Architecture
 
-`TemplarCMS.Domain` represents persisted entities such as `Template`, `TemplateSection`, `TemplateField`, `TemplateBaseTemplate`, `ContentItem`, and `FieldValue`.
+`TemplarCMS.Domain` represents stable runtime content concepts such as
+`ContentItemDefinition`, `ContentFieldValue`, `ContentLanguage`,
+`ContentVersion`, and related value objects used across application and
+repository boundaries.
 
-`TemplarCMS.ContentModeling` represents logical content definitions such as `TemplateDefinition`, `TemplateSectionDefinition`, `FieldDefinition`, and `EffectiveTemplate`.
+`TemplarCMS.ContentModeling` represents logical template definitions and
+template mechanics such as `TemplateDefinition`,
+`TemplateSectionDefinition`, `FieldDefinition`, inheritance resolution,
+template validation, and `EffectiveTemplateDefinition`.
 
-The definition model is constructed from persisted entities but remains independent of persistence.
+`TemplarCMS.Abstractions` holds cross-layer contracts such as
+`IContentRepository` when those contracts need to be shared without
+living in persistence or application assemblies.
+
+The template definition model remains independent of persistence even as
+runtime content concepts and repository contracts evolve in parallel.
 
 ## Consequences
 
