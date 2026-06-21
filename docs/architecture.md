@@ -55,7 +55,9 @@ These are candidates for future phases.
 TemplarCMS/
 ├── TemplarCMS.sln
 ├── src/
+│   ├── TemplarCMS.Abstractions/
 │   ├── TemplarCMS.Domain/
+│   ├── TemplarCMS.ContentModeling/
 │   ├── TemplarCMS.Application/
 │   ├── TemplarCMS.Persistence/
 │   ├── TemplarCMS.Api/
@@ -72,20 +74,47 @@ TemplarCMS/
 
 ### Project Responsibilities
 
+#### TemplarCMS.Abstractions
+
+Contains cross-layer contracts shared between application, persistence,
+and other assemblies:
+
+- `IContentRepository`
+- future service and infrastructure contracts that span projects
+
+This project may depend on the domain layer when contract signatures
+need domain types, but it should not depend on concrete persistence or
+API implementations.
+
 #### TemplarCMS.Domain
 
 Contains core entities and domain concepts:
 
-- TemplateDefinition
-- TemplateSectionDefinition
-- FieldDefinition
-- InheritedTemplateDefinition
-- EffectiveTemplateDefinition
-- ContentItem
-- FieldValue
-- FieldType
+- `ContentItemDefinition`
+- `ContentItemKey`
+- `ContentFieldValue`
+- `ContentLanguage`
+- `ContentVersion`
+- `FieldValueResolutionContext`
+- `ResolvedContentItem`
+- `FieldValueScope`
 
 This project should avoid infrastructure dependencies.
+
+#### TemplarCMS.ContentModeling
+
+Contains template-specific schema and template mechanics:
+
+- `TemplateDefinition`
+- `TemplateSectionDefinition`
+- `FieldDefinition`
+- `InheritedTemplateDefinition`
+- `EffectiveTemplateDefinition`
+- `FieldType`
+- template inheritance resolution
+- effective template construction
+- template validation
+- template serialization and repository mapping
 
 #### TemplarCMS.Application
 
@@ -93,10 +122,11 @@ Contains use cases and application services:
 
 - TemplateService
 - ItemService
-- Field validation services
-- Field resolution services
 - Path generation
-- Template inheritance resolution
+
+Application services orchestrate domain concepts, content modeling
+services, and shared contracts. They should not own persistence details
+or schema storage concerns.
 
 #### TemplarCMS.Persistence
 

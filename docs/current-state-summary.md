@@ -253,6 +253,12 @@ Cannot be negative
 public sealed class ContentItemDefinition
 ```
 
+Owned by:
+
+```text
+TemplarCMS.Domain.Content
+```
+
 Contains:
 
 ```csharp
@@ -277,6 +283,12 @@ Field values
 
 ```csharp
 public sealed class ContentFieldValue
+```
+
+Owned by:
+
+```text
+TemplarCMS.Domain.Content
 ```
 
 Contains:
@@ -365,6 +377,12 @@ Purpose:
 
 ```text
 Represents a field value resolution request.
+```
+
+Owned by:
+
+```text
+TemplarCMS.Domain.Content
 ```
 
 Contains:
@@ -468,6 +486,12 @@ Implemented.
 
 ```csharp
 public sealed class ResolvedContentItem
+```
+
+Owned by:
+
+```text
+TemplarCMS.Domain.Content
 ```
 
 Contains:
@@ -704,11 +728,11 @@ ExactMatchFieldValueResolutionPolicy
 Potential Part 8 topics:
 
 ```text
-Persistence layer
+Abstractions and persistence
 
 IContentRepository
 
-Content storage abstractions
+Persistence implementation for content storage
 
 Typed field value conversion
 
@@ -724,3 +748,16 @@ Current recommendation:
 ```text
 Persistence or runtime consumption before fallback policies.
 ```
+
+## Current Boundary Note
+
+The runtime content concepts now live outside
+`TemplarCMS.ContentModeling`.
+
+- `TemplarCMS.Domain.Content` owns content items, field values,
+  language/version value objects, field value resolution context, and
+  resolved content shapes.
+- `TemplarCMS.Abstractions.Content` owns `IContentRepository`.
+- `TemplarCMS.ContentModeling` remains focused on template definitions,
+  inheritance, validation, effective template building, and JSON
+  template mapping.
