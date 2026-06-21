@@ -82,14 +82,14 @@ public sealed class EfContentRepositoryTests : IDisposable
         var initialValues =
             new[]
             {
-                CreateValue(item.Id, Guid.NewGuid(), "title", "Home", ContentVersion.Shared),
-                CreateValue(item.Id, Guid.NewGuid(), "body", "First")
+                CreateValue(item.Id, new FieldId(Guid.NewGuid()), "title", "Home", ContentVersion.Shared),
+                CreateValue(item.Id, new FieldId(Guid.NewGuid()), "body", "First")
             };
 
         var replacementValues =
             new[]
             {
-                CreateValue(item.Id, Guid.NewGuid(), "summary", "Second")
+                CreateValue(item.Id, new FieldId(Guid.NewGuid()), "summary", "Second")
             };
 
         await repository.SaveFieldValuesAsync(item.Id, initialValues, TestContext.Current.CancellationToken);
@@ -113,7 +113,7 @@ public sealed class EfContentRepositoryTests : IDisposable
         var values =
             new[]
             {
-                CreateValue(new ContentItemId(Guid.NewGuid()), Guid.NewGuid(), "title", "Home")
+                CreateValue(new ContentItemId(Guid.NewGuid()), new FieldId(Guid.NewGuid()), "title", "Home")
             };
 
         await repository.SaveItemAsync(item, TestContext.Current.CancellationToken);
@@ -133,7 +133,7 @@ public sealed class EfContentRepositoryTests : IDisposable
         var values =
             new[]
             {
-                CreateValue(item.Id, Guid.NewGuid(), "title", "Home", ContentVersion.Shared)
+                CreateValue(item.Id, new FieldId(Guid.NewGuid()), "title", "Home", ContentVersion.Shared)
             };
 
         await repository.SaveItemAsync(item, TestContext.Current.CancellationToken);
@@ -185,7 +185,7 @@ public sealed class EfContentRepositoryTests : IDisposable
 
     private static ContentFieldValue CreateValue(
         ContentItemId itemId,
-        Guid fieldId,
+        FieldId fieldId,
         string fieldKey,
         string? value,
         ContentVersion? version = null)

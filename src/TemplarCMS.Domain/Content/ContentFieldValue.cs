@@ -16,17 +16,12 @@ public sealed class ContentFieldValue
     /// <param name="value">The stored field value.</param>
     public ContentFieldValue(
         ContentItemId itemId,
-        Guid fieldId,
+        FieldId fieldId,
         string fieldKey,
         ContentLanguage language,
         ContentVersion version,
         string? value)
     {
-        if (fieldId == Guid.Empty)
-        {
-            throw new ArgumentException("Field id is required.", nameof(fieldId));
-        }
-
         if (string.IsNullOrWhiteSpace(fieldKey))
         {
             throw new ArgumentException("Field key is required.", nameof(fieldKey));
@@ -48,7 +43,7 @@ public sealed class ContentFieldValue
     /// <summary>
     /// Gets the field definition identifier.
     /// </summary>
-    public Guid FieldId { get; }
+    public FieldId FieldId { get; }
 
     /// <summary>
     /// Gets the field definition key.

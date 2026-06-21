@@ -18,6 +18,7 @@ Several parts of the codebase already lean toward explicit modeling:
 
 - `ContentItemId`
 - `TemplateId`
+- `FieldId`
 - `ContentItemKey`
 - `ContentLanguage`
 - `ContentVersion`

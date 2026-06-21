@@ -1,5 +1,6 @@
 using TemplarCMS.ContentModeling.Definitions;
 using TemplarCMS.ContentModeling.Validation;
+using TemplarCMS.Domain.Content;
 using Xunit;
 
 namespace TemplarCMS.ContentModeling.Tests.Validation;
@@ -176,7 +177,7 @@ public sealed class EffectiveTemplateValidatorTests
         FieldType fieldType = FieldType.SingleLineText)
     {
         return new FieldDefinition(
-            Guid.NewGuid(),
+            new FieldId(Guid.NewGuid()),
             name,
             key,
             fieldType);

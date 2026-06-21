@@ -4,6 +4,7 @@ using TemplarCMS.ContentModeling.Builders;
 using TemplarCMS.ContentModeling.Definitions;
 using TemplarCMS.ContentModeling.Resolvers;
 using TemplarCMS.ContentModeling.Validation;
+using TemplarCMS.Domain.Content;
 using Xunit;
 
 namespace TemplarCMS.ContentModeling.Tests.Builders;
@@ -171,13 +172,13 @@ public sealed class EffectiveTemplateBuilderTests
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         var baseTitleField = new FieldDefinition(
-            Guid.NewGuid(),
+            new FieldId(Guid.NewGuid()),
             "Base Title",
             "title",
             FieldType.SingleLineText);
 
         var derivedTitleField = new FieldDefinition(
-            Guid.NewGuid(),
+            new FieldId(Guid.NewGuid()),
             "Article Title",
             "title",
             FieldType.RichText);
@@ -289,13 +290,13 @@ public sealed class EffectiveTemplateBuilderTests
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         var baseTitleField = new FieldDefinition(
-            Guid.NewGuid(),
+            new FieldId(Guid.NewGuid()),
             "Base Title",
             "title",
             FieldType.SingleLineText);
 
         var derivedTitleField = new FieldDefinition(
-            Guid.NewGuid(),
+            new FieldId(Guid.NewGuid()),
             "Article Title",
             "Title",
             FieldType.RichText);
@@ -411,7 +412,7 @@ public sealed class EffectiveTemplateBuilderTests
         FieldType fieldType = FieldType.SingleLineText)
     {
         return new FieldDefinition(
-            Guid.NewGuid(),
+            new FieldId(Guid.NewGuid()),
             name,
             key,
             fieldType);

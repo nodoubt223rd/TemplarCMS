@@ -1,4 +1,5 @@
 using TemplarCMS.ContentModeling.Definitions;
+using TemplarCMS.Domain.Content;
 
 namespace TemplarCMS.ContentModeling.Serialization
 {
@@ -94,7 +95,7 @@ namespace TemplarCMS.ContentModeling.Serialization
         private FieldDefinition MapField(JsonFieldDefinition field)
         {
             return new FieldDefinition(
-                field.Id,
+                new FieldId(field.Id),
                 GetRequiredValue(field.Name, "field.name"),
                 GetRequiredValue(field.Key, "field.key"),
                 ParseFieldType(field.FieldType),

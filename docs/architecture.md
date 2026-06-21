@@ -94,6 +94,7 @@ Contains core entities and domain concepts:
 - `ContentItemId`
 - `ContentItemKey`
 - `ContentFieldValue`
+- `FieldId`
 - `ContentLanguage`
 - `ContentVersion`
 - `TemplateId`
@@ -268,7 +269,7 @@ Key properties:
 
 - Id
 - ItemId
-- TemplateFieldId
+- FieldId
 - Language
 - Version
 - Value
