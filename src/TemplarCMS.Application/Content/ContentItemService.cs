@@ -90,9 +90,17 @@ public sealed class ContentItemService : IContentItemService
         ArgumentNullException.ThrowIfNull(item);
         cancellationToken.ThrowIfCancellationRequested();
 
+        await EnsureParentIsValidAsync(
+            item,
+            cancellationToken);
+
         await EnsureEffectiveTemplateExistsAsync(
             item.TemplateId,
             item.Id,
+            cancellationToken);
+
+        await EnsureSiblingKeyIsAvailableAsync(
+            item,
             cancellationToken);
 
         await _contentRepository.SaveItemAsync(
@@ -206,6 +214,58 @@ public sealed class ContentItemService : IContentItemService
             template,
             values,
             context);
+    }
+
+    private async Task EnsureParentIsValidAsync(
+        ContentItemDefinition item,
+        CancellationToken cancellationToken)
+    {
+        if (item.ParentId == null)
+        {
+            return;
+        }
+
+        if (item.ParentId == item.Id)
+        {
+            throw new InvalidOperationException(
+                $"Content item '{item.Id}' cannot be its own parent.");
+        }
+
+        var parent =
+            await _contentRepository.GetItemAsync(
+                item.ParentId.Value,
+                cancellationToken);
+
+        if (parent == null)
+        {
+            throw new InvalidOperationException(
+                $"Parent content item '{item.ParentId.Value}' was not found for content item '{item.Id}'.");
+        }
+    }
+
+    private async Task EnsureSiblingKeyIsAvailableAsync(
+        ContentItemDefinition item,
+        CancellationToken cancellationToken)
+    {
+        var siblings =
+            await _contentRepository.GetChildItemsAsync(
+                item.ParentId,
+                cancellationToken);
+
+        var conflictingSibling =
+            siblings.FirstOrDefault(
+                sibling =>
+                    sibling.Id != item.Id &&
+                    string.Equals(
+                        sibling.Key,
+                        item.Key,
+                        StringComparison.OrdinalIgnoreCase));
+
+        if (conflictingSibling != null)
+        {
+            throw new InvalidOperationException(
+                $"Content item key '{item.Key}' already exists under parent '{item.ParentId?.ToString() ?? "<root>"}'.");
+        }
     }
 
     private async Task<EffectiveTemplateDefinition> EnsureEffectiveTemplateExistsAsync(
