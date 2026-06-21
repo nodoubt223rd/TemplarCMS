@@ -1,6 +1,7 @@
 using TemplarCMS.Domain.Content;
+using TemplarCMS.ContentModeling.Definitions;
 
-namespace TemplarCMS.ContentModeling.Definitions;
+namespace TemplarCMS.ContentModeling.Abstractions;
 
 /// <summary>
 /// Resolves content items.

@@ -415,6 +415,12 @@ throughout the resolution pipeline.
 public interface IFieldValueResolutionPolicy
 ```
 
+Owned by:
+
+```text
+TemplarCMS.ContentModeling.Abstractions
+```
+
 Current implementation:
 
 ```csharp
@@ -461,6 +467,12 @@ Match requested version
 ## IFieldValueResolver
 
 Implemented.
+
+Owned by:
+
+```text
+TemplarCMS.ContentModeling.Abstractions
+```
 
 Current implementation:
 
@@ -526,6 +538,12 @@ metaDescription
 ## IContentItemResolver
 
 Implemented.
+
+Owned by:
+
+```text
+TemplarCMS.ContentModeling.Abstractions
+```
 
 Current implementation:
 
@@ -758,6 +776,8 @@ The runtime content concepts now live outside
   language/version value objects, field value resolution context, and
   resolved content shapes.
 - `TemplarCMS.Abstractions.Content` owns `IContentRepository`.
+- `TemplarCMS.ContentModeling.Abstractions` owns content modeling
+  contracts such as content and field value resolver interfaces.
 - `TemplarCMS.ContentModeling` remains focused on template definitions,
-  inheritance, validation, effective template building, and JSON
-  template mapping.
+  inheritance, validation, effective template building, JSON template
+  mapping, and the current resolver implementations.

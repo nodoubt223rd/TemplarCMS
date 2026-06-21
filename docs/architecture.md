@@ -108,6 +108,7 @@ This project should avoid infrastructure dependencies.
 
 Contains template-specific schema and template mechanics:
 
+- public modeling contracts such as content resolution abstractions
 - `TemplateDefinition`
 - `TemplateSectionDefinition`
 - `FieldDefinition`
