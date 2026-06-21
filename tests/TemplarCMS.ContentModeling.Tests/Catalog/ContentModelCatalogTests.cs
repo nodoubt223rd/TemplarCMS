@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 using TemplarCMS.ContentModeling.Abstractions;
 using TemplarCMS.ContentModeling.Catalog;

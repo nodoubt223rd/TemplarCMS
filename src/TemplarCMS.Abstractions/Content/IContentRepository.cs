@@ -1,6 +1,6 @@
-using TemplarCMS.ContentModeling.Definitions;
+using TemplarCMS.Domain.Content;
 
-namespace TemplarCMS.ContentModeling.Repositories
+namespace TemplarCMS.Abstractions.Content
 {
     /// <summary>
     /// Provides access to stored content items and their field values.

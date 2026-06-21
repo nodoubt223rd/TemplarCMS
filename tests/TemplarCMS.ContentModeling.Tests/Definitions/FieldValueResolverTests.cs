@@ -1,5 +1,6 @@
 using NSubstitute;
 using TemplarCMS.ContentModeling.Definitions;
+using TemplarCMS.Domain.Content;
 using Xunit;
 
 namespace TemplarCMS.ContentModeling.Tests.Definitions;

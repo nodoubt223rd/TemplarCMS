@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
-using TemplarCMS.ContentModeling.Definitions;
-using TemplarCMS.ContentModeling.Repositories;
+using TemplarCMS.Abstractions.Content;
+using TemplarCMS.Domain.Content;
 
 namespace TemplarCMS.Persistence.Content;
 

@@ -1,4 +1,4 @@
-using TemplarCMS.ContentModeling.Definitions;
+using TemplarCMS.Domain.Content;
 using TemplarCMS.ContentModeling.Repositories;
 using Xunit;
 

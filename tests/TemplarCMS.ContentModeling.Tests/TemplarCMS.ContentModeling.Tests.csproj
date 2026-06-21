@@ -19,6 +19,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\TemplarCMS.Abstractions\TemplarCMS.Abstractions.csproj" />
+    <ProjectReference Include="..\..\src\TemplarCMS.Domain\TemplarCMS.Domain.csproj" />
     <ProjectReference Include="..\..\src\TemplarCMS.ContentModeling\TemplarCMS.ContentModeling.csproj" />
   </ItemGroup>
 

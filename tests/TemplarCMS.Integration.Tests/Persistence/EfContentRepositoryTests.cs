@@ -1,6 +1,6 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using TemplarCMS.ContentModeling.Definitions;
+using TemplarCMS.Domain.Content;
 using TemplarCMS.Persistence;
 using TemplarCMS.Persistence.Content;
 using Xunit;

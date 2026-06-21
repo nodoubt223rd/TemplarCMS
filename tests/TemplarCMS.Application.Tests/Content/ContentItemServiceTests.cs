@@ -2,6 +2,7 @@ using TemplarCMS.Application.Content;
 using TemplarCMS.ContentModeling.Abstractions;
 using TemplarCMS.ContentModeling.Definitions;
 using TemplarCMS.ContentModeling.Repositories;
+using TemplarCMS.Domain.Content;
 using Xunit;
 
 namespace TemplarCMS.Application.Tests.Content;

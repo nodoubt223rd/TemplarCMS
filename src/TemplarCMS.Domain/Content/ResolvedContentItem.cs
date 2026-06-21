@@ -1,4 +1,4 @@
-namespace TemplarCMS.ContentModeling.Definitions;
+namespace TemplarCMS.Domain.Content;
 
 /// <summary>
 /// Represents a resolved content item.
