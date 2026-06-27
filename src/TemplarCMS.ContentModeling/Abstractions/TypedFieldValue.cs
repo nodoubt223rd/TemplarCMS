@@ -1,0 +1,106 @@
+using TemplarCMS.ContentModeling.Definitions;
+
+namespace TemplarCMS.ContentModeling.Abstractions;
+
+/// <summary>
+/// Represents a strongly typed runtime field value.
+/// </summary>
+public abstract class TypedFieldValue
+{
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TypedFieldValue" /> class.
+    /// </summary>
+    /// <param name="fieldType">The field type represented by the value.</param>
+    protected TypedFieldValue(FieldType fieldType)
+    {
+        FieldType = fieldType;
+    }
+
+    /// <summary>
+    /// Gets the field type represented by the value.
+    /// </summary>
+    public FieldType FieldType { get; }
+}
+
+/// <summary>
+/// Represents the absence of a converted value.
+/// </summary>
+public sealed class NullTypedFieldValue : TypedFieldValue
+{
+    /// <summary>
+    /// Initializes a new instance of the <see cref="NullTypedFieldValue" /> class.
+    /// </summary>
+    /// <param name="fieldType">The field type represented by the missing value.</param>
+    public NullTypedFieldValue(FieldType fieldType)
+        : base(fieldType)
+    {
+    }
+}
+
+/// <summary>
+/// Represents a converted string field value.
+/// </summary>
+public sealed class StringTypedFieldValue : TypedFieldValue
+{
+    /// <summary>
+    /// Initializes a new instance of the <see cref="StringTypedFieldValue" /> class.
+    /// </summary>
+    /// <param name="fieldType">The field type represented by the value.</param>
+    /// <param name="value">The converted string value.</param>
+    public StringTypedFieldValue(
+        FieldType fieldType,
+        string value)
+        : base(fieldType)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+
+        Value = value;
+    }
+
+    /// <summary>
+    /// Gets the converted string value.
+    /// </summary>
+    public string Value { get; }
+}
+
+/// <summary>
+/// Represents a converted integer field value.
+/// </summary>
+public sealed class IntegerTypedFieldValue : TypedFieldValue
+{
+    /// <summary>
+    /// Initializes a new instance of the <see cref="IntegerTypedFieldValue" /> class.
+    /// </summary>
+    /// <param name="value">The converted integer value.</param>
+    public IntegerTypedFieldValue(int value)
+        : base(FieldType.Integer)
+    {
+        Value = value;
+    }
+
+    /// <summary>
+    /// Gets the converted integer value.
+    /// </summary>
+    public int Value { get; }
+}
+
+/// <summary>
+/// Represents a converted boolean field value.
+/// </summary>
+public sealed class BooleanTypedFieldValue : TypedFieldValue
+{
+    /// <summary>
+    /// Initializes a new instance of the <see cref="BooleanTypedFieldValue" /> class.
+    /// </summary>
+    /// <param name="value">The converted boolean value.</param>
+    public BooleanTypedFieldValue(bool value)
+        : base(FieldType.Checkbox)
+    {
+        Value = value;
+    }
+
+    /// <summary>
+    /// Gets the converted boolean value.
+    /// </summary>
+    public bool Value { get; }
+}

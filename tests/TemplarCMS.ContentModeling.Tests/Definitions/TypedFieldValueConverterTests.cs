@@ -1,4 +1,5 @@
 using TemplarCMS.ContentModeling.Definitions;
+using TemplarCMS.ContentModeling.Abstractions;
 using TemplarCMS.Domain.Content;
 using Xunit;
 
@@ -17,7 +18,9 @@ public sealed class TypedFieldValueConverterTests
         var result = _converter.Convert(field, value);
 
         Assert.True(result.Succeeded);
-        Assert.Equal("Home", result.Value!.Value);
+        var converted = Assert.IsType<StringTypedFieldValue>(result.Value!.Value);
+        Assert.Equal("Home", converted.Value);
+        Assert.Equal(FieldType.SingleLineText, converted.FieldType);
     }
 
     [Fact]
@@ -29,7 +32,8 @@ public sealed class TypedFieldValueConverterTests
         var result = _converter.Convert(field, value);
 
         Assert.True(result.Succeeded);
-        Assert.Equal(42, result.Value!.Value);
+        var converted = Assert.IsType<IntegerTypedFieldValue>(result.Value!.Value);
+        Assert.Equal(42, converted.Value);
     }
 
     [Theory]
@@ -47,7 +51,8 @@ public sealed class TypedFieldValueConverterTests
         var result = _converter.Convert(field, value);
 
         Assert.True(result.Succeeded);
-        Assert.Equal(expected, result.Value!.Value);
+        var converted = Assert.IsType<BooleanTypedFieldValue>(result.Value!.Value);
+        Assert.Equal(expected, converted.Value);
     }
 
     [Fact]
@@ -59,7 +64,7 @@ public sealed class TypedFieldValueConverterTests
         var result = _converter.Convert(field, value);
 
         Assert.True(result.Succeeded);
-        Assert.Null(result.Value!.Value);
+        Assert.IsType<NullTypedFieldValue>(result.Value!.Value);
     }
 
     [Fact]
@@ -70,7 +75,7 @@ public sealed class TypedFieldValueConverterTests
         var result = _converter.Convert(field, null);
 
         Assert.True(result.Succeeded);
-        Assert.Null(result.Value!.Value);
+        Assert.IsType<NullTypedFieldValue>(result.Value!.Value);
         Assert.Null(result.Value.Source);
     }
 

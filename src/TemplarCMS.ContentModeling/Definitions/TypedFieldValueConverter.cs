@@ -24,7 +24,7 @@ public sealed class TypedFieldValueConverter : ITypedFieldValueConverter
                 new ConvertedFieldValue(
                     fieldDefinition,
                     value,
-                    null));
+                    new NullTypedFieldValue(fieldDefinition.FieldType)));
         }
 
         return fieldDefinition.FieldType switch
@@ -46,7 +46,9 @@ public sealed class TypedFieldValueConverter : ITypedFieldValueConverter
             new ConvertedFieldValue(
                 fieldDefinition,
                 value,
-                value.Value));
+                new StringTypedFieldValue(
+                    fieldDefinition.FieldType,
+                    value.Value!)));
     }
 
     private static ValidationResult<ConvertedFieldValue> ConvertAsInteger(
@@ -63,7 +65,7 @@ public sealed class TypedFieldValueConverter : ITypedFieldValueConverter
                 new ConvertedFieldValue(
                     fieldDefinition,
                     value,
-                    converted));
+                    new IntegerTypedFieldValue(converted)));
         }
 
         return InvalidValue(
@@ -83,7 +85,7 @@ public sealed class TypedFieldValueConverter : ITypedFieldValueConverter
                 new ConvertedFieldValue(
                     fieldDefinition,
                     value,
-                    converted));
+                    new BooleanTypedFieldValue(converted)));
         }
 
         return value.Value switch
@@ -92,12 +94,12 @@ public sealed class TypedFieldValueConverter : ITypedFieldValueConverter
                 new ConvertedFieldValue(
                     fieldDefinition,
                     value,
-                    true)),
+                    new BooleanTypedFieldValue(true))),
             "0" => new ValidationResult<ConvertedFieldValue>(
                 new ConvertedFieldValue(
                     fieldDefinition,
                     value,
-                    false)),
+                    new BooleanTypedFieldValue(false))),
             _ => InvalidValue(
                 fieldDefinition,
                 value,

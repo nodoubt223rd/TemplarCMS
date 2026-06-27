@@ -332,16 +332,18 @@ Current implementation:
 ITypedFieldValueConverter
 TypedFieldValueConverter
 ConvertedFieldValue
+TypedFieldValue
 ```
 
 Current supported conversions:
 
 ```text
-SingleLineText -> string
-MultiLineText -> string
-RichText -> string
-Integer -> int
-Checkbox -> bool
+SingleLineText -> StringTypedFieldValue
+MultiLineText -> StringTypedFieldValue
+RichText -> StringTypedFieldValue
+Integer -> IntegerTypedFieldValue
+Checkbox -> BooleanTypedFieldValue
+Missing/null -> NullTypedFieldValue
 ```
 
 Current behavior:

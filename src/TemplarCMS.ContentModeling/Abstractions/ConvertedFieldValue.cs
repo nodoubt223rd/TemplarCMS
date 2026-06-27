@@ -17,9 +17,10 @@ public sealed class ConvertedFieldValue
     public ConvertedFieldValue(
         FieldDefinition field,
         ContentFieldValue? source,
-        object? value)
+        TypedFieldValue value)
     {
         ArgumentNullException.ThrowIfNull(field);
+        ArgumentNullException.ThrowIfNull(value);
 
         Field = field;
         Source = source;
@@ -39,5 +40,5 @@ public sealed class ConvertedFieldValue
     /// <summary>
     /// Gets the converted runtime value.
     /// </summary>
-    public object? Value { get; }
+    public TypedFieldValue Value { get; }
 }
