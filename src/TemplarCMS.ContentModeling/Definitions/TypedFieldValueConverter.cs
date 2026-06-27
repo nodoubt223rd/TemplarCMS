@@ -24,7 +24,7 @@ public sealed class TypedFieldValueConverter : ITypedFieldValueConverter
                 new ConvertedFieldValue(
                     fieldDefinition,
                     value,
-                    new NullTypedFieldValue(fieldDefinition.FieldType)));
+                    new NullTypedFieldValue()));
         }
 
         return fieldDefinition.FieldType switch
@@ -43,12 +43,10 @@ public sealed class TypedFieldValueConverter : ITypedFieldValueConverter
         ContentFieldValue value)
     {
         return new ValidationResult<ConvertedFieldValue>(
-            new ConvertedFieldValue(
-                fieldDefinition,
-                value,
-                new StringTypedFieldValue(
-                    fieldDefinition.FieldType,
-                    value.Value!)));
+                new ConvertedFieldValue(
+                    fieldDefinition,
+                    value,
+                    new StringTypedFieldValue(value.Value!)));
     }
 
     private static ValidationResult<ConvertedFieldValue> ConvertAsInteger(

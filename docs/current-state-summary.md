@@ -354,6 +354,14 @@ Invalid authored values return validation errors
 Unsupported field types return validation errors
 ```
 
+Runtime consumption note:
+
+```text
+Content item resolution now projects typed field values into the
+resolved runtime item in addition to preserving the original stored
+field values.
+```
+
 ---
 
 # Field Scope
@@ -544,6 +552,8 @@ Contains:
 ContentItemDefinition Item
 
 IReadOnlyDictionary<string, ContentFieldValue?> Fields
+
+IReadOnlyDictionary<string, TypedFieldValue> ConvertedFields
 ```
 
 Dictionary key:
@@ -565,6 +575,15 @@ Consumers think in field keys such as:
 title
 body
 metaDescription
+```
+
+Converted field dictionary values:
+
+```text
+StringTypedFieldValue
+IntegerTypedFieldValue
+BooleanTypedFieldValue
+NullTypedFieldValue
 ```
 
 ## IContentItemResolver
@@ -612,7 +631,11 @@ For each effective field:
 
     Call IFieldValueResolver
 
+    Convert the resolved stored value into a typed runtime value
+
     Store resolved value by field key
+
+    Store typed runtime value by field key
 
 Return ResolvedContentItem
 ```

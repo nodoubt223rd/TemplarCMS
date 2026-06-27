@@ -50,6 +50,12 @@ public sealed class ContentItemServiceTests
         Assert.Equal(item.Id, result.Item.Id);
         Assert.Equal("Home", result.Fields["title"]?.Value);
         Assert.Equal("Welcome", result.Fields["body"]?.Value);
+
+        var title = Assert.IsType<StringTypedFieldValue>(result.ConvertedFields["title"]);
+        var body = Assert.IsType<StringTypedFieldValue>(result.ConvertedFields["body"]);
+
+        Assert.Equal("Home", title.Value);
+        Assert.Equal("Welcome", body.Value);
     }
 
     [Fact]
@@ -67,6 +73,37 @@ public sealed class ContentItemServiceTests
                 item.Id,
                 CreateContext(),
                 TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task GetItemAsync_ShouldThrow_WhenStoredValueCannotBeConverted()
+    {
+        var template = CreateTemplate("article-page");
+        var item = CreateItem(new TemplateId(template.Id));
+        var values =
+            new[]
+            {
+                CreateValue(
+                    item.Id,
+                    template.Fields.Single(field => field.Key == "is-visible").Id,
+                    "is-visible",
+                    "yes",
+                    ContentVersion.Shared)
+            };
+
+        var (service, _) = CreateService(
+            new[] { template },
+            new[] { item },
+            values);
+
+        var exception =
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                service.GetItemAsync(
+                    item.Id,
+                    CreateContext(),
+                    TestContext.Current.CancellationToken));
+
+        Assert.Contains("is-visible", exception.Message);
     }
 
     [Fact]
@@ -107,6 +144,10 @@ public sealed class ContentItemServiceTests
         Assert.Equal(
             new[] { "A", "B" },
             result.Select(item => item.Fields["title"]?.Value));
+
+        Assert.All(
+            result,
+            item => Assert.IsType<StringTypedFieldValue>(item.ConvertedFields["title"]));
     }
 
     [Fact]
@@ -436,7 +477,8 @@ public sealed class ContentItemServiceTests
         var resolver =
             new ContentItemResolver(
                 new FieldValueResolver(
-                    new ExactMatchFieldValueResolutionPolicy()));
+                    new ExactMatchFieldValueResolutionPolicy()),
+                new TypedFieldValueConverter());
 
         return (
             new ContentItemService(
@@ -500,13 +542,21 @@ public sealed class ContentItemServiceTests
                 "body",
                 FieldType.RichText);
 
+        var visibleField =
+            new FieldDefinition(
+                new FieldId(Guid.NewGuid()),
+                "Is Visible",
+                "is-visible",
+                FieldType.Checkbox,
+                isUnversioned: true);
+
         var section =
             new TemplateSectionDefinition(
                 Guid.NewGuid(),
                 "Content",
                 "content",
                 100,
-                new[] { titleField, bodyField });
+                new[] { titleField, bodyField, visibleField });
 
         return new EffectiveTemplateDefinition(
             Guid.NewGuid(),

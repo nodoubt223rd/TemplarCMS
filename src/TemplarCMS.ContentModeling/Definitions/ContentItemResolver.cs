@@ -22,6 +22,7 @@ public sealed class ContentItemResolver
     : IContentItemResolver
 {
     private readonly IFieldValueResolver _fieldValueResolver;
+    private readonly ITypedFieldValueConverter _typedFieldValueConverter;
 
     /// <summary>
     /// Initializes a new instance of the
@@ -30,12 +31,19 @@ public sealed class ContentItemResolver
     /// <param name="fieldValueResolver">
     /// The field value resolver used to resolve individual field values.
     /// </param>
+    /// <param name="typedFieldValueConverter">
+    /// The typed field value converter used to project resolved field
+    /// values into runtime typed values.
+    /// </param>
     public ContentItemResolver(
-        IFieldValueResolver fieldValueResolver)
+        IFieldValueResolver fieldValueResolver,
+        ITypedFieldValueConverter typedFieldValueConverter)
     {
         ArgumentNullException.ThrowIfNull(fieldValueResolver);
+        ArgumentNullException.ThrowIfNull(typedFieldValueConverter);
 
         _fieldValueResolver = fieldValueResolver;
+        _typedFieldValueConverter = typedFieldValueConverter;
     }
 
     /// <inheritdoc />
@@ -53,6 +61,9 @@ public sealed class ContentItemResolver
         var resolvedFields =
             new Dictionary<string, ContentFieldValue?>(
                 StringComparer.OrdinalIgnoreCase);
+        var convertedFields =
+            new Dictionary<string, TypedFieldValue>(
+                StringComparer.OrdinalIgnoreCase);
 
         foreach (var field in template.Fields)
         {
@@ -67,11 +78,26 @@ public sealed class ContentItemResolver
                     candidateValues,
                     context);
 
+            var convertedValue =
+                _typedFieldValueConverter.Convert(
+                    field,
+                    resolvedValue);
+
+            if (!convertedValue.Succeeded)
+            {
+                var error =
+                    convertedValue.Errors.First();
+
+                throw new InvalidOperationException(error.Message);
+            }
+
             resolvedFields[field.Key] = resolvedValue;
+            convertedFields[field.Key] = convertedValue.Value!.Value;
         }
 
         return new ResolvedContentItem(
             item,
-            resolvedFields);
+            resolvedFields,
+            convertedFields);
     }
 }

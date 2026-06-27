@@ -15,15 +15,21 @@ public sealed class ResolvedContentItem
     /// <param name="fields">
     /// The resolved field values.
     /// </param>
+    /// <param name="convertedFields">
+    /// The resolved typed field values.
+    /// </param>
     public ResolvedContentItem(
         ContentItemDefinition item,
-        IReadOnlyDictionary<string, ContentFieldValue?> fields)
+        IReadOnlyDictionary<string, ContentFieldValue?> fields,
+        IReadOnlyDictionary<string, TypedFieldValue> convertedFields)
     {
         ArgumentNullException.ThrowIfNull(item);
         ArgumentNullException.ThrowIfNull(fields);
+        ArgumentNullException.ThrowIfNull(convertedFields);
 
         Item = item;
         Fields = fields;
+        ConvertedFields = convertedFields;
     }
 
     /// <summary>
@@ -35,4 +41,9 @@ public sealed class ResolvedContentItem
     /// Gets the resolved field values.
     /// </summary>
     public IReadOnlyDictionary<string, ContentFieldValue?> Fields { get; }
+
+    /// <summary>
+    /// Gets the resolved typed field values.
+    /// </summary>
+    public IReadOnlyDictionary<string, TypedFieldValue> ConvertedFields { get; }
 }

@@ -20,7 +20,6 @@ public sealed class TypedFieldValueConverterTests
         Assert.True(result.Succeeded);
         var converted = Assert.IsType<StringTypedFieldValue>(result.Value!.Value);
         Assert.Equal("Home", converted.Value);
-        Assert.Equal(FieldType.SingleLineText, converted.FieldType);
     }
 
     [Fact]

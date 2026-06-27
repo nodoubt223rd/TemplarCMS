@@ -1,25 +1,10 @@
-using TemplarCMS.ContentModeling.Definitions;
-
-namespace TemplarCMS.ContentModeling.Abstractions;
+namespace TemplarCMS.Domain.Content;
 
 /// <summary>
 /// Represents a strongly typed runtime field value.
 /// </summary>
 public abstract class TypedFieldValue
 {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="TypedFieldValue" /> class.
-    /// </summary>
-    /// <param name="fieldType">The field type represented by the value.</param>
-    protected TypedFieldValue(FieldType fieldType)
-    {
-        FieldType = fieldType;
-    }
-
-    /// <summary>
-    /// Gets the field type represented by the value.
-    /// </summary>
-    public FieldType FieldType { get; }
 }
 
 /// <summary>
@@ -27,14 +12,6 @@ public abstract class TypedFieldValue
 /// </summary>
 public sealed class NullTypedFieldValue : TypedFieldValue
 {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="NullTypedFieldValue" /> class.
-    /// </summary>
-    /// <param name="fieldType">The field type represented by the missing value.</param>
-    public NullTypedFieldValue(FieldType fieldType)
-        : base(fieldType)
-    {
-    }
 }
 
 /// <summary>
@@ -45,12 +22,8 @@ public sealed class StringTypedFieldValue : TypedFieldValue
     /// <summary>
     /// Initializes a new instance of the <see cref="StringTypedFieldValue" /> class.
     /// </summary>
-    /// <param name="fieldType">The field type represented by the value.</param>
     /// <param name="value">The converted string value.</param>
-    public StringTypedFieldValue(
-        FieldType fieldType,
-        string value)
-        : base(fieldType)
+    public StringTypedFieldValue(string value)
     {
         ArgumentNullException.ThrowIfNull(value);
 
@@ -73,7 +46,6 @@ public sealed class IntegerTypedFieldValue : TypedFieldValue
     /// </summary>
     /// <param name="value">The converted integer value.</param>
     public IntegerTypedFieldValue(int value)
-        : base(FieldType.Integer)
     {
         Value = value;
     }
@@ -94,7 +66,6 @@ public sealed class BooleanTypedFieldValue : TypedFieldValue
     /// </summary>
     /// <param name="value">The converted boolean value.</param>
     public BooleanTypedFieldValue(bool value)
-        : base(FieldType.Checkbox)
     {
         Value = value;
     }
