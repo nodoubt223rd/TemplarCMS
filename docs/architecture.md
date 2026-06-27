@@ -115,6 +115,7 @@ Contains template-specific schema and template mechanics:
 - `InheritedTemplateDefinition`
 - `EffectiveTemplateDefinition`
 - `FieldType`
+- typed field value conversion
 - template inheritance resolution
 - effective template construction
 - template validation

@@ -319,7 +319,37 @@ Reason:
 
 ```text
 Keep persistence simple
-Field converters can be added later
+Field converters can be layered above storage
+```
+
+## Typed Field Value Conversion
+
+Started.
+
+Current implementation:
+
+```csharp
+ITypedFieldValueConverter
+TypedFieldValueConverter
+ConvertedFieldValue
+```
+
+Current supported conversions:
+
+```text
+SingleLineText -> string
+MultiLineText -> string
+RichText -> string
+Integer -> int
+Checkbox -> bool
+```
+
+Current behavior:
+
+```text
+Null stored values convert successfully to null
+Invalid authored values return validation errors
+Unsupported field types return validation errors
 ```
 
 ---
