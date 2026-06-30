@@ -362,6 +362,14 @@ resolved runtime item in addition to preserving the original stored
 field values.
 ```
 
+Write-path note:
+
+```text
+Content item field writes now validate typed conversion before
+persistence so invalid authored values are rejected before they are
+stored.
+```
+
 ---
 
 # Field Scope

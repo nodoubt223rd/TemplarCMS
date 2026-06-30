@@ -307,6 +307,39 @@ public sealed class ContentItemServiceTests
     }
 
     [Fact]
+    public async Task SaveFieldValuesAsync_ShouldPersistValues_WhenTypedValueIsValid()
+    {
+        var template = CreateTemplate("article-page");
+        var item = CreateItem(new TemplateId(template.Id));
+        var visibleField =
+            template.Fields.Single(field => field.Key == "is-visible");
+
+        var values =
+            new[]
+            {
+                CreateValue(item.Id, visibleField.Id, "is-visible", "true", ContentVersion.Shared)
+            };
+
+        var (service, repository) =
+            CreateService(
+                new[] { template },
+                new[] { item });
+
+        await service.SaveFieldValuesAsync(
+            item.Id,
+            values,
+            TestContext.Current.CancellationToken);
+
+        var stored =
+            await repository.GetFieldValuesAsync(
+                item.Id,
+                TestContext.Current.CancellationToken);
+
+        var value = Assert.Single(stored);
+        Assert.Equal("true", value.Value);
+    }
+
+    [Fact]
     public async Task SaveFieldValuesAsync_ShouldThrow_WhenItemMissing()
     {
         var template = CreateTemplate("article-page");
@@ -378,6 +411,42 @@ public sealed class ContentItemServiceTests
                 item.Id,
                 values,
                 TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task SaveFieldValuesAsync_ShouldThrow_WhenTypedValueIsInvalid()
+    {
+        var template = CreateTemplate("article-page");
+        var item = CreateItem(new TemplateId(template.Id));
+        var visibleField =
+            template.Fields.Single(field => field.Key == "is-visible");
+
+        var values =
+            new[]
+            {
+                CreateValue(item.Id, visibleField.Id, "is-visible", "yes", ContentVersion.Shared)
+            };
+
+        var (service, repository) =
+            CreateService(
+                new[] { template },
+                new[] { item });
+
+        var exception =
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                service.SaveFieldValuesAsync(
+                    item.Id,
+                    values,
+                    TestContext.Current.CancellationToken));
+
+        Assert.Contains("is-visible", exception.Message);
+
+        var stored =
+            await repository.GetFieldValuesAsync(
+                item.Id,
+                TestContext.Current.CancellationToken);
+
+        Assert.Empty(stored);
     }
 
     [Fact]
@@ -484,7 +553,8 @@ public sealed class ContentItemServiceTests
             new ContentItemService(
                 repository,
                 catalog,
-                resolver),
+                resolver,
+                new TypedFieldValueConverter()),
             repository);
     }
 

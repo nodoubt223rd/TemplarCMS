@@ -13,6 +13,7 @@ public sealed class ContentItemService : IContentItemService
     private readonly IContentRepository _contentRepository;
     private readonly IContentModelCatalog _contentModelCatalog;
     private readonly IContentItemResolver _contentItemResolver;
+    private readonly ITypedFieldValueConverter _typedFieldValueConverter;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ContentItemService"/> class.
@@ -20,11 +21,13 @@ public sealed class ContentItemService : IContentItemService
     public ContentItemService(
         IContentRepository contentRepository,
         IContentModelCatalog contentModelCatalog,
-        IContentItemResolver contentItemResolver)
+        IContentItemResolver contentItemResolver,
+        ITypedFieldValueConverter typedFieldValueConverter)
     {
         _contentRepository = contentRepository ?? throw new ArgumentNullException(nameof(contentRepository));
         _contentModelCatalog = contentModelCatalog ?? throw new ArgumentNullException(nameof(contentModelCatalog));
         _contentItemResolver = contentItemResolver ?? throw new ArgumentNullException(nameof(contentItemResolver));
+        _typedFieldValueConverter = typedFieldValueConverter ?? throw new ArgumentNullException(nameof(typedFieldValueConverter));
     }
 
     /// <inheritdoc />
@@ -162,6 +165,18 @@ public sealed class ContentItemService : IContentItemService
             {
                 throw new InvalidOperationException(
                     $"Field key '{value.FieldKey}' does not match template field key '{field.Key}' for field '{field.Id}'.");
+            }
+
+            var conversion =
+                _typedFieldValueConverter.Convert(
+                    field,
+                    value);
+
+            if (!conversion.IsValid)
+            {
+                var error = conversion.Errors.First();
+
+                throw new InvalidOperationException(error.Message);
             }
         }
 
