@@ -1,17 +1,18 @@
 using TemplarCMS.ContentModeling.Definitions;
+using TemplarCMS.Domain.Content;
 
 namespace TemplarCMS.ContentModeling.Tests.TestUtilities
 {
     internal sealed class TemplateDefinitionBuilder
     {
-        private Guid _id = Guid.NewGuid();
+        private TemplateId _id = new(Guid.NewGuid());
         private string _name = "Test Template";
-        private string _key = "test-template";
+        private TemplateKey _key = new("test-template");
 
         private TemplateDefinition? _baseTemplate;
         private readonly List<TemplateSectionDefinition> _sections = new List<TemplateSectionDefinition>();
 
-        public TemplateDefinitionBuilder WithId(Guid id)
+        public TemplateDefinitionBuilder WithId(TemplateId id)
         {
             _id = id;
             return this;
@@ -25,7 +26,7 @@ namespace TemplarCMS.ContentModeling.Tests.TestUtilities
 
         public TemplateDefinitionBuilder WithKey(string key)
         {
-            _key = key;
+            _key = new TemplateKey(key);
             return this;
         }
 
@@ -34,7 +35,7 @@ namespace TemplarCMS.ContentModeling.Tests.TestUtilities
         string key)
         {
             _name = name;
-            _key = key;
+            _key = new TemplateKey(key);
             return this;
         }
 

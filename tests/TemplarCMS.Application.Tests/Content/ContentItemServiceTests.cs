@@ -27,7 +27,7 @@ public sealed class ContentItemServiceTests
     public async Task GetItemAsync_ShouldResolveStoredItem()
     {
         var template = CreateTemplate("article-page");
-        var item = CreateItem(new TemplateId(template.Id));
+        var item = CreateItem(template.Id);
         var values =
             new[]
             {
@@ -87,7 +87,7 @@ public sealed class ContentItemServiceTests
     public async Task GetItemAsync_ShouldThrow_WhenStoredValueCannotBeConverted()
     {
         var template = CreateTemplate("article-page");
-        var item = CreateItem(new TemplateId(template.Id));
+        var item = CreateItem(template.Id);
         var values =
             new[]
             {
@@ -118,10 +118,10 @@ public sealed class ContentItemServiceTests
     public async Task GetChildItemsAsync_ShouldResolveDirectChildren()
     {
         var template = CreateTemplate("article-page");
-        var parent = CreateItem(new TemplateId(template.Id));
-        var childB = CreateItem(new TemplateId(template.Id), parent.Id, "Child B", "child-b");
-        var childA = CreateItem(new TemplateId(template.Id), parent.Id, "Child A", "child-a");
-        var grandChild = CreateItem(new TemplateId(template.Id), childA.Id, "Grand Child", "grand-child");
+        var parent = CreateItem(template.Id);
+        var childB = CreateItem(template.Id, parent.Id, "Child B", "child-b");
+        var childA = CreateItem(template.Id, parent.Id, "Child A", "child-a");
+        var grandChild = CreateItem(template.Id, childA.Id, "Grand Child", "grand-child");
 
         var titleFieldId =
             template.Fields.Single(field => field.Key == "title").Id;
@@ -162,7 +162,7 @@ public sealed class ContentItemServiceTests
     public async Task SaveItemAsync_ShouldPersistItem_WhenTemplateExists()
     {
         var template = CreateTemplate("article-page");
-        var item = CreateItem(new TemplateId(template.Id));
+        var item = CreateItem(template.Id);
         var (service, repository) =
             CreateService(
                 new[] { template });
@@ -195,7 +195,7 @@ public sealed class ContentItemServiceTests
     public async Task SaveItemAsync_ShouldThrow_WhenParentMissing()
     {
         var template = CreateTemplate("article-page");
-        var item = CreateItem(new TemplateId(template.Id), new ContentItemId(Guid.NewGuid()));
+        var item = CreateItem(template.Id, new ContentItemId(Guid.NewGuid()));
         var (service, _) =
             CreateService(
                 new[] { template });
@@ -216,7 +216,7 @@ public sealed class ContentItemServiceTests
                 itemId,
                 "Home",
                 new ContentItemKey("home"),
-                new TemplateId(template.Id),
+                template.Id,
                 itemId);
 
         var (service, _) =
@@ -233,9 +233,9 @@ public sealed class ContentItemServiceTests
     public async Task SaveItemAsync_ShouldThrow_WhenSiblingKeyAlreadyExists()
     {
         var template = CreateTemplate("article-page");
-        var parent = CreateItem(new TemplateId(template.Id), name: "Parent", key: "parent");
-        var existingChild = CreateItem(new TemplateId(template.Id), parent.Id, "Child A", "home");
-        var newChild = CreateItem(new TemplateId(template.Id), parent.Id, "Child B", "HOME");
+        var parent = CreateItem(template.Id, name: "Parent", key: "parent");
+        var existingChild = CreateItem(template.Id, parent.Id, "Child A", "home");
+        var newChild = CreateItem(template.Id, parent.Id, "Child B", "HOME");
 
         var (service, _) =
             CreateService(
@@ -252,14 +252,14 @@ public sealed class ContentItemServiceTests
     public async Task SaveItemAsync_ShouldAllowExistingItemToKeepItsSiblingKey()
     {
         var template = CreateTemplate("article-page");
-        var parent = CreateItem(new TemplateId(template.Id), name: "Parent", key: "parent");
-        var existingChild = CreateItem(new TemplateId(template.Id), parent.Id, "Child A", "home");
+        var parent = CreateItem(template.Id, name: "Parent", key: "parent");
+        var existingChild = CreateItem(template.Id, parent.Id, "Child A", "home");
         var updatedChild =
             new ContentItemDefinition(
                 existingChild.Id,
                 "Child A Updated",
                 new ContentItemKey("HOME"),
-                new TemplateId(template.Id),
+                template.Id,
                 parent.Id);
 
         var (service, repository) =
@@ -285,7 +285,7 @@ public sealed class ContentItemServiceTests
     public async Task SaveFieldValuesAsync_ShouldPersistValues_WhenItemAndTemplateFieldExist()
     {
         var template = CreateTemplate("article-page");
-        var item = CreateItem(new TemplateId(template.Id));
+        var item = CreateItem(template.Id);
         var titleField =
             template.Fields.Single(field => field.Key == "title");
 
@@ -318,7 +318,7 @@ public sealed class ContentItemServiceTests
     public async Task SaveFieldValuesAsync_ShouldPersistValues_WhenTypedValueIsValid()
     {
         var template = CreateTemplate("article-page");
-        var item = CreateItem(new TemplateId(template.Id));
+        var item = CreateItem(template.Id);
         var visibleField =
             template.Fields.Single(field => field.Key == "is-visible");
         var priceField =
@@ -383,7 +383,7 @@ public sealed class ContentItemServiceTests
     public async Task SaveFieldValuesAsync_ShouldThrow_WhenFieldIdMissingFromTemplate()
     {
         var template = CreateTemplate("article-page");
-        var item = CreateItem(new TemplateId(template.Id));
+        var item = CreateItem(template.Id);
 
         var values =
             new[]
@@ -407,7 +407,7 @@ public sealed class ContentItemServiceTests
     public async Task SaveFieldValuesAsync_ShouldThrow_WhenFieldKeyDoesNotMatchTemplateField()
     {
         var template = CreateTemplate("article-page");
-        var item = CreateItem(new TemplateId(template.Id));
+        var item = CreateItem(template.Id);
         var titleField =
             template.Fields.Single(field => field.Key == "title");
 
@@ -433,7 +433,7 @@ public sealed class ContentItemServiceTests
     public async Task SaveFieldValuesAsync_ShouldThrow_WhenTypedValueIsInvalid()
     {
         var template = CreateTemplate("article-page");
-        var item = CreateItem(new TemplateId(template.Id));
+        var item = CreateItem(template.Id);
         var visibleField =
             template.Fields.Single(field => field.Key == "is-visible");
 
@@ -469,7 +469,7 @@ public sealed class ContentItemServiceTests
     public async Task SaveFieldValuesAsync_ShouldThrow_WhenDecimalValueIsInvalid()
     {
         var template = CreateTemplate("article-page");
-        var item = CreateItem(new TemplateId(template.Id));
+        var item = CreateItem(template.Id);
         var priceField =
             template.Fields.Single(field => field.Key == "price");
 
@@ -505,7 +505,7 @@ public sealed class ContentItemServiceTests
     public async Task SaveFieldValuesAsync_ShouldThrow_WhenDateTimeValueIsInvalid()
     {
         var template = CreateTemplate("article-page");
-        var item = CreateItem(new TemplateId(template.Id));
+        var item = CreateItem(template.Id);
         var publishOnField =
             template.Fields.Single(field => field.Key == "publish-on");
 
@@ -541,7 +541,7 @@ public sealed class ContentItemServiceTests
     public async Task DeleteItemAsync_ShouldDeleteItem_WhenNoDirectChildrenExist()
     {
         var template = CreateTemplate("article-page");
-        var item = CreateItem(new TemplateId(template.Id));
+        var item = CreateItem(template.Id);
         var titleField =
             template.Fields.Single(field => field.Key == "title");
 
@@ -579,8 +579,8 @@ public sealed class ContentItemServiceTests
     public async Task DeleteItemAsync_ShouldThrow_WhenDirectChildrenExist()
     {
         var template = CreateTemplate("article-page");
-        var parent = CreateItem(new TemplateId(template.Id));
-        var child = CreateItem(new TemplateId(template.Id), parent.Id, "Child", "child");
+        var parent = CreateItem(template.Id);
+        var child = CreateItem(template.Id, parent.Id, "Child", "child");
 
         var (service, repository) =
             CreateService(
@@ -732,15 +732,15 @@ public sealed class ContentItemServiceTests
                 new[] { titleField, bodyField, visibleField, priceField, publishOnField });
 
         return new EffectiveTemplateDefinition(
-            Guid.NewGuid(),
+            new TemplateId(Guid.NewGuid()),
             "Article Page",
-            key,
+            new TemplateKey(key),
             new[] { section });
     }
 
     private sealed class FakeContentModelCatalog : IContentModelCatalog
     {
-        private readonly Dictionary<Guid, EffectiveTemplateDefinition> _templates;
+        private readonly Dictionary<TemplateId, EffectiveTemplateDefinition> _templates;
 
         public FakeContentModelCatalog(
             IReadOnlyCollection<EffectiveTemplateDefinition> templates)
@@ -749,7 +749,7 @@ public sealed class ContentItemServiceTests
         }
 
         public Task<TemplateDefinition?> GetTemplateAsync(
-            Guid id,
+            TemplateId id,
             CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -757,7 +757,7 @@ public sealed class ContentItemServiceTests
         }
 
         public Task<TemplateDefinition?> GetTemplateAsync(
-            string key,
+            TemplateKey key,
             CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -765,7 +765,7 @@ public sealed class ContentItemServiceTests
         }
 
         public Task<EffectiveTemplateDefinition?> GetEffectiveTemplateAsync(
-            Guid id,
+            TemplateId id,
             CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -774,16 +774,13 @@ public sealed class ContentItemServiceTests
         }
 
         public Task<EffectiveTemplateDefinition?> GetEffectiveTemplateAsync(
-            string key,
+            TemplateKey key,
             CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
             var template =
                 _templates.Values.FirstOrDefault(
-                    value => string.Equals(
-                        value.Key,
-                        key,
-                        StringComparison.OrdinalIgnoreCase));
+                    value => value.Key == key);
 
             return Task.FromResult(template);
         }

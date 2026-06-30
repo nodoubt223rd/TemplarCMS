@@ -1,4 +1,5 @@
 using TemplarCMS.ContentModeling.Definitions;
+using TemplarCMS.Domain.Content;
 
 namespace TemplarCMS.ContentModeling.Catalog
 {
@@ -32,9 +33,9 @@ namespace TemplarCMS.ContentModeling.Catalog
         /// Thrown when any dictionary is <c>null</c>.
         /// </exception>
         public ContentModelSnapshot(
-            IReadOnlyDictionary<Guid, TemplateDefinition> templates,
-            IReadOnlyDictionary<Guid, EffectiveTemplateDefinition> effectiveTemplates,
-            IReadOnlyDictionary<string, Guid> templateKeys)
+            IReadOnlyDictionary<TemplateId, TemplateDefinition> templates,
+            IReadOnlyDictionary<TemplateId, EffectiveTemplateDefinition> effectiveTemplates,
+            IReadOnlyDictionary<TemplateKey, TemplateId> templateKeys)
         {
             Templates = templates ?? throw new ArgumentNullException(nameof(templates));
             EffectiveTemplates = effectiveTemplates ?? throw new ArgumentNullException(nameof(effectiveTemplates));
@@ -50,23 +51,23 @@ namespace TemplarCMS.ContentModeling.Catalog
         /// </remarks>
         public static ContentModelSnapshot Empty { get; } =
             new ContentModelSnapshot(
-                new Dictionary<Guid, TemplateDefinition>(),
-                new Dictionary<Guid, EffectiveTemplateDefinition>(),
-                new Dictionary<string, Guid>(StringComparer.OrdinalIgnoreCase));
+                new Dictionary<TemplateId, TemplateDefinition>(),
+                new Dictionary<TemplateId, EffectiveTemplateDefinition>(),
+                new Dictionary<TemplateKey, TemplateId>());
 
         /// <summary>
         /// Gets authored template definitions indexed by template identifier.
         /// </summary>
-        public IReadOnlyDictionary<Guid, TemplateDefinition> Templates { get; }
+        public IReadOnlyDictionary<TemplateId, TemplateDefinition> Templates { get; }
 
         /// <summary>
         /// Gets effective runtime template definitions indexed by template identifier.
         /// </summary>
-        public IReadOnlyDictionary<Guid, EffectiveTemplateDefinition> EffectiveTemplates { get; }
+        public IReadOnlyDictionary<TemplateId, EffectiveTemplateDefinition> EffectiveTemplates { get; }
 
         /// <summary>
         /// Gets template identifier lookups indexed by template key.
         /// </summary>
-        public IReadOnlyDictionary<string, Guid> TemplateKeys { get; }
+        public IReadOnlyDictionary<TemplateKey, TemplateId> TemplateKeys { get; }
     }
 }

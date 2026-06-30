@@ -3,6 +3,7 @@ using TemplarCMS.ContentModeling.Abstractions;
 using TemplarCMS.ContentModeling.Definitions;
 using TemplarCMS.ContentModeling.Repositories;
 using TemplarCMS.ContentModeling.Validation;
+using TemplarCMS.Domain.Content;
 
 namespace TemplarCMS.ContentModeling.Catalog
 {
@@ -47,7 +48,7 @@ namespace TemplarCMS.ContentModeling.Catalog
 
         /// <inheritdoc />
         public Task<TemplateDefinition?> GetTemplateAsync(
-            Guid id,
+            TemplateId id,
             CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -59,10 +60,9 @@ namespace TemplarCMS.ContentModeling.Catalog
 
         /// <inheritdoc />
         public Task<TemplateDefinition?> GetTemplateAsync(
-            string key,
+            TemplateKey key,
             CancellationToken cancellationToken = default)
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(key);
             cancellationToken.ThrowIfCancellationRequested();
 
             if (!_snapshot.TemplateKeys.TryGetValue(key, out var id))
@@ -77,7 +77,7 @@ namespace TemplarCMS.ContentModeling.Catalog
 
         /// <inheritdoc />
         public Task<EffectiveTemplateDefinition?> GetEffectiveTemplateAsync(
-            Guid id,
+            TemplateId id,
             CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -89,10 +89,9 @@ namespace TemplarCMS.ContentModeling.Catalog
 
         /// <inheritdoc />
         public Task<EffectiveTemplateDefinition?> GetEffectiveTemplateAsync(
-            string key,
+            TemplateKey key,
             CancellationToken cancellationToken = default)
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(key);
             cancellationToken.ThrowIfCancellationRequested();
 
             if (!_snapshot.TemplateKeys.TryGetValue(key, out var id))
@@ -157,10 +156,9 @@ namespace TemplarCMS.ContentModeling.Catalog
 
             var templateKeys = templates.ToDictionary(
                 template => template.Key,
-                template => template.Id,
-                StringComparer.OrdinalIgnoreCase);
+                template => template.Id);
 
-            var effectiveTemplatesById = new Dictionary<Guid, EffectiveTemplateDefinition>();
+            var effectiveTemplatesById = new Dictionary<TemplateId, EffectiveTemplateDefinition>();
 
             foreach (var template in templates)
             {

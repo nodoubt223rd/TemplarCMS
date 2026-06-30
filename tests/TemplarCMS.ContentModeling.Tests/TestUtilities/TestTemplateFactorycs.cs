@@ -1,4 +1,5 @@
 using TemplarCMS.ContentModeling.Definitions;
+using TemplarCMS.Domain.Content;
 
 namespace TemplarCMS.ContentModeling.Tests.TestUtilities
 {
@@ -10,9 +11,9 @@ namespace TemplarCMS.ContentModeling.Tests.TestUtilities
             TemplateDefinition baseTemplate)
         {
             return new TemplateDefinition(
-                Guid.NewGuid(),
+                new TemplateId(Guid.NewGuid()),
                 name,
-                key,
+                new TemplateKey(key),
                 baseTemplate);
         }
     }

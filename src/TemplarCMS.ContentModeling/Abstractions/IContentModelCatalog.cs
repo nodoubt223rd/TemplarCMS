@@ -1,4 +1,5 @@
 using TemplarCMS.ContentModeling.Definitions;
+using TemplarCMS.Domain.Content;
 
 namespace TemplarCMS.ContentModeling.Abstractions;
 
@@ -11,28 +12,28 @@ public interface IContentModelCatalog
     /// Gets an authored template definition by its stable id.
     /// </summary>
     Task<TemplateDefinition?> GetTemplateAsync(
-        Guid id,
+        TemplateId id,
         CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets an authored template definition by its key.
     /// </summary>
     Task<TemplateDefinition?> GetTemplateAsync(
-        string key,
+        TemplateKey key,
         CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets a fully resolved effective template definition by its stable id.
     /// </summary>
     Task<EffectiveTemplateDefinition?> GetEffectiveTemplateAsync(
-        Guid id,
+        TemplateId id,
         CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets a fully resolved effective template definition by its key.
     /// </summary>
     Task<EffectiveTemplateDefinition?> GetEffectiveTemplateAsync(
-        string key,
+        TemplateKey key,
         CancellationToken cancellationToken = default);
 
     /// <summary>

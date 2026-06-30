@@ -282,9 +282,9 @@ public sealed class TemplateValidatorTests
         params TemplateSectionDefinition[] sections)
     {
         return new TemplateDefinition(
-            Guid.NewGuid(),
+            new TemplateId(Guid.NewGuid()),
             name,
-            key,
+            new TemplateKey(key),
             sections: sections);
     }
 

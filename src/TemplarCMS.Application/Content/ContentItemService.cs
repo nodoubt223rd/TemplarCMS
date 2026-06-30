@@ -288,7 +288,7 @@ public sealed class ContentItemService : IContentItemService
     {
         var template =
             await _contentModelCatalog.GetEffectiveTemplateAsync(
-                templateId.Value,
+                templateId,
                 cancellationToken);
 
         if (template == null)

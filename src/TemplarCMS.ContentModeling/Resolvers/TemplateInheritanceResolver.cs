@@ -1,6 +1,7 @@
 using TemplarCMS.ContentModeling.Abstractions;
 using TemplarCMS.ContentModeling.Definitions;
 using TemplarCMS.ContentModeling.Validation;
+using TemplarCMS.Domain.Content;
 
 namespace TemplarCMS.ContentModeling.Resolvers;
 
@@ -38,10 +39,10 @@ public sealed class TemplateInheritanceResolver : ITemplateInheritanceResolver
             new List<ValidationError>();
 
         var visiting =
-            new HashSet<Guid>();
+            new HashSet<TemplateId>();
 
         var visited =
-            new HashSet<Guid>();
+            new HashSet<TemplateId>();
 
         ResolveTemplate(
             template,
@@ -73,8 +74,8 @@ public sealed class TemplateInheritanceResolver : ITemplateInheritanceResolver
         TemplateDefinition template,
         ICollection<TemplateDefinition> resolvedTemplates,
         ICollection<ValidationError> errors,
-        ISet<Guid> visiting,
-        ISet<Guid> visited,
+        ISet<TemplateId> visiting,
+        ISet<TemplateId> visited,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();

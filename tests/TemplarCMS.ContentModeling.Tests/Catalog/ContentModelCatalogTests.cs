@@ -5,6 +5,7 @@ using TemplarCMS.ContentModeling.Catalog;
 using TemplarCMS.ContentModeling.Definitions;
 using TemplarCMS.ContentModeling.Repositories;
 using TemplarCMS.ContentModeling.Validation;
+using TemplarCMS.Domain.Content;
 using Xunit;
 
 namespace TemplarCMS.ContentModeling.Tests.Catalog;
@@ -41,7 +42,7 @@ public sealed class ContentModelCatalogTests
 
         await context.Catalog.RefreshAsync(cancellationToken);
 
-        var actual = await context.Catalog.GetTemplateAsync("ARTICLE", cancellationToken);
+        var actual = await context.Catalog.GetTemplateAsync(new TemplateKey("ARTICLE"), cancellationToken);
 
         Assert.Same(template, actual);
     }
@@ -57,7 +58,7 @@ public sealed class ContentModelCatalogTests
 
         await context.Catalog.RefreshAsync(cancellationToken);
 
-        var actual = await context.Catalog.GetEffectiveTemplateAsync("article", cancellationToken);
+        var actual = await context.Catalog.GetEffectiveTemplateAsync(new TemplateKey("article"), cancellationToken);
 
         Assert.Same(effectiveTemplate, actual);
     }
@@ -230,9 +231,9 @@ public sealed class ContentModelCatalogTests
         string key)
     {
         return new TemplateDefinition(
-            Guid.NewGuid(),
+            new TemplateId(Guid.NewGuid()),
             name,
-            key);
+            new TemplateKey(key));
     }
 
     private static EffectiveTemplateDefinition CreateEffectiveTemplate(

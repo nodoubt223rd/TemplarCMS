@@ -153,9 +153,9 @@ public sealed class EffectiveTemplateValidatorTests
         params TemplateSectionDefinition[] sections)
     {
         return new EffectiveTemplateDefinition(
-            Guid.NewGuid(),
+            new TemplateId(Guid.NewGuid()),
             name,
-            key,
+            new TemplateKey(key),
             sections);
     }
 

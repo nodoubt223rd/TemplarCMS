@@ -52,9 +52,9 @@ namespace TemplarCMS.ContentModeling.Serialization
                 MapSections(template.Sections);
 
             return new TemplateDefinition(
-                template.Id,
+                new TemplateId(template.Id),
                 GetRequiredValue(template.Name, "name"),
-                GetRequiredValue(template.Key, "key"),
+                new TemplateKey(GetRequiredValue(template.Key, "key")),
                 sections: sections);
         }
 

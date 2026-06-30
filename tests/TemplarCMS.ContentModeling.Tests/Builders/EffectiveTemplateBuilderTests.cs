@@ -34,7 +34,7 @@ public sealed class EffectiveTemplateBuilderTests
         Assert.NotNull(result.Value);
         Assert.Equal(template.Id, result.Value!.Id);
         Assert.Equal("Article", result.Value.Name);
-        Assert.Equal("article", result.Value.Key);
+        Assert.Equal(new TemplateKey("article"), result.Value.Key);
 
         var effectiveSection = Assert.Single(result.Value.Sections);
         Assert.Equal("Content", effectiveSection.Name);
@@ -385,9 +385,9 @@ public sealed class EffectiveTemplateBuilderTests
         IReadOnlyCollection<TemplateSectionDefinition>? sections = null)
     {
         return new TemplateDefinition(
-            Guid.NewGuid(),
+            new TemplateId(Guid.NewGuid()),
             name,
-            key,
+            new TemplateKey(key),
             baseTemplate,
             sections);
     }

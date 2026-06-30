@@ -4,6 +4,7 @@ using System.Text.Json;
 using TemplarCMS.ContentModeling.Definitions;
 using TemplarCMS.ContentModeling.Repositories;
 using TemplarCMS.ContentModeling.Serialization;
+using TemplarCMS.Domain.Content;
 using Xunit;
 
 namespace TemplarCMS.ContentModeling.Tests.Repositories;
@@ -86,9 +87,9 @@ public sealed class JsonTemplateRepositoryTests
 
         var expectedTemplate =
             new TemplateDefinition(
-                Guid.NewGuid(),
+                new TemplateId(Guid.NewGuid()),
                 "Article Page",
-                "article-page");
+                new TemplateKey("article-page"));
 
         _mapper
             .Map(Arg.Any<JsonTemplateDefinition>())
@@ -148,9 +149,9 @@ public sealed class JsonTemplateRepositoryTests
 
                 var template =
                     new TemplateDefinition(
-                        dto.Id,
+                        new TemplateId(dto.Id),
                         dto.Name!,
-                        dto.Key!);
+                        new TemplateKey(dto.Key!));
 
                 mappedTemplates.Add(template);
 
@@ -170,7 +171,7 @@ public sealed class JsonTemplateRepositoryTests
                 "m-page",
                 "z-page"
             },
-            mappedTemplates.Select(template => template.Key));
+            mappedTemplates.Select(template => template.Key.Value));
 
         Assert.Equal(
             new[]
@@ -179,7 +180,7 @@ public sealed class JsonTemplateRepositoryTests
                 "m-page",
                 "z-page"
             },
-            result.Select(template => template.Key));
+            result.Select(template => template.Key.Value));
     }
 
     [Fact]

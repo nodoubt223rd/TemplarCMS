@@ -22,9 +22,9 @@ public sealed class EffectiveTemplateDefinitionTests
             CreateField("Second Field", "second-field"));
 
         var template = new EffectiveTemplateDefinition(
-            Guid.NewGuid(),
+            new TemplateId(Guid.NewGuid()),
             "Article Page",
-            "article-page",
+            new TemplateKey("article-page"),
             [firstSection, secondSection]);
 
         Assert.Collection(
@@ -51,9 +51,9 @@ public sealed class EffectiveTemplateDefinitionTests
             CreateField("Body", "body"));
 
         var template = new EffectiveTemplateDefinition(
-            Guid.NewGuid(),
+            new TemplateId(Guid.NewGuid()),
             "Article Page",
-            "article-page",
+            new TemplateKey("article-page"),
             [seoSection, contentSection]);
 
         Assert.Collection(
@@ -68,9 +68,9 @@ public sealed class EffectiveTemplateDefinitionTests
     public void Constructor_ReturnsEmptySectionsAndFields_WhenSectionsAreNull()
     {
         var template = new EffectiveTemplateDefinition(
-            Guid.NewGuid(),
+            new TemplateId(Guid.NewGuid()),
             "Article Page",
-            "article-page");
+            new TemplateKey("article-page"));
 
         Assert.Empty(template.Sections);
         Assert.Empty(template.Fields);
@@ -85,9 +85,9 @@ public sealed class EffectiveTemplateDefinitionTests
             100);
 
         var template = new EffectiveTemplateDefinition(
-            Guid.NewGuid(),
+            new TemplateId(Guid.NewGuid()),
             "Article Page",
-            "article-page",
+            new TemplateKey("article-page"),
             [section]);
 
         var effectiveSection = Assert.Single(template.Sections);
@@ -110,9 +110,9 @@ public sealed class EffectiveTemplateDefinitionTests
         };
 
         var template = new EffectiveTemplateDefinition(
-            Guid.NewGuid(),
+            new TemplateId(Guid.NewGuid()),
             "Article Page",
-            "article-page",
+            new TemplateKey("article-page"),
             sections);
 
         sections.Clear();
