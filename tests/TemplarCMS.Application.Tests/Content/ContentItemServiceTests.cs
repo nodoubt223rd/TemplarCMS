@@ -32,7 +32,9 @@ public sealed class ContentItemServiceTests
             new[]
             {
                 CreateValue(item.Id, template.Fields.Single(field => field.Key == "title").Id, "title", "Home", ContentVersion.Shared),
-                CreateValue(item.Id, template.Fields.Single(field => field.Key == "body").Id, "body", "Welcome")
+                CreateValue(item.Id, template.Fields.Single(field => field.Key == "body").Id, "body", "Welcome"),
+                CreateValue(item.Id, template.Fields.Single(field => field.Key == "price").Id, "price", "12.34", ContentVersion.Shared),
+                CreateValue(item.Id, template.Fields.Single(field => field.Key == "publish-on").Id, "publish-on", "2026-06-30T13:45:00Z")
             };
 
         var (service, _) = CreateService(
@@ -53,9 +55,15 @@ public sealed class ContentItemServiceTests
 
         var title = Assert.IsType<StringTypedFieldValue>(result.ConvertedFields["title"]);
         var body = Assert.IsType<StringTypedFieldValue>(result.ConvertedFields["body"]);
+        var price = Assert.IsType<DecimalTypedFieldValue>(result.ConvertedFields["price"]);
+        var publishOn = Assert.IsType<DateTimeTypedFieldValue>(result.ConvertedFields["publish-on"]);
 
         Assert.Equal("Home", title.Value);
         Assert.Equal("Welcome", body.Value);
+        Assert.Equal(12.34m, price.Value);
+        Assert.Equal(
+            new DateTime(2026, 6, 30, 13, 45, 0, DateTimeKind.Utc),
+            publishOn.Value);
     }
 
     [Fact]
@@ -313,11 +321,17 @@ public sealed class ContentItemServiceTests
         var item = CreateItem(new TemplateId(template.Id));
         var visibleField =
             template.Fields.Single(field => field.Key == "is-visible");
+        var priceField =
+            template.Fields.Single(field => field.Key == "price");
+        var publishOnField =
+            template.Fields.Single(field => field.Key == "publish-on");
 
         var values =
             new[]
             {
-                CreateValue(item.Id, visibleField.Id, "is-visible", "true", ContentVersion.Shared)
+                CreateValue(item.Id, visibleField.Id, "is-visible", "true", ContentVersion.Shared),
+                CreateValue(item.Id, priceField.Id, "price", "12.34", ContentVersion.Shared),
+                CreateValue(item.Id, publishOnField.Id, "publish-on", "2026-06-30T13:45:00Z")
             };
 
         var (service, repository) =
@@ -335,8 +349,10 @@ public sealed class ContentItemServiceTests
                 item.Id,
                 TestContext.Current.CancellationToken);
 
-        var value = Assert.Single(stored);
-        Assert.Equal("true", value.Value);
+        Assert.Equal(3, stored.Count);
+        Assert.Contains(stored, value => value.FieldKey == "is-visible" && value.Value == "true");
+        Assert.Contains(stored, value => value.FieldKey == "price" && value.Value == "12.34");
+        Assert.Contains(stored, value => value.FieldKey == "publish-on" && value.Value == "2026-06-30T13:45:00Z");
     }
 
     [Fact]
@@ -440,6 +456,78 @@ public sealed class ContentItemServiceTests
                     TestContext.Current.CancellationToken));
 
         Assert.Contains("is-visible", exception.Message);
+
+        var stored =
+            await repository.GetFieldValuesAsync(
+                item.Id,
+                TestContext.Current.CancellationToken);
+
+        Assert.Empty(stored);
+    }
+
+    [Fact]
+    public async Task SaveFieldValuesAsync_ShouldThrow_WhenDecimalValueIsInvalid()
+    {
+        var template = CreateTemplate("article-page");
+        var item = CreateItem(new TemplateId(template.Id));
+        var priceField =
+            template.Fields.Single(field => field.Key == "price");
+
+        var values =
+            new[]
+            {
+                CreateValue(item.Id, priceField.Id, "price", "twelve", ContentVersion.Shared)
+            };
+
+        var (service, repository) =
+            CreateService(
+                new[] { template },
+                new[] { item });
+
+        var exception =
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                service.SaveFieldValuesAsync(
+                    item.Id,
+                    values,
+                    TestContext.Current.CancellationToken));
+
+        Assert.Contains("price", exception.Message);
+
+        var stored =
+            await repository.GetFieldValuesAsync(
+                item.Id,
+                TestContext.Current.CancellationToken);
+
+        Assert.Empty(stored);
+    }
+
+    [Fact]
+    public async Task SaveFieldValuesAsync_ShouldThrow_WhenDateTimeValueIsInvalid()
+    {
+        var template = CreateTemplate("article-page");
+        var item = CreateItem(new TemplateId(template.Id));
+        var publishOnField =
+            template.Fields.Single(field => field.Key == "publish-on");
+
+        var values =
+            new[]
+            {
+                CreateValue(item.Id, publishOnField.Id, "publish-on", "tomorrow afternoon")
+            };
+
+        var (service, repository) =
+            CreateService(
+                new[] { template },
+                new[] { item });
+
+        var exception =
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                service.SaveFieldValuesAsync(
+                    item.Id,
+                    values,
+                    TestContext.Current.CancellationToken));
+
+        Assert.Contains("publish-on", exception.Message);
 
         var stored =
             await repository.GetFieldValuesAsync(
@@ -620,13 +708,28 @@ public sealed class ContentItemServiceTests
                 FieldType.Checkbox,
                 isUnversioned: true);
 
+        var priceField =
+            new FieldDefinition(
+                new FieldId(Guid.NewGuid()),
+                "Price",
+                "price",
+                FieldType.Decimal,
+                isUnversioned: true);
+
+        var publishOnField =
+            new FieldDefinition(
+                new FieldId(Guid.NewGuid()),
+                "Publish On",
+                "publish-on",
+                FieldType.DateTime);
+
         var section =
             new TemplateSectionDefinition(
                 Guid.NewGuid(),
                 "Content",
                 "content",
                 100,
-                new[] { titleField, bodyField, visibleField });
+                new[] { titleField, bodyField, visibleField, priceField, publishOnField });
 
         return new EffectiveTemplateDefinition(
             Guid.NewGuid(),

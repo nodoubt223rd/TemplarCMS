@@ -35,6 +35,34 @@ public sealed class TypedFieldValueConverterTests
         Assert.Equal(42, converted.Value);
     }
 
+    [Fact]
+    public void Convert_ReturnsDecimalValue_ForDecimalField()
+    {
+        var field = CreateField(FieldType.Decimal, "price");
+        var value = CreateValue("12.34", "price");
+
+        var result = _converter.Convert(field, value);
+
+        Assert.True(result.Succeeded);
+        var converted = Assert.IsType<DecimalTypedFieldValue>(result.Value!.Value);
+        Assert.Equal(12.34m, converted.Value);
+    }
+
+    [Fact]
+    public void Convert_ReturnsDateTimeValue_ForDateTimeField()
+    {
+        var field = CreateField(FieldType.DateTime, "publish-on");
+        var value = CreateValue("2026-06-30T13:45:00Z", "publish-on");
+
+        var result = _converter.Convert(field, value);
+
+        Assert.True(result.Succeeded);
+        var converted = Assert.IsType<DateTimeTypedFieldValue>(result.Value!.Value);
+        Assert.Equal(
+            new DateTime(2026, 6, 30, 13, 45, 0, DateTimeKind.Utc),
+            converted.Value);
+    }
+
     [Theory]
     [InlineData("true", true)]
     [InlineData("False", false)]
@@ -107,17 +135,45 @@ public sealed class TypedFieldValueConverterTests
     }
 
     [Fact]
-    public void Convert_ReturnsValidationError_WhenFieldTypeIsUnsupported()
+    public void Convert_ReturnsValidationError_WhenDecimalValueIsInvalid()
     {
         var field = CreateField(FieldType.Decimal, "price");
-        var value = CreateValue("12.34", "price");
+        var value = CreateValue("twelve", "price");
+
+        var result = _converter.Convert(field, value);
+
+        Assert.False(result.IsValid);
+        var error = Assert.Single(result.Errors);
+        Assert.Equal("InvalidDecimalFieldValue", error.Code);
+        Assert.Equal("price", error.Target);
+    }
+
+    [Fact]
+    public void Convert_ReturnsValidationError_WhenDateTimeValueIsInvalid()
+    {
+        var field = CreateField(FieldType.DateTime, "publish-on");
+        var value = CreateValue("tomorrow afternoon", "publish-on");
+
+        var result = _converter.Convert(field, value);
+
+        Assert.False(result.IsValid);
+        var error = Assert.Single(result.Errors);
+        Assert.Equal("InvalidDateTimeFieldValue", error.Code);
+        Assert.Equal("publish-on", error.Target);
+    }
+
+    [Fact]
+    public void Convert_ReturnsValidationError_WhenFieldTypeIsUnsupported()
+    {
+        var field = CreateField(FieldType.Json, "metadata");
+        var value = CreateValue("{\"featured\":true}", "metadata");
 
         var result = _converter.Convert(field, value);
 
         Assert.False(result.IsValid);
         var error = Assert.Single(result.Errors);
         Assert.Equal("UnsupportedFieldValueConversion", error.Code);
-        Assert.Equal("price", error.Target);
+        Assert.Equal("metadata", error.Target);
     }
 
     private static FieldDefinition CreateField(FieldType fieldType, string key)

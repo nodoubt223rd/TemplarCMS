@@ -57,6 +57,46 @@ public sealed class IntegerTypedFieldValue : TypedFieldValue
 }
 
 /// <summary>
+/// Represents a converted decimal field value.
+/// </summary>
+public sealed class DecimalTypedFieldValue : TypedFieldValue
+{
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DecimalTypedFieldValue" /> class.
+    /// </summary>
+    /// <param name="value">The converted decimal value.</param>
+    public DecimalTypedFieldValue(decimal value)
+    {
+        Value = value;
+    }
+
+    /// <summary>
+    /// Gets the converted decimal value.
+    /// </summary>
+    public decimal Value { get; }
+}
+
+/// <summary>
+/// Represents a converted date and time field value.
+/// </summary>
+public sealed class DateTimeTypedFieldValue : TypedFieldValue
+{
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DateTimeTypedFieldValue" /> class.
+    /// </summary>
+    /// <param name="value">The converted date and time value.</param>
+    public DateTimeTypedFieldValue(DateTime value)
+    {
+        Value = value;
+    }
+
+    /// <summary>
+    /// Gets the converted date and time value.
+    /// </summary>
+    public DateTime Value { get; }
+}
+
+/// <summary>
 /// Represents a converted boolean field value.
 /// </summary>
 public sealed class BooleanTypedFieldValue : TypedFieldValue

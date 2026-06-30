@@ -32,7 +32,9 @@ public sealed class TypedFieldValueConverter : ITypedFieldValueConverter
             FieldType.SingleLineText => ConvertAsString(fieldDefinition, value),
             FieldType.MultiLineText => ConvertAsString(fieldDefinition, value),
             FieldType.RichText => ConvertAsString(fieldDefinition, value),
+            FieldType.DateTime => ConvertAsDateTime(fieldDefinition, value),
             FieldType.Integer => ConvertAsInteger(fieldDefinition, value),
+            FieldType.Decimal => ConvertAsDecimal(fieldDefinition, value),
             FieldType.Checkbox => ConvertAsBoolean(fieldDefinition, value),
             _ => Unsupported(fieldDefinition, value)
         };
@@ -71,6 +73,54 @@ public sealed class TypedFieldValueConverter : ITypedFieldValueConverter
             value,
             "InvalidIntegerFieldValue",
             $"Field '{fieldDefinition.Key}' value '{value.Value}' is not a valid integer.");
+    }
+
+    private static ValidationResult<ConvertedFieldValue> ConvertAsDecimal(
+        FieldDefinition fieldDefinition,
+        ContentFieldValue value)
+    {
+        if (decimal.TryParse(
+                value.Value,
+                NumberStyles.Number,
+                CultureInfo.InvariantCulture,
+                out var converted))
+        {
+            return new ValidationResult<ConvertedFieldValue>(
+                new ConvertedFieldValue(
+                    fieldDefinition,
+                    value,
+                    new DecimalTypedFieldValue(converted)));
+        }
+
+        return InvalidValue(
+            fieldDefinition,
+            value,
+            "InvalidDecimalFieldValue",
+            $"Field '{fieldDefinition.Key}' value '{value.Value}' is not a valid decimal.");
+    }
+
+    private static ValidationResult<ConvertedFieldValue> ConvertAsDateTime(
+        FieldDefinition fieldDefinition,
+        ContentFieldValue value)
+    {
+        if (DateTime.TryParse(
+                value.Value,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.RoundtripKind,
+                out var converted))
+        {
+            return new ValidationResult<ConvertedFieldValue>(
+                new ConvertedFieldValue(
+                    fieldDefinition,
+                    value,
+                    new DateTimeTypedFieldValue(converted)));
+        }
+
+        return InvalidValue(
+            fieldDefinition,
+            value,
+            "InvalidDateTimeFieldValue",
+            $"Field '{fieldDefinition.Key}' value '{value.Value}' is not a valid date/time.");
     }
 
     private static ValidationResult<ConvertedFieldValue> ConvertAsBoolean(
