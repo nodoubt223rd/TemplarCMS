@@ -15,9 +15,8 @@ master
 Summary scope:
 
 ```text
-Content modeling and content item resolution state after:
-a0445b78b034e0884eaf851f9219e22f89b0582f
-Add content item resolution implementation
+Current architecture state after the initial runtime conversion and
+strong-typing slices.
 ```
 
 This summary focuses on the current content-modeling architecture.
@@ -27,14 +26,20 @@ described below.
 Recent implementation commits in this area:
 
 ```text
-a0445b78b034e0884eaf851f9219e22f89b0582f
-Add content item resolution implementation
+d676559
+add initial typed field value conversion
 
-1a228b6edf27299a42a989363b8c4f2422d26f90
-Add content item resolution abstractions
+a1bcf60
+strengthen typed field value shape
 
-21f3070accdf5e5f469c9b1d591b3c1f92963efe
-Add field value resolution abstractions
+f32215b
+wire typed field conversion into runtime content
+
+e8126e8
+validate typed field values on save
+
+0596ff4
+add decimal and datetime typed field coverage
 ```
 
 ---
@@ -324,7 +329,7 @@ Field converters can be layered above storage
 
 ## Typed Field Value Conversion
 
-Started.
+Implemented for the currently supported field set.
 
 Current implementation:
 
@@ -342,6 +347,8 @@ SingleLineText -> StringTypedFieldValue
 MultiLineText -> StringTypedFieldValue
 RichText -> StringTypedFieldValue
 Integer -> IntegerTypedFieldValue
+Decimal -> DecimalTypedFieldValue
+DateTime -> DateTimeTypedFieldValue
 Checkbox -> BooleanTypedFieldValue
 Missing/null -> NullTypedFieldValue
 ```
@@ -590,6 +597,8 @@ Converted field dictionary values:
 ```text
 StringTypedFieldValue
 IntegerTypedFieldValue
+DecimalTypedFieldValue
+DateTimeTypedFieldValue
 BooleanTypedFieldValue
 NullTypedFieldValue
 ```
@@ -806,7 +815,7 @@ ExactMatchFieldValueResolutionPolicy
 
 # Suggested Next Discussion
 
-Potential Part 8 topics:
+Potential next topics:
 
 ```text
 Abstractions and persistence
@@ -816,7 +825,6 @@ IContentRepository
 Persistence implementation for content storage
 
 Typed field value conversion
-
 Rendering pipeline
 
 Publishing pipeline
@@ -827,7 +835,8 @@ Fallback policies
 Current recommendation:
 
 ```text
-Persistence or runtime consumption before fallback policies.
+Continue typed field coverage and runtime consumption before fallback
+policies.
 ```
 
 ## Current Boundary Note

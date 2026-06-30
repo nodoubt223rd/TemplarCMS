@@ -6,6 +6,14 @@
 
 The first version of TemplarCMS focuses on the foundation: content schema modeling, content item creation, field value persistence, and RESTful navigation using HAL-style responses. Later phases can add workflow, publishing, media management, search indexing, GraphQL, authorization, and a visual content authoring UI.
 
+Current implementation note:
+
+The repository is still in the foundation phase. The codebase currently
+contains the domain, content modeling, application, abstractions, and
+persistence projects. API, contracts, infrastructure, and admin UI
+projects described in this document remain planned rather than
+implemented.
+
 ## 2. Product Vision
 
 TemplarCMS is intended for teams that want the modeling power of enterprise CMS platforms without the full weight of a monolithic CMS. It should feel familiar to developers who have worked with Sitecore templates, fields, inheritance, language versions, and content trees, while remaining modern, lightweight, and cloud-friendly.
@@ -59,17 +67,22 @@ TemplarCMS/
 │   ├── TemplarCMS.Domain/
 │   ├── TemplarCMS.ContentModeling/
 │   ├── TemplarCMS.Application/
-│   ├── TemplarCMS.Persistence/
-│   ├── TemplarCMS.Api/
-│   ├── TemplarCMS.Contracts/
-│   └── TemplarCMS.Infrastructure/
-├── admin/
-│   └── TemplarCMS.Admin/
+│   └── TemplarCMS.Persistence/
 └── tests/
-    ├── TemplarCMS.Domain.Tests/
     ├── TemplarCMS.Application.Tests/
-    ├── TemplarCMS.Api.Tests/
+    ├── TemplarCMS.ContentModeling.Tests/
     └── TemplarCMS.Integration.Tests/
+```
+
+Planned later:
+
+```text
+src/TemplarCMS.Api
+src/TemplarCMS.Contracts
+src/TemplarCMS.Infrastructure
+admin/TemplarCMS.Admin
+tests/TemplarCMS.Api.Tests
+tests/TemplarCMS.Domain.Tests
 ```
 
 ### Project Responsibilities
@@ -101,6 +114,13 @@ Contains core entities and domain concepts:
 - `FieldValueResolutionContext`
 - `ResolvedContentItem`
 - `FieldValueScope`
+- `TypedFieldValue`
+- `StringTypedFieldValue`
+- `IntegerTypedFieldValue`
+- `DecimalTypedFieldValue`
+- `DateTimeTypedFieldValue`
+- `BooleanTypedFieldValue`
+- `NullTypedFieldValue`
 
 This project should avoid infrastructure dependencies.
 
@@ -115,19 +135,25 @@ Contains template-specific schema and template mechanics:
 - `InheritedTemplateDefinition`
 - `EffectiveTemplateDefinition`
 - `FieldType`
-- typed field value conversion
+- typed field value conversion services
 - template inheritance resolution
 - effective template construction
 - template validation
 - template serialization and repository mapping
 
+Note:
+
+The typed runtime value objects themselves live in `TemplarCMS.Domain`.
+`TemplarCMS.ContentModeling` currently owns the converter abstractions
+and implementations that project stored string values into those domain
+types.
+
 #### TemplarCMS.Application
 
 Contains use cases and application services:
 
-- TemplateService
-- ItemService
-- Path generation
+- `ContentItemService`
+- future template-oriented application services
 
 Application services orchestrate domain concepts, content modeling
 services, and shared contracts. They should not own persistence details
@@ -258,10 +284,14 @@ Key properties:
 - TemplateId (`TemplateId`)
 - ParentId (`ContentItemId?`)
 - Name
-- Slug
-- Path
-- CreatedUtc
-- UpdatedUtc
+- Key (`ContentItemKey`)
+
+Current note:
+
+The current domain model stores a normalized `ContentItemKey` rather
+than separate slug and path properties. The key is normalized to
+lowercase and whitespace is collapsed to hyphen-separated segments such
+as `home-page`. Path generation is deferred.
 
 ### FieldValue
 
@@ -269,12 +299,18 @@ Stores actual content values for an item and field.
 
 Key properties:
 
-- Id
 - ItemId
 - FieldId
+- FieldKey
 - Language
 - Version
 - Value
+
+Storage note:
+
+Stored field values remain `string?` at the persistence boundary. Typed
+runtime projection is layered above storage rather than changing the
+stored shape.
 
 ## 7. Field Semantics
 
@@ -287,7 +323,7 @@ A shared field has one value for all languages and versions.
 Storage convention:
 
 ```text
-Language = "*"
+Language = implementation-defined shared marker
 Version = 0
 ```
 
@@ -552,10 +588,9 @@ Recommended starting database:
 Initial indexes:
 
 - Template.Key unique.
-- ContentItem.ParentId + ContentItem.Slug unique.
-- ContentItem.Path indexed.
-- FieldValue.ItemId + FieldValue.TemplateFieldId + FieldValue.Language + FieldValue.Version indexed.
-- TemplateField.TemplateSectionId + TemplateField.Key unique.
+- ContentItem.ParentId + ContentItem.Key unique.
+- FieldValue.ItemId + FieldValue.FieldId + FieldValue.Language + FieldValue.Version indexed.
+- Template field keys unique within their template definition rules.
 
 ## 18. Validation Strategy
 
@@ -571,8 +606,9 @@ Initial validations:
 - Key comparisons are case-insensitive.
 - Template inheritance cycles are rejected.
 - Content item template must exist.
+- Content item keys must be normalized and unique among siblings.
 - Field values can only be set for fields defined by the item’s effective template.
-- Field values should match their declared field type.
+- Field values should match their declared field type before persistence.
 
 ## 19. Error Handling
 
@@ -767,11 +803,19 @@ Before implementation, the following should be confirmed:
 1. Target framework: .NET 8 LTS or .NET 9.
 2. Primary database: SQL Server or PostgreSQL.
 3. Whether REST should use pure HAL or a custom HAL-inspired format.
-4. Whether template fields should support strongly typed storage or string/JSON storage.
-5. Whether the current single-inheritance model is sufficient for foreseeable authoring scenarios.
-6. Whether content paths should be stored or computed.
-7. Whether field value history should be retained after edits.
-8. Whether publishing should be part of the first release or deferred.
+4. Whether the current single-inheritance model is sufficient for foreseeable authoring scenarios.
+5. Whether content paths should be stored or computed once path semantics are introduced.
+6. Whether field value history should be retained after edits.
+7. Whether publishing should be part of the first release or deferred.
+
+Already decided in code and ADRs:
+
+- Strong domain typing is preferred at domain and application
+  boundaries.
+- Stored field values remain string-based at the persistence boundary.
+- Typed runtime values are projected during resolution and validated on
+  writes for supported field types.
+- `ContentItemKey` is normalized to lowercase hyphenated form.
 
 ## 27. Recommended MVP Defaults
 
@@ -783,8 +827,10 @@ Recommended choices for the first implementation:
 - HAL-inspired JSON.
 - Vue.js admin UI.
 - String/JSON field value storage.
+- Typed runtime field projection layered above string storage.
 - Single base template inheritance.
-- Stored paths.
+- Normalized content item keys.
+- Path strategy deferred.
 - No publishing in MVP.
 - No auth in MVP.
 - REST authoring and delivery API first.
