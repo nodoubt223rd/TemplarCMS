@@ -40,6 +40,9 @@ validate typed field values on save
 
 0596ff4
 add decimal and datetime typed field coverage
+
+... later slices continued this area with stronger template typing,
+catalog duplicate validation, and merged field-value write semantics.
 ```
 
 ---
@@ -375,6 +378,10 @@ Write-path note:
 Content item field writes now validate typed conversion before
 persistence so invalid authored values are rejected before they are
 stored.
+
+Stored field value writes now merge into the current item set by field,
+language, and version identity instead of replacing unrelated stored
+values.
 ```
 
 ---

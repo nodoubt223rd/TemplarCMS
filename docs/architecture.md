@@ -312,6 +312,12 @@ Stored field values remain `string?` at the persistence boundary. Typed
 runtime projection is layered above storage rather than changing the
 stored shape.
 
+Write semantics note:
+
+Persisting field values merges into the current stored set for the
+content item. Writes upsert by content item, field, language, and
+version identity while preserving unrelated stored values.
+
 ## 7. Field Semantics
 
 TemplarCMS supports three field value modes.
@@ -609,6 +615,7 @@ Initial validations:
 - Content item keys must be normalized and unique among siblings.
 - Field values can only be set for fields defined by the item’s effective template.
 - Field values should match their declared field type before persistence.
+- Field value writes should merge by item, field, language, and version identity rather than replacing unrelated stored values.
 
 ## 19. Error Handling
 
