@@ -50,6 +50,7 @@ public sealed class ContentItemServiceTests
 
         Assert.NotNull(result);
         Assert.Equal(item.Id, result.Item.Id);
+        Assert.Equal("/home", result.Path?.ToString());
         Assert.Equal("Home", result.Fields["title"]?.Value);
         Assert.Equal("Welcome", result.Fields["body"]?.Value);
 
@@ -147,15 +148,42 @@ public sealed class ContentItemServiceTests
 
         Assert.Equal(
             new[] { childA.Id, childB.Id },
-            result.Select(item => item.Item.Id));
+            result.Select(item => item.Item.Id).ToArray());
 
         Assert.Equal(
             new[] { "A", "B" },
-            result.Select(item => item.Fields["title"]?.Value));
+            result.Select(item => item.Fields["title"]?.Value).ToArray());
+
+        Assert.Equal(
+            new[] { "/home/child-a", "/home/child-b" },
+            result.Select(item => item.Path?.ToString()).ToArray());
 
         Assert.All(
             result,
             item => Assert.IsType<StringTypedFieldValue>(item.ConvertedFields["title"]));
+    }
+
+    [Fact]
+    public async Task GetItemAsync_ShouldComputeNestedPathFromParentChain()
+    {
+        var template = CreateTemplate("article-page");
+        var root = CreateItem(template.Id, name: "Home", key: "home");
+        var articles = CreateItem(template.Id, root.Id, "Articles", "articles");
+        var item = CreateItem(template.Id, articles.Id, "Hello World", "hello-world");
+
+        var (service, _) = CreateService(
+            new[] { template },
+            new[] { root, articles, item },
+            Array.Empty<ContentFieldValue>());
+
+        var result =
+            await service.GetItemAsync(
+                item.Id,
+                CreateContext(),
+                TestContext.Current.CancellationToken);
+
+        Assert.NotNull(result);
+        Assert.Equal("/home/articles/hello-world", result.Path?.ToString());
     }
 
     [Fact]

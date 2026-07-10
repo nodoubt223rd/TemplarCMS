@@ -49,8 +49,12 @@ public sealed class ContentItemService : IContentItemService
             return null;
         }
 
+        var pathCache =
+            new Dictionary<ContentItemId, ContentPath>();
+
         return await ResolveItemAsync(
             item,
+            pathCache,
             context,
             cancellationToken);
     }
@@ -71,6 +75,8 @@ public sealed class ContentItemService : IContentItemService
 
         var resolvedItems =
             new List<ResolvedContentItem>(items.Count);
+        var pathCache =
+            new Dictionary<ContentItemId, ContentPath>();
 
         foreach (var item in items)
         {
@@ -79,6 +85,7 @@ public sealed class ContentItemService : IContentItemService
             resolvedItems.Add(
                 await ResolveItemAsync(
                     item,
+                    pathCache,
                     context,
                     cancellationToken));
         }
@@ -211,6 +218,7 @@ public sealed class ContentItemService : IContentItemService
 
     private async Task<ResolvedContentItem> ResolveItemAsync(
         ContentItemDefinition item,
+        IDictionary<ContentItemId, ContentPath> pathCache,
         FieldValueResolutionContext context,
         CancellationToken cancellationToken)
     {
@@ -225,11 +233,70 @@ public sealed class ContentItemService : IContentItemService
                 item.Id,
                 cancellationToken);
 
-        return _contentItemResolver.Resolve(
-            item,
-            template,
-            values,
-            context);
+        var resolvedItem =
+            _contentItemResolver.Resolve(
+                item,
+                template,
+                values,
+                context);
+
+        var path =
+            await ComputePathAsync(
+                item,
+                pathCache,
+                cancellationToken);
+
+        return new ResolvedContentItem(
+            resolvedItem.Item,
+            resolvedItem.Fields,
+            resolvedItem.ConvertedFields,
+            path);
+    }
+
+    private async Task<ContentPath> ComputePathAsync(
+        ContentItemDefinition item,
+        IDictionary<ContentItemId, ContentPath> pathCache,
+        CancellationToken cancellationToken)
+    {
+        if (pathCache.TryGetValue(item.Id, out var cachedPath))
+        {
+            return cachedPath;
+        }
+
+        ContentPath path;
+
+        if (item.ParentId == null)
+        {
+            path =
+                ContentPath.FromRoot(item.Key);
+        }
+        else
+        {
+            var parent =
+                await _contentRepository.GetItemAsync(
+                    item.ParentId.Value,
+                    cancellationToken);
+
+            if (parent == null)
+            {
+                throw new InvalidOperationException(
+                    $"Parent content item '{item.ParentId.Value}' was not found for content item '{item.Id}' while computing its path.");
+            }
+
+            var parentPath =
+                await ComputePathAsync(
+                    parent,
+                    pathCache,
+                    cancellationToken);
+
+            path =
+                ContentPath.Append(
+                    parentPath,
+                    item.Key);
+        }
+
+        pathCache[item.Id] = path;
+        return path;
     }
 
     private async Task EnsureParentIsValidAsync(

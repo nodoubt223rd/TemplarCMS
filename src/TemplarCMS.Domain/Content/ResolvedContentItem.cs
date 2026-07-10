@@ -18,10 +18,14 @@ public sealed class ResolvedContentItem
     /// <param name="convertedFields">
     /// The resolved typed field values.
     /// </param>
+    /// <param name="path">
+    /// The computed content path when available.
+    /// </param>
     public ResolvedContentItem(
         ContentItemDefinition item,
         IReadOnlyDictionary<string, ContentFieldValue?> fields,
-        IReadOnlyDictionary<string, TypedFieldValue> convertedFields)
+        IReadOnlyDictionary<string, TypedFieldValue> convertedFields,
+        ContentPath? path = null)
     {
         ArgumentNullException.ThrowIfNull(item);
         ArgumentNullException.ThrowIfNull(fields);
@@ -30,6 +34,7 @@ public sealed class ResolvedContentItem
         Item = item;
         Fields = fields;
         ConvertedFields = convertedFields;
+        Path = path;
     }
 
     /// <summary>
@@ -46,4 +51,9 @@ public sealed class ResolvedContentItem
     /// Gets the resolved typed field values.
     /// </summary>
     public IReadOnlyDictionary<string, TypedFieldValue> ConvertedFields { get; }
+
+    /// <summary>
+    /// Gets the computed content path when it has been projected.
+    /// </summary>
+    public ContentPath? Path { get; }
 }
