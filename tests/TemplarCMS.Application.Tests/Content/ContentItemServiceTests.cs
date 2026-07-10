@@ -356,6 +356,50 @@ public sealed class ContentItemServiceTests
     }
 
     [Fact]
+    public async Task SaveFieldValuesAsync_ShouldMergeWithExistingStoredValues()
+    {
+        var template = CreateTemplate("article-page");
+        var item = CreateItem(template.Id);
+        var titleField =
+            template.Fields.Single(field => field.Key == "title");
+        var bodyField =
+            template.Fields.Single(field => field.Key == "body");
+
+        var existingValues =
+            new[]
+            {
+                CreateValue(item.Id, titleField.Id, "title", "Home"),
+                CreateValue(item.Id, bodyField.Id, "body", "Old Body")
+            };
+
+        var newValues =
+            new[]
+            {
+                CreateValue(item.Id, bodyField.Id, "body", "New Body")
+            };
+
+        var (service, repository) =
+            CreateService(
+                new[] { template },
+                new[] { item },
+                existingValues);
+
+        await service.SaveFieldValuesAsync(
+            item.Id,
+            newValues,
+            TestContext.Current.CancellationToken);
+
+        var stored =
+            await repository.GetFieldValuesAsync(
+                item.Id,
+                TestContext.Current.CancellationToken);
+
+        Assert.Equal(2, stored.Count);
+        Assert.Contains(stored, value => value.FieldKey == "title" && value.Value == "Home");
+        Assert.Contains(stored, value => value.FieldKey == "body" && value.Value == "New Body");
+    }
+
+    [Fact]
     public async Task SaveFieldValuesAsync_ShouldThrow_WhenItemMissing()
     {
         var template = CreateTemplate("article-page");

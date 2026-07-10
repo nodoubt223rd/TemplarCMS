@@ -129,21 +129,39 @@ public sealed class EfContentRepository : IContentRepository
                 .Where(value => value.ItemId == itemId.Value)
                 .ToListAsync(cancellationToken);
 
-        _dbContext.ContentFieldValues.RemoveRange(existingValues);
-
         foreach (var value in values)
         {
-            _dbContext.ContentFieldValues.Add(
-                new PersistenceContentFieldValue
-                {
-                    Id = Guid.NewGuid(),
-                    ItemId = value.ItemId.Value,
-                    FieldId = value.FieldId.Value,
-                    FieldKey = value.FieldKey,
-                    Language = value.Language.ToString(),
-                    Version = value.Version.Value,
-                    Value = value.Value
-                });
+            var existing =
+                existingValues.FirstOrDefault(
+                    stored =>
+                        stored.FieldId == value.FieldId.Value &&
+                        string.Equals(
+                            stored.Language,
+                            value.Language.ToString(),
+                            StringComparison.Ordinal) &&
+                        stored.Version == value.Version.Value);
+
+            if (existing == null)
+            {
+                _dbContext.ContentFieldValues.Add(
+                    new PersistenceContentFieldValue
+                    {
+                        Id = Guid.NewGuid(),
+                        ItemId = value.ItemId.Value,
+                        FieldId = value.FieldId.Value,
+                        FieldKey = value.FieldKey,
+                        Language = value.Language.ToString(),
+                        Version = value.Version.Value,
+                        Value = value.Value
+                    });
+
+                continue;
+            }
+
+            existing.FieldKey = value.FieldKey;
+            existing.Language = value.Language.ToString();
+            existing.Version = value.Version.Value;
+            existing.Value = value.Value;
         }
 
         await _dbContext.SaveChangesAsync(cancellationToken);

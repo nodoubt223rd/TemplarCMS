@@ -100,8 +100,11 @@ namespace TemplarCMS.Abstractions.Content
         /// </param>
         /// <remarks>
         /// Implementations should validate that supplied values belong to
-        /// the specified content item and should document whether writes
-        /// replace the current stored set or merge into it.
+        /// the specified content item.
+        ///
+        /// Writes should merge into the current stored set by upserting
+        /// values that share the same content item, field, language, and
+        /// version identity while preserving unrelated stored values.
         /// </remarks>
         Task SaveFieldValuesAsync(
             ContentItemId itemId,

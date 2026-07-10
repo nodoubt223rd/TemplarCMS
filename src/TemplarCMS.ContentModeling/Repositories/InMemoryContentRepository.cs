@@ -98,7 +98,29 @@ namespace TemplarCMS.ContentModeling.Repositories
                 }
             }
 
-            _fieldValues[itemId] = values.ToList();
+            if (!_fieldValues.TryGetValue(itemId, out var storedValues))
+            {
+                storedValues = new List<ContentFieldValue>();
+                _fieldValues[itemId] = storedValues;
+            }
+
+            foreach (var value in values)
+            {
+                var existingIndex =
+                    storedValues.FindIndex(
+                        stored =>
+                            stored.FieldId == value.FieldId &&
+                            stored.Language == value.Language &&
+                            stored.Version == value.Version);
+
+                if (existingIndex >= 0)
+                {
+                    storedValues[existingIndex] = value;
+                    continue;
+                }
+
+                storedValues.Add(value);
+            }
 
             return Task.CompletedTask;
         }

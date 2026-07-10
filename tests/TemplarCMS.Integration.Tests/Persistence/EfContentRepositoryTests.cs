@@ -72,37 +72,41 @@ public sealed class EfContentRepositoryTests : IDisposable
     }
 
     [Fact]
-    public async Task SaveFieldValuesAsync_ShouldReplaceExistingStoredSet()
+    public async Task SaveFieldValuesAsync_ShouldMergeIntoExistingStoredSet()
     {
         var repository = CreateRepository();
         var item = CreateItem();
+        var titleFieldId = new FieldId(Guid.NewGuid());
+        var bodyFieldId = new FieldId(Guid.NewGuid());
 
         await repository.SaveItemAsync(item, TestContext.Current.CancellationToken);
 
         var initialValues =
             new[]
             {
-                CreateValue(item.Id, new FieldId(Guid.NewGuid()), "title", "Home", ContentVersion.Shared),
-                CreateValue(item.Id, new FieldId(Guid.NewGuid()), "body", "First")
+                CreateValue(item.Id, titleFieldId, "title", "Home", ContentVersion.Shared),
+                CreateValue(item.Id, bodyFieldId, "body", "First")
             };
 
-        var replacementValues =
+        var mergedValues =
             new[]
             {
-                CreateValue(item.Id, new FieldId(Guid.NewGuid()), "summary", "Second")
+                CreateValue(item.Id, bodyFieldId, "body", "Second"),
+                CreateValue(item.Id, new FieldId(Guid.NewGuid()), "summary", "Third")
             };
 
         await repository.SaveFieldValuesAsync(item.Id, initialValues, TestContext.Current.CancellationToken);
-        await repository.SaveFieldValuesAsync(item.Id, replacementValues, TestContext.Current.CancellationToken);
+        await repository.SaveFieldValuesAsync(item.Id, mergedValues, TestContext.Current.CancellationToken);
 
         var stored =
             await repository.GetFieldValuesAsync(
                 item.Id,
                 TestContext.Current.CancellationToken);
 
-        var value = Assert.Single(stored);
-        Assert.Equal("summary", value.FieldKey);
-        Assert.Equal("Second", value.Value);
+        Assert.Equal(3, stored.Count);
+        Assert.Contains(stored, value => value.FieldKey == "title" && value.Value == "Home");
+        Assert.Contains(stored, value => value.FieldKey == "body" && value.Value == "Second");
+        Assert.Contains(stored, value => value.FieldKey == "summary" && value.Value == "Third");
     }
 
     [Fact]
