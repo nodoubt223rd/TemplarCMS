@@ -178,6 +178,67 @@ public sealed class ContentModelCatalogTests
         Assert.Null(await context.Catalog.GetTemplateAsync(template.Id, cancellationToken));
     }
 
+    [Fact]
+    public async Task RefreshAsync_ThrowsValidationError_WhenTemplateIdsAreDuplicated()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var templateId = new TemplateId(Guid.NewGuid());
+        var firstTemplate = CreateTemplate("Article", "article", templateId);
+        var secondTemplate = CreateTemplate("Landing", "landing", templateId);
+
+        var context = CreateContext();
+
+        context.TemplateRepository
+            .GetTemplatesAsync(Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<IReadOnlyCollection<TemplateDefinition>>(
+                [firstTemplate, secondTemplate]));
+
+        context.TemplateValidator
+            .ValidateAsync(Arg.Any<TemplateDefinition>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(new ValidationResult()));
+
+        var exception = await Assert.ThrowsAsync<ContentModelCatalogRefreshException>(
+            () => context.Catalog.RefreshAsync(cancellationToken));
+
+        var error = Assert.Single(exception.Errors);
+        Assert.Equal("DuplicateTemplateId", error.Code);
+        Assert.Equal(templateId.ToString(), error.Target);
+
+        await context.EffectiveTemplateBuilder
+            .DidNotReceive()
+            .BuildEffectiveTemplateAsync(Arg.Any<TemplateDefinition>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task RefreshAsync_ThrowsValidationError_WhenTemplateKeysAreDuplicated()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var firstTemplate = CreateTemplate("Article", "article");
+        var secondTemplate = CreateTemplate("Landing", "ARTICLE");
+
+        var context = CreateContext();
+
+        context.TemplateRepository
+            .GetTemplatesAsync(Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<IReadOnlyCollection<TemplateDefinition>>(
+                [firstTemplate, secondTemplate]));
+
+        context.TemplateValidator
+            .ValidateAsync(Arg.Any<TemplateDefinition>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(new ValidationResult()));
+
+        var exception = await Assert.ThrowsAsync<ContentModelCatalogRefreshException>(
+            () => context.Catalog.RefreshAsync(cancellationToken));
+
+        var error = Assert.Single(exception.Errors);
+        Assert.Equal("DuplicateTemplateKey", error.Code);
+        Assert.Equal(new TemplateKey("article").ToString(), error.Target);
+
+        await context.EffectiveTemplateBuilder
+            .DidNotReceive()
+            .BuildEffectiveTemplateAsync(Arg.Any<TemplateDefinition>(), Arg.Any<CancellationToken>());
+    }
+
     private static CatalogTestContext CreateContext(
         TemplateDefinition? template = null,
         EffectiveTemplateDefinition? effectiveTemplate = null)
@@ -228,10 +289,11 @@ public sealed class ContentModelCatalogTests
 
     private static TemplateDefinition CreateTemplate(
         string name,
-        string key)
+        string key,
+        TemplateId? id = null)
     {
         return new TemplateDefinition(
-            new TemplateId(Guid.NewGuid()),
+            id ?? new TemplateId(Guid.NewGuid()),
             name,
             new TemplateKey(key));
     }

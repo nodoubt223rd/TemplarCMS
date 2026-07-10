@@ -142,6 +142,9 @@ namespace TemplarCMS.ContentModeling.Catalog
                 }
             }
 
+            ValidateDuplicateTemplateIds(templates, errors);
+            ValidateDuplicateTemplateKeys(templates, errors);
+
             if (errors.Count > 0)
             {
                 _logger.LogWarning(
@@ -203,6 +206,46 @@ namespace TemplarCMS.ContentModeling.Catalog
                 "Content model catalog refresh completed with {TemplateCount} authored templates and {EffectiveTemplateCount} effective templates.",
                 templatesById.Count,
                 effectiveTemplatesById.Count);
+        }
+
+        private static void ValidateDuplicateTemplateIds(
+            IReadOnlyCollection<TemplateDefinition> templates,
+            ICollection<ValidationError> errors)
+        {
+            var duplicateTemplateIds =
+                templates
+                    .GroupBy(template => template.Id)
+                    .Where(group => group.Count() > 1)
+                    .Select(group => group.Key);
+
+            foreach (var duplicateTemplateId in duplicateTemplateIds)
+            {
+                errors.Add(
+                    new ValidationError(
+                        "DuplicateTemplateId",
+                        $"Multiple templates share the id '{duplicateTemplateId}'.",
+                        duplicateTemplateId.ToString()));
+            }
+        }
+
+        private static void ValidateDuplicateTemplateKeys(
+            IReadOnlyCollection<TemplateDefinition> templates,
+            ICollection<ValidationError> errors)
+        {
+            var duplicateTemplateKeys =
+                templates
+                    .GroupBy(template => template.Key)
+                    .Where(group => group.Count() > 1)
+                    .Select(group => group.Key);
+
+            foreach (var duplicateTemplateKey in duplicateTemplateKeys)
+            {
+                errors.Add(
+                    new ValidationError(
+                        "DuplicateTemplateKey",
+                        $"Multiple templates share the key '{duplicateTemplateKey}'.",
+                        duplicateTemplateKey.ToString()));
+            }
         }
     }
 }
