@@ -64,12 +64,13 @@ public sealed class ContentItemResolver
         var convertedFields =
             new Dictionary<string, TypedFieldValue>(
                 StringComparer.OrdinalIgnoreCase);
+        var valuesByFieldId =
+            values.ToLookup(value => value.FieldId);
 
         foreach (var field in template.Fields)
         {
             var candidateValues =
-                values
-                    .Where(value => value.FieldId == field.Id)
+                valuesByFieldId[field.Id]
                     .ToArray();
 
             var resolvedValue =
