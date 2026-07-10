@@ -6,6 +6,22 @@ TemplarCMS is a template-driven, API-first headless CMS built on .NET.
 
 Architecture and planning phase.
 
+## Development
+
+Use the SDK pinned in [global.json](/E:/Projects/TemplarCMS/global.json), then build from the solution container:
+
+```powershell
+dotnet build .\TemplarCMS.slnx
+```
+
+If you hit local NuGet or profile-path issues, the repo includes helper scripts:
+
+```powershell
+. .\scripts\templar-cms-bootstrap.ps1
+.\scripts\dev-shell.ps1
+.\scripts\dotnet-test.ps1 -Project .\tests\TemplarCMS.Application.Tests\TemplarCMS.Application.Tests.csproj
+```
+
 ## Goals
 
 - Sitecore-inspired templates
@@ -13,7 +29,7 @@ Architecture and planning phase.
 - Content trees
 - Shared, unversioned and versioned fields
 - HATEOAS REST API
-- .NET 8
+- .NET 8 runtime on a modern .NET SDK toolchain
 - EF Core
 
 See docs/architecture.md for full details.
