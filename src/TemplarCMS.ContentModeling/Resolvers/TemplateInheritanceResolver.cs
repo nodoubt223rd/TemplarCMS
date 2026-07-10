@@ -89,7 +89,7 @@ public sealed class TemplateInheritanceResolver : ITemplateInheritanceResolver
                 new ValidationError(
                     "CircularTemplateInheritance",
                     $"Circular template inheritance detected for template '{template.Key}'.",
-                    template.Key));
+                    template.Key.ToString()));
 
             return;
         }

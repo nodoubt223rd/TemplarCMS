@@ -1,3 +1,5 @@
+using TemplarCMS.Domain.Content;
+
 namespace TemplarCMS.ContentModeling.Definitions
 {
     /// <summary>

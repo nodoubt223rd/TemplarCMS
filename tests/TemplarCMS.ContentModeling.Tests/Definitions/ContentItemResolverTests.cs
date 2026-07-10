@@ -1,4 +1,5 @@
 using TemplarCMS.ContentModeling.Abstractions;
+using TemplarCMS.ContentModeling.Definitions;
 using TemplarCMS.ContentModeling.Validation;
 using TemplarCMS.Domain.Content;
 using Xunit;
@@ -56,13 +57,15 @@ public sealed class ContentItemResolverTests
 
         var titleCall =
             Assert.Single(
-                fieldValueResolver.Calls.Where(call => call.FieldId == titleFieldId));
+                fieldValueResolver.Calls,
+                call => call.FieldId == titleFieldId);
 
         Assert.Equal([titleFieldId], titleCall.CandidateFieldIds);
 
         var bodyCall =
             Assert.Single(
-                fieldValueResolver.Calls.Where(call => call.FieldId == bodyFieldId));
+                fieldValueResolver.Calls,
+                call => call.FieldId == bodyFieldId);
 
         Assert.Equal([bodyFieldId], bodyCall.CandidateFieldIds);
 

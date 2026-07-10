@@ -23,9 +23,9 @@ public sealed class JsonTemplateMapperTests
 
         var result = _mapper.Map(jsonTemplate);
 
-        Assert.Equal(templateId, result.Id);
+        Assert.Equal(new TemplateId(templateId), result.Id);
         Assert.Equal("Article Page", result.Name);
-        Assert.Equal("article-page", result.Key);
+        Assert.Equal(new TemplateKey("article-page"), result.Key);
         Assert.Empty(result.Sections);
     }
 

@@ -1,5 +1,6 @@
 using TemplarCMS.ContentModeling.Resolvers;
 using TemplarCMS.ContentModeling.Tests.TestUtilities;
+using TemplarCMS.Domain.Content;
 using Xunit;
 
 namespace TemplarCMS.ContentModeling.Tests.Resolvers
@@ -27,8 +28,8 @@ namespace TemplarCMS.ContentModeling.Tests.Resolvers
 
             Assert.Collection(
                 result.Value!.InheritanceChain,
-                item => Assert.Equal("base-seo", item.Key),
-                item => Assert.Equal("article", item.Key));
+                item => Assert.Equal(new TemplateKey("base-seo"), item.Key),
+                item => Assert.Equal(new TemplateKey("article"), item.Key));
         }
 
         [Fact]
@@ -57,9 +58,9 @@ namespace TemplarCMS.ContentModeling.Tests.Resolvers
 
             Assert.Collection(
                 result.Value!.InheritanceChain,
-                item => Assert.Equal("base-content", item.Key),
-                item => Assert.Equal("base-seo", item.Key),
-                item => Assert.Equal("article", item.Key));
+                item => Assert.Equal(new TemplateKey("base-content"), item.Key),
+                item => Assert.Equal(new TemplateKey("base-seo"), item.Key),
+                item => Assert.Equal(new TemplateKey("article"), item.Key));
         }
     }
 }
