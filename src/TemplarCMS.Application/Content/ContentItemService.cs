@@ -65,6 +65,33 @@ public sealed class ContentItemService : IContentItemService
     }
 
     /// <inheritdoc />
+    public async Task<ResolvedContentItem?> GetItemAsync(
+        ContentPath path,
+        FieldValueResolutionContext context,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+        ArgumentNullException.ThrowIfNull(context);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var item =
+            await _contentRepository.GetItemAsync(
+                path,
+                cancellationToken);
+
+        if (item == null)
+        {
+            return null;
+        }
+
+        return await ResolveItemAsync(
+            item,
+            path,
+            context,
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
     public async Task<IReadOnlyCollection<ResolvedContentItem>> GetChildItemsAsync(
         ContentItemId? parentId,
         FieldValueResolutionContext context,

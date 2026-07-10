@@ -31,6 +31,33 @@ public sealed class EfContentRepository : IContentRepository
         return item == null ? null : MapItem(item);
     }
 
+    public async Task<ContentItemDefinition?> GetItemAsync(
+        ContentPath path,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+
+        var items =
+            await _dbContext.ContentItems
+                .AsNoTracking()
+                .OrderBy(value => value.Key)
+                .ToListAsync(cancellationToken);
+
+        var mappedItems =
+            items.Select(MapItem)
+                .ToArray();
+        var pathsById =
+            ResolvePaths(mappedItems);
+
+        var match =
+            mappedItems.FirstOrDefault(
+                item =>
+                    pathsById.TryGetValue(item.Id, out var itemPath) &&
+                    itemPath == path);
+
+        return match;
+    }
+
     public async Task<IReadOnlyCollection<ContentItemDefinition>> GetChildItemsAsync(
         ContentItemId? parentId,
         CancellationToken cancellationToken = default)
@@ -207,5 +234,65 @@ public sealed class EfContentRepository : IContentRepository
             new ContentLanguage(value.Language),
             new ContentVersion(value.Version),
             value.Value);
+    }
+
+    private static IReadOnlyDictionary<ContentItemId, ContentPath> ResolvePaths(
+        IReadOnlyCollection<ContentItemDefinition> items)
+    {
+        var itemsById =
+            items.ToDictionary(item => item.Id);
+        var cache =
+            new Dictionary<ContentItemId, ContentPath>();
+
+        foreach (var item in items)
+        {
+            ResolvePath(
+                item,
+                itemsById,
+                cache);
+        }
+
+        return cache;
+    }
+
+    private static ContentPath ResolvePath(
+        ContentItemDefinition item,
+        IReadOnlyDictionary<ContentItemId, ContentItemDefinition> itemsById,
+        IDictionary<ContentItemId, ContentPath> cache)
+    {
+        if (cache.TryGetValue(item.Id, out var cachedPath))
+        {
+            return cachedPath;
+        }
+
+        ContentPath path;
+
+        if (item.ParentId == null)
+        {
+            path =
+                ContentPath.FromRoot(item.Key);
+        }
+        else
+        {
+            if (!itemsById.TryGetValue(item.ParentId.Value, out var parent))
+            {
+                throw new InvalidOperationException(
+                    $"Parent content item '{item.ParentId.Value}' was not found for content item '{item.Id}' while computing its path.");
+            }
+
+            var parentPath =
+                ResolvePath(
+                    parent,
+                    itemsById,
+                    cache);
+
+            path =
+                ContentPath.Append(
+                    parentPath,
+                    item.Key);
+        }
+
+        cache[item.Id] = path;
+        return path;
     }
 }

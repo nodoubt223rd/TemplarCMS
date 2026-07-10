@@ -48,6 +48,27 @@ public sealed class EfContentRepositoryTests : IDisposable
     }
 
     [Fact]
+    public async Task GetItemAsync_ByPath_ShouldReturnStoredNestedItem()
+    {
+        var repository = CreateRepository();
+        var home = CreateItem(key: "home");
+        var articles = CreateItem(home.Id, "Articles", "articles");
+        var helloWorld = CreateItem(articles.Id, "Hello World", "hello-world");
+
+        await repository.SaveItemAsync(home, TestContext.Current.CancellationToken);
+        await repository.SaveItemAsync(articles, TestContext.Current.CancellationToken);
+        await repository.SaveItemAsync(helloWorld, TestContext.Current.CancellationToken);
+
+        var stored =
+            await repository.GetItemAsync(
+                new ContentPath("/HOME/ARTICLES/HELLO-WORLD"),
+                TestContext.Current.CancellationToken);
+
+        Assert.NotNull(stored);
+        Assert.Equal(helloWorld.Id, stored.Id);
+    }
+
+    [Fact]
     public async Task GetChildItemsAsync_ShouldReturnDirectChildrenInKeyOrder()
     {
         var repository = CreateRepository();

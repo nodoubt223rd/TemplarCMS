@@ -39,6 +39,44 @@ public sealed class InMemoryContentRepositoryTests
     }
 
     [Fact]
+    public async Task GetItemAsync_ByPath_ShouldReturnStoredRootItem()
+    {
+        var repository = new InMemoryContentRepository();
+        var item = CreateItem(key: "home");
+
+        await repository.SaveItemAsync(
+            item,
+            TestContext.Current.CancellationToken);
+
+        var stored =
+            await repository.GetItemAsync(
+                new ContentPath("/HOME"),
+                TestContext.Current.CancellationToken);
+
+        Assert.Same(item, stored);
+    }
+
+    [Fact]
+    public async Task GetItemAsync_ByPath_ShouldReturnStoredNestedItem()
+    {
+        var repository = new InMemoryContentRepository();
+        var home = CreateItem(key: "home");
+        var articles = CreateItem(home.Id, "Articles", "articles");
+        var helloWorld = CreateItem(articles.Id, "Hello World", "hello-world");
+
+        await repository.SaveItemAsync(home, TestContext.Current.CancellationToken);
+        await repository.SaveItemAsync(articles, TestContext.Current.CancellationToken);
+        await repository.SaveItemAsync(helloWorld, TestContext.Current.CancellationToken);
+
+        var stored =
+            await repository.GetItemAsync(
+                new ContentPath("/home/articles/hello-world"),
+                TestContext.Current.CancellationToken);
+
+        Assert.Same(helloWorld, stored);
+    }
+
+    [Fact]
     public async Task GetChildItemsAsync_ShouldReturnOnlyDirectChildren_ForParent()
     {
         var repository = new InMemoryContentRepository();

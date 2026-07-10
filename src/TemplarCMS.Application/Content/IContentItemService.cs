@@ -29,6 +29,26 @@ public interface IContentItemService
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Retrieves a resolved content item by its computed absolute path.
+    /// </summary>
+    /// <param name="path">
+    /// The canonical computed content path.
+    /// </param>
+    /// <param name="context">
+    /// The field value resolution request.
+    /// </param>
+    /// <param name="cancellationToken">
+    /// A token used to cancel the operation.
+    /// </param>
+    /// <returns>
+    /// The resolved content item when found; otherwise <see langword="null" />.
+    /// </returns>
+    Task<ResolvedContentItem?> GetItemAsync(
+        ContentPath path,
+        FieldValueResolutionContext context,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Retrieves resolved direct child items for a parent content item.
     /// </summary>
     /// <param name="parentId">

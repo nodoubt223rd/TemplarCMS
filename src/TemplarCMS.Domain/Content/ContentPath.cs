@@ -64,6 +64,9 @@ public readonly record struct ContentPath
 
         return segments.Length == 0
             ? string.Empty
-            : "/" + string.Join("/", segments);
+            : "/" + string.Join(
+                "/",
+                segments.Select(
+                    segment => segment.ToLowerInvariant()));
     }
 }

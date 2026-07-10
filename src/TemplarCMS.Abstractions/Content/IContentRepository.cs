@@ -34,6 +34,22 @@ namespace TemplarCMS.Abstractions.Content
             CancellationToken cancellationToken = default);
 
         /// <summary>
+        /// Retrieves a content item by its computed absolute path.
+        /// </summary>
+        /// <param name="path">
+        /// The canonical computed content path.
+        /// </param>
+        /// <param name="cancellationToken">
+        /// A token used to cancel the operation.
+        /// </param>
+        /// <returns>
+        /// The stored content item when found; otherwise <see langword="null" />.
+        /// </returns>
+        Task<ContentItemDefinition?> GetItemAsync(
+            ContentPath path,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
         /// Retrieves the direct children for a parent content item.
         /// </summary>
         /// <param name="parentId">

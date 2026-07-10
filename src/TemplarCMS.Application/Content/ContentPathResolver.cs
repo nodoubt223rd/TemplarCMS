@@ -60,6 +60,15 @@ public sealed class ContentPathResolver : IContentPathResolver
         return cache;
     }
 
+    internal async Task<IReadOnlyDictionary<ContentItemId, ContentPath>> ResolveAllAsync(
+        IReadOnlyCollection<ContentItemDefinition> items,
+        CancellationToken cancellationToken = default)
+    {
+        return await ResolveAsync(
+            items,
+            cancellationToken);
+    }
+
     private async Task<ContentPath> ResolveAsync(
         ContentItemDefinition item,
         IDictionary<ContentItemId, ContentPath> cache,

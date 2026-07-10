@@ -8,7 +8,7 @@ public sealed class ContentPathTests
     [Fact]
     public void Constructor_NormalizesAbsolutePath()
     {
-        var path = new ContentPath(" //home//articles/hello-world// ");
+        var path = new ContentPath(" //HOME//Articles/Hello-World// ");
 
         Assert.Equal("/home/articles/hello-world", path.Value);
     }

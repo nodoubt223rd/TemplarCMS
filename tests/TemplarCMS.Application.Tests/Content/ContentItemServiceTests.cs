@@ -24,6 +24,20 @@ public sealed class ContentItemServiceTests
     }
 
     [Fact]
+    public async Task GetItemAsync_ByPath_ShouldReturnNull_WhenItemDoesNotExist()
+    {
+        var (service, _) = CreateService();
+
+        var result =
+            await service.GetItemAsync(
+                new ContentPath("/home"),
+                CreateContext(),
+                TestContext.Current.CancellationToken);
+
+        Assert.Null(result);
+    }
+
+    [Fact]
     public async Task GetItemAsync_ShouldResolveStoredItem()
     {
         var template = CreateTemplate("article-page");
@@ -65,6 +79,52 @@ public sealed class ContentItemServiceTests
         Assert.Equal(
             new DateTime(2026, 6, 30, 13, 45, 0, DateTimeKind.Utc),
             publishOn.Value);
+    }
+
+    [Fact]
+    public async Task GetItemAsync_ByPath_ShouldResolveStoredItem()
+    {
+        var template = CreateTemplate("article-page");
+        var item = CreateItem(template.Id);
+
+        var (service, _) = CreateService(
+            new[] { template },
+            new[] { item },
+            Array.Empty<ContentFieldValue>());
+
+        var result =
+            await service.GetItemAsync(
+                new ContentPath("/HOME"),
+                CreateContext(),
+                TestContext.Current.CancellationToken);
+
+        Assert.NotNull(result);
+        Assert.Equal(item.Id, result.Item.Id);
+        Assert.Equal("/home", result.Path.ToString());
+    }
+
+    [Fact]
+    public async Task GetItemAsync_ByPath_ShouldResolveNestedStoredItem()
+    {
+        var template = CreateTemplate("article-page");
+        var root = CreateItem(template.Id, name: "Home", key: "home");
+        var articles = CreateItem(template.Id, root.Id, "Articles", "articles");
+        var item = CreateItem(template.Id, articles.Id, "Hello World", "hello-world");
+
+        var (service, _) = CreateService(
+            new[] { template },
+            new[] { root, articles, item },
+            Array.Empty<ContentFieldValue>());
+
+        var result =
+            await service.GetItemAsync(
+                new ContentPath("/home/articles/hello-world"),
+                CreateContext(),
+                TestContext.Current.CancellationToken);
+
+        Assert.NotNull(result);
+        Assert.Equal(item.Id, result.Item.Id);
+        Assert.Equal("/home/articles/hello-world", result.Path.ToString());
     }
 
     [Fact]
