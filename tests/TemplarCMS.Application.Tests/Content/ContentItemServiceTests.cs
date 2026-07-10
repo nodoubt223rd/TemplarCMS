@@ -714,6 +714,7 @@ public sealed class ContentItemServiceTests
                 repository,
                 catalog,
                 resolver,
+                new ContentPathResolver(repository),
                 new TypedFieldValueConverter()),
             repository);
     }

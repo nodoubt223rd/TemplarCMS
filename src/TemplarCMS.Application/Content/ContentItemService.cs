@@ -13,6 +13,7 @@ public sealed class ContentItemService : IContentItemService
     private readonly IContentRepository _contentRepository;
     private readonly IContentModelCatalog _contentModelCatalog;
     private readonly IContentItemResolver _contentItemResolver;
+    private readonly IContentPathResolver _contentPathResolver;
     private readonly ITypedFieldValueConverter _typedFieldValueConverter;
 
     /// <summary>
@@ -22,11 +23,13 @@ public sealed class ContentItemService : IContentItemService
         IContentRepository contentRepository,
         IContentModelCatalog contentModelCatalog,
         IContentItemResolver contentItemResolver,
+        IContentPathResolver contentPathResolver,
         ITypedFieldValueConverter typedFieldValueConverter)
     {
         _contentRepository = contentRepository ?? throw new ArgumentNullException(nameof(contentRepository));
         _contentModelCatalog = contentModelCatalog ?? throw new ArgumentNullException(nameof(contentModelCatalog));
         _contentItemResolver = contentItemResolver ?? throw new ArgumentNullException(nameof(contentItemResolver));
+        _contentPathResolver = contentPathResolver ?? throw new ArgumentNullException(nameof(contentPathResolver));
         _typedFieldValueConverter = typedFieldValueConverter ?? throw new ArgumentNullException(nameof(typedFieldValueConverter));
     }
 
@@ -49,12 +52,14 @@ public sealed class ContentItemService : IContentItemService
             return null;
         }
 
-        var pathCache =
-            new Dictionary<ContentItemId, ContentPath>();
+        var path =
+            await _contentPathResolver.ResolveAsync(
+                item,
+                cancellationToken);
 
         return await ResolveItemAsync(
             item,
-            pathCache,
+            path,
             context,
             cancellationToken);
     }
@@ -75,8 +80,10 @@ public sealed class ContentItemService : IContentItemService
 
         var resolvedItems =
             new List<ResolvedContentItem>(items.Count);
-        var pathCache =
-            new Dictionary<ContentItemId, ContentPath>();
+        var paths =
+            await _contentPathResolver.ResolveAsync(
+                items,
+                cancellationToken);
 
         foreach (var item in items)
         {
@@ -85,7 +92,7 @@ public sealed class ContentItemService : IContentItemService
             resolvedItems.Add(
                 await ResolveItemAsync(
                     item,
-                    pathCache,
+                    paths[item.Id],
                     context,
                     cancellationToken));
         }
@@ -218,7 +225,7 @@ public sealed class ContentItemService : IContentItemService
 
     private async Task<ResolvedContentItem> ResolveItemAsync(
         ContentItemDefinition item,
-        IDictionary<ContentItemId, ContentPath> pathCache,
+        ContentPath path,
         FieldValueResolutionContext context,
         CancellationToken cancellationToken)
     {
@@ -240,63 +247,11 @@ public sealed class ContentItemService : IContentItemService
                 values,
                 context);
 
-        var path =
-            await ComputePathAsync(
-                item,
-                pathCache,
-                cancellationToken);
-
         return new ResolvedContentItem(
             resolvedItem.Item,
             resolvedItem.Fields,
             resolvedItem.ConvertedFields,
             path);
-    }
-
-    private async Task<ContentPath> ComputePathAsync(
-        ContentItemDefinition item,
-        IDictionary<ContentItemId, ContentPath> pathCache,
-        CancellationToken cancellationToken)
-    {
-        if (pathCache.TryGetValue(item.Id, out var cachedPath))
-        {
-            return cachedPath;
-        }
-
-        ContentPath path;
-
-        if (item.ParentId == null)
-        {
-            path =
-                ContentPath.FromRoot(item.Key);
-        }
-        else
-        {
-            var parent =
-                await _contentRepository.GetItemAsync(
-                    item.ParentId.Value,
-                    cancellationToken);
-
-            if (parent == null)
-            {
-                throw new InvalidOperationException(
-                    $"Parent content item '{item.ParentId.Value}' was not found for content item '{item.Id}' while computing its path.");
-            }
-
-            var parentPath =
-                await ComputePathAsync(
-                    parent,
-                    pathCache,
-                    cancellationToken);
-
-            path =
-                ContentPath.Append(
-                    parentPath,
-                    item.Key);
-        }
-
-        pathCache[item.Id] = path;
-        return path;
     }
 
     private async Task EnsureParentIsValidAsync(
