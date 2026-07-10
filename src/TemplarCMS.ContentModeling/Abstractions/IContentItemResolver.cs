@@ -25,9 +25,9 @@ public interface IContentItemResolver
     /// The field value resolution request.
     /// </param>
     /// <returns>
-    /// A resolved content item.
+    /// The resolved field values for the content item.
     /// </returns>
-    ResolvedContentItem Resolve(
+    ResolvedContentFields Resolve(
         ContentItemDefinition item,
         EffectiveTemplateDefinition template,
         IReadOnlyCollection<ContentFieldValue> values,

@@ -71,6 +71,8 @@ public sealed class ContentItemResolverTests
 
         Assert.Equal("Home", result.Fields["title"]?.Value);
         Assert.Equal("Welcome", result.Fields["body"]?.Value);
+        Assert.IsType<StringTypedFieldValue>(result.ConvertedFields["title"]);
+        Assert.IsType<StringTypedFieldValue>(result.ConvertedFields["body"]);
     }
 
     private static FieldDefinition CreateField(

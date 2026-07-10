@@ -50,7 +50,7 @@ public sealed class ContentItemServiceTests
 
         Assert.NotNull(result);
         Assert.Equal(item.Id, result.Item.Id);
-        Assert.Equal("/home", result.Path?.ToString());
+        Assert.Equal("/home", result.Path.ToString());
         Assert.Equal("Home", result.Fields["title"]?.Value);
         Assert.Equal("Welcome", result.Fields["body"]?.Value);
 
@@ -156,7 +156,7 @@ public sealed class ContentItemServiceTests
 
         Assert.Equal(
             new[] { "/home/child-a", "/home/child-b" },
-            result.Select(item => item.Path?.ToString()).ToArray());
+            result.Select(item => item.Path.ToString()).ToArray());
 
         Assert.All(
             result,
@@ -183,7 +183,7 @@ public sealed class ContentItemServiceTests
                 TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
-        Assert.Equal("/home/articles/hello-world", result.Path?.ToString());
+        Assert.Equal("/home/articles/hello-world", result.Path.ToString());
     }
 
     [Fact]

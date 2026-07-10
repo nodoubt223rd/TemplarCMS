@@ -240,7 +240,7 @@ public sealed class ContentItemService : IContentItemService
                 item.Id,
                 cancellationToken);
 
-        var resolvedItem =
+        var resolvedFields =
             _contentItemResolver.Resolve(
                 item,
                 template,
@@ -248,10 +248,10 @@ public sealed class ContentItemService : IContentItemService
                 context);
 
         return new ResolvedContentItem(
-            resolvedItem.Item,
-            resolvedItem.Fields,
-            resolvedItem.ConvertedFields,
-            path);
+            item,
+            path,
+            resolvedFields.Fields,
+            resolvedFields.ConvertedFields);
     }
 
     private async Task EnsureParentIsValidAsync(

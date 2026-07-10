@@ -47,7 +47,7 @@ public sealed class ContentItemResolver
     }
 
     /// <inheritdoc />
-    public ResolvedContentItem Resolve(
+    public ResolvedContentFields Resolve(
         ContentItemDefinition item,
         EffectiveTemplateDefinition template,
         IReadOnlyCollection<ContentFieldValue> values,
@@ -96,8 +96,7 @@ public sealed class ContentItemResolver
             convertedFields[field.Key] = convertedValue.Value!.Value;
         }
 
-        return new ResolvedContentItem(
-            item,
+        return new ResolvedContentFields(
             resolvedFields,
             convertedFields);
     }
