@@ -291,7 +291,8 @@ Current note:
 The current domain model stores a normalized `ContentItemKey` rather
 than separate slug and path properties. The key is normalized to
 lowercase and whitespace is collapsed to hyphen-separated segments such
-as `home-page`. Path generation is deferred.
+as `home-page`. Path is computed at runtime from the content tree rather
+than stored on the content item record.
 
 ### FieldValue
 
@@ -426,18 +427,27 @@ Example:
 Each content item has:
 
 - ParentId
-- Slug
-- Path
+- Key
+- Computed Path
 
-The path is generated from the parent path and item slug.
+The current implementation computes path from the parent path and item
+key.
 
 Example:
 
 ```text
 Parent path: /home/articles
-Slug: hello-world
+Key: hello-world
 Generated path: /home/articles/hello-world
 ```
+
+Current runtime rules:
+
+- Root item `home` resolves to `/home`.
+- Child item `articles` under `/home` resolves to `/home/articles`.
+- Path is projected in runtime read models rather than stored in persistence.
+- Renaming or moving an existing item is currently blocked until explicit
+  move/rename semantics are designed.
 
 ## 10. REST API Design
 
@@ -565,7 +575,7 @@ The authored JSON repository format is documented separately. It currently uses 
   "TemplateId": "template-guid",
   "Name": "Hello World",
   "ParentId": null,
-  "Slug": "hello-world"
+  "Key": "hello-world"
 }
 ```
 
@@ -613,6 +623,8 @@ Initial validations:
 - Template inheritance cycles are rejected.
 - Content item template must exist.
 - Content item keys must be normalized and unique among siblings.
+- Content item paths are computed from the current parent chain and normalized item keys.
+- Content item key changes and parent changes are currently rejected for existing items until move/rename semantics are explicitly implemented.
 - Field values can only be set for fields defined by the item’s effective template.
 - Field values should match their declared field type before persistence.
 - Field value writes should merge by item, field, language, and version identity rather than replacing unrelated stored values.
@@ -823,6 +835,7 @@ Already decided in code and ADRs:
 - Typed runtime values are projected during resolution and validated on
   writes for supported field types.
 - `ContentItemKey` is normalized to lowercase hyphenated form.
+- Content paths are computed at runtime rather than stored.
 
 ## 27. Recommended MVP Defaults
 
@@ -837,7 +850,7 @@ Recommended choices for the first implementation:
 - Typed runtime field projection layered above string storage.
 - Single base template inheritance.
 - Normalized content item keys.
-- Path strategy deferred.
+- Computed runtime path strategy.
 - No publishing in MVP.
 - No auth in MVP.
 - REST authoring and delivery API first.

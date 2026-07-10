@@ -112,6 +112,10 @@ public sealed class ContentItemService : IContentItemService
             item,
             cancellationToken);
 
+        await EnsurePathAffectingChangesAreAllowedAsync(
+            item,
+            cancellationToken);
+
         await EnsureEffectiveTemplateExistsAsync(
             item.TemplateId,
             item.Id,
@@ -300,6 +304,33 @@ public sealed class ContentItemService : IContentItemService
         {
             throw new InvalidOperationException(
                 $"Content item key '{item.Key}' already exists under parent '{item.ParentId?.ToString() ?? "<root>"}'.");
+        }
+    }
+
+    private async Task EnsurePathAffectingChangesAreAllowedAsync(
+        ContentItemDefinition item,
+        CancellationToken cancellationToken)
+    {
+        var existingItem =
+            await _contentRepository.GetItemAsync(
+                item.Id,
+                cancellationToken);
+
+        if (existingItem == null)
+        {
+            return;
+        }
+
+        if (existingItem.ParentId != item.ParentId)
+        {
+            throw new InvalidOperationException(
+                $"Content item '{item.Id}' cannot change parent until explicit move semantics are implemented.");
+        }
+
+        if (existingItem.Key != item.Key)
+        {
+            throw new InvalidOperationException(
+                $"Content item '{item.Id}' cannot change key until explicit rename semantics are implemented.");
         }
     }
 

@@ -310,6 +310,63 @@ public sealed class ContentItemServiceTests
     }
 
     [Fact]
+    public async Task SaveItemAsync_ShouldThrow_WhenExistingItemChangesKey()
+    {
+        var template = CreateTemplate("article-page");
+        var existingItem = CreateItem(template.Id, name: "Home", key: "home");
+        var renamedItem =
+            new ContentItemDefinition(
+                existingItem.Id,
+                existingItem.Name,
+                new ContentItemKey("landing-page"),
+                existingItem.TemplateId,
+                existingItem.ParentId);
+
+        var (service, _) =
+            CreateService(
+                new[] { template },
+                new[] { existingItem });
+
+        var exception =
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                service.SaveItemAsync(
+                    renamedItem,
+                    TestContext.Current.CancellationToken));
+
+        Assert.Contains("rename semantics", exception.Message);
+    }
+
+    [Fact]
+    public async Task SaveItemAsync_ShouldThrow_WhenExistingItemChangesParent()
+    {
+        var template = CreateTemplate("article-page");
+        var root = CreateItem(template.Id, name: "Home", key: "home");
+        var originalParent = CreateItem(template.Id, name: "Articles", key: "articles");
+        var newParent = CreateItem(template.Id, name: "News", key: "news");
+        var existingItem = CreateItem(template.Id, originalParent.Id, "Hello World", "hello-world");
+        var movedItem =
+            new ContentItemDefinition(
+                existingItem.Id,
+                existingItem.Name,
+                existingItem.Key,
+                existingItem.TemplateId,
+                newParent.Id);
+
+        var (service, _) =
+            CreateService(
+                new[] { template },
+                new[] { root, originalParent, newParent, existingItem });
+
+        var exception =
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                service.SaveItemAsync(
+                    movedItem,
+                    TestContext.Current.CancellationToken));
+
+        Assert.Contains("move semantics", exception.Message);
+    }
+
+    [Fact]
     public async Task SaveFieldValuesAsync_ShouldPersistValues_WhenItemAndTemplateFieldExist()
     {
         var template = CreateTemplate("article-page");

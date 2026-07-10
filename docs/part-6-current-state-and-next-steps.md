@@ -404,8 +404,6 @@ public sealed class ContentItemDefinition
     public TemplateId TemplateId { get; }
 
     public ContentItemId? ParentId { get; }
-
-    public string Path { get; }
 }
 ```
 
@@ -432,6 +430,12 @@ Current implementation note:
   the runtime content model and content service/repository boundaries.
 - `FieldId` is now a first-class strong type shared between template
   field definitions and stored content field values.
+- Content path is now computed at runtime via `ContentPathResolver`
+  rather than stored on `ContentItemDefinition`.
+- Root path composition is `/key`; child path composition is
+  `parent-path/key`.
+- Existing item key changes and parent changes are currently rejected
+  until explicit rename/move semantics are designed.
 
 ## Design Questions for the Next Session
 
@@ -441,7 +445,7 @@ Before implementing content items, decide:
 2. Should field values be addressed by field id, field key, or both?
 3. Should language be a string, value object, or dedicated type?
 4. Should version be represented as an integer or a richer value object?
-5. Should paths be stored or computed?
+5. How should move and rename semantics evolve now that paths are computed?
 6. Should item keys/slugs be unique only among siblings?
 7. Should field values be immutable snapshots?
 8. Should validation return `ValidationResult<T>` or a dedicated content validation result?

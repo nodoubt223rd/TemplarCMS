@@ -287,6 +287,14 @@ Version
 Field values
 ```
 
+Path note:
+
+```text
+ContentItemDefinition does not store path.
+```
+
+Runtime content reads now project a computed `ContentPath` separately.
+
 ## ContentFieldValue
 
 ```csharp
@@ -572,10 +580,28 @@ Contains:
 
 ```csharp
 ContentItemDefinition Item
+ContentPath Path
 
 IReadOnlyDictionary<string, ContentFieldValue?> Fields
 
 IReadOnlyDictionary<string, TypedFieldValue> ConvertedFields
+```
+
+Path behavior:
+
+```text
+Root key `home` resolves to `/home`
+Child key `articles` under `/home` resolves to `/home/articles`
+Nested key `hello-world` resolves to `/home/articles/hello-world`
+```
+
+The path is computed at runtime from the parent chain and item key.
+
+Current guardrail:
+
+```text
+Changing an existing item's parent or key is currently rejected until
+explicit move/rename semantics are implemented.
 ```
 
 Dictionary key:
@@ -661,7 +687,7 @@ For each effective field:
 
     Store typed runtime value by field key
 
-Return ResolvedContentItem
+Return ResolvedContentFields
 ```
 
 Does NOT perform:
@@ -672,7 +698,12 @@ Effective template building
 Persistence
 Caching
 Fallback selection
+Path computation
 ```
+
+Path computation now belongs to `ContentPathResolver` in the application
+layer, and `ContentItemService` composes the final `ResolvedContentItem`
+with a guaranteed path.
 
 ---
 
