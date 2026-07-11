@@ -1,5 +1,6 @@
 <Solution>
   <Project Path="src/TemplarCMS.Abstractions/TemplarCMS.Abstractions.csproj" />
+  <Project Path="src/TemplarCMS.Api/TemplarCMS.Api.csproj" />
   <Project Path="src/TemplarCMS.Application/TemplarCMS.Application.csproj" />
   <Project Path="src/TemplarCMS.ContentModeling/TemplarCMS.ContentModeling.csproj" />
   <Project Path="src/TemplarCMS.Domain/TemplarCMS.Domain.csproj" />

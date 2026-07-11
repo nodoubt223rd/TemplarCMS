@@ -1,5 +1,23 @@
 # TemplarCMS Backlog
 
+## API
+
+### ProblemDetails Error Catalog
+
+Status: Future
+
+Problem:
+The first API slice currently uses inline `ProblemDetails` titles and
+details directly in endpoint handlers. That is acceptable for the
+initial path lookup endpoint, but it risks inconsistent wording and
+duplicated literals as the public API grows.
+
+Goals:
+- Centralize reusable `ProblemDetails` titles and detail messages
+- Keep HTTP error responses consistent across endpoints
+- Avoid ad hoc hardcoded strings scattered through API handlers
+- Leave room for stable error codes or typed factory helpers later
+
 ## Runtime
 
 ### Cookie Management

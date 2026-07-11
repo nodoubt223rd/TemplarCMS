@@ -597,6 +597,55 @@ Nested key `hello-world` resolves to `/home/articles/hello-world`
 
 The path is computed at runtime from the parent chain and item key.
 
+## Path Lookup Contract
+
+Implemented.
+
+Current contract:
+
+```text
+Content paths are absolute.
+Content paths are normalized to lowercase.
+Content paths are matched case-insensitively through normalization.
+Root items resolve to `/{key}`.
+Descendants resolve to `{parent-path}/{key}`.
+```
+
+Examples:
+
+```text
+/home
+/home/articles
+/home/articles/hello-world
+```
+
+Read behavior:
+
+```text
+`IContentRepository.GetItemAsync(ContentPath)` accepts a canonical
+absolute path value object.
+
+`IContentItemService.GetItemAsync(ContentPath, ...)` is the
+application-layer entry point for path-based reads.
+```
+
+Current invariants:
+
+```text
+Sibling keys must be unique.
+Missing ancestors are treated as invalid stored state and fail path
+resolution.
+Existing items cannot change parent or key until explicit move/rename
+semantics are implemented.
+```
+
+Boundary note:
+
+```text
+Path lookup is currently intended for read scenarios.
+Stored content identity remains the stable content item id.
+```
+
 Current guardrail:
 
 ```text

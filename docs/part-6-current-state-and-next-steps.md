@@ -434,6 +434,9 @@ Current implementation note:
   rather than stored on `ContentItemDefinition`.
 - Root path composition is `/key`; child path composition is
   `parent-path/key`.
+- Path lookup now uses canonical absolute `ContentPath` values for
+  read scenarios, with normalization to lowercase and sibling-key
+  uniqueness as the current disambiguation rule.
 - Existing item key changes and parent changes are currently rejected
   until explicit rename/move semantics are designed.
 

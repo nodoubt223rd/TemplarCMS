@@ -449,6 +449,28 @@ Current runtime rules:
 - Renaming or moving an existing item is currently blocked until explicit
   move/rename semantics are designed.
 
+### Path Lookup Contract
+
+Current implementation contract:
+
+- Path lookup uses canonical absolute content paths.
+- Path normalization is lowercase and slash-delimited.
+- Route or client casing differences normalize to the same `ContentPath`.
+- Sibling keys must remain unique so a parent path plus key identifies at
+  most one child.
+- Path lookup is currently a read concern; item ids remain the stable write
+  identity.
+- Missing ancestors are treated as invalid stored state rather than as a
+  partial match.
+
+Examples:
+
+```text
+/home
+/home/articles
+/home/articles/hello-world
+```
+
 ## 10. REST API Design
 
 The REST API should use standard REST endpoints with pragmatic HATEOAS affordances.
@@ -512,9 +534,20 @@ GET /api/v1/templates/{id}/fields
 ```http
 POST /api/v1/content
 GET /api/v1/content/{id}?lang=en&version=1
+GET /api/v1/content/by-path/{**path}?lang=en&version=1
 POST /api/v1/content/{id}/values
 GET /api/v1/content/{id}/children?page=1&pageSize=20
 ```
+
+Path lookup route note:
+
+- The public route accepts a slash-delimited relative route segment such as
+  `home/articles/hello-world`.
+- The API normalizes that segment into the canonical absolute
+  `ContentPath` value `/home/articles/hello-world` before application-layer
+  lookup.
+- Responses should return the canonical absolute path so clients can store
+  one stable representation.
 
 ## 13. Example Template Creation Request
 
