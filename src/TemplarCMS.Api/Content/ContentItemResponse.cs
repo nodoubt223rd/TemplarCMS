@@ -22,6 +22,26 @@ public sealed class ContentItemResponse
     public required ContentItemLinksResponse Links { get; init; }
 }
 
+public sealed class ContentItemCollectionResponse
+{
+    public required ContentItemCollectionEmbeddedResponse Embedded { get; init; }
+
+    [JsonPropertyName("_links")]
+    public required ContentItemCollectionLinksResponse Links { get; init; }
+}
+
+public sealed class ContentItemCollectionEmbeddedResponse
+{
+    public required IReadOnlyCollection<ContentItemResponse> Items { get; init; }
+}
+
+public sealed class ContentItemCollectionLinksResponse
+{
+    public required LinkResponse Self { get; init; }
+
+    public required LinkResponse Parent { get; init; }
+}
+
 public sealed class ContentItemLinksResponse
 {
     public required LinkResponse Self { get; init; }

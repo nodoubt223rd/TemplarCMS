@@ -29,6 +29,15 @@ public static class ContentLookupEndpoints
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound);
 
+        endpoints.MapGet(
+                "/api/v1/content/{id:guid}/children",
+                GetChildrenAsync)
+            .WithName("GetContentChildren")
+            .WithTags("Content")
+            .Produces<ContentItemCollectionResponse>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
         return endpoints;
     }
 
@@ -130,6 +139,56 @@ public static class ContentLookupEndpoints
         }
     }
 
+    public static async Task<Results<Ok<ContentItemCollectionResponse>, ProblemHttpResult>> GetChildrenAsync(
+        Guid id,
+        string? lang,
+        int? version,
+        IContentItemService contentItemService,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(contentItemService);
+
+        try
+        {
+            var context =
+                CreateContext(
+                    lang,
+                    version);
+            var parent =
+                await contentItemService.GetItemAsync(
+                    new ContentItemId(id),
+                    context,
+                    cancellationToken);
+
+            if (parent == null)
+            {
+                return TypedResults.Problem(
+                    title: "Content item was not found",
+                    detail: $"No content item exists with id '{id}'.",
+                    statusCode: StatusCodes.Status404NotFound);
+            }
+
+            var children =
+                await contentItemService.GetChildItemsAsync(
+                    parent.Item.Id,
+                    context,
+                    cancellationToken);
+
+            return TypedResults.Ok(
+                MapCollectionResponse(
+                    parent,
+                    children,
+                    context));
+        }
+        catch (ArgumentException exception)
+        {
+            return TypedResults.Problem(
+                title: "Invalid content lookup request",
+                detail: exception.Message,
+                statusCode: StatusCodes.Status400BadRequest);
+        }
+    }
+
     private static ContentItemResponse MapResponse(
         ResolvedContentItem item,
         FieldValueResolutionContext context,
@@ -176,6 +235,40 @@ public static class ContentLookupEndpoints
                     {
                         Href = $"/api/v1/content/{item.Item.ParentId.Value.Value}?lang={context.Language}&version={context.Version.Value}"
                     }
+            }
+        };
+    }
+
+    private static ContentItemCollectionResponse MapCollectionResponse(
+        ResolvedContentItem parent,
+        IReadOnlyCollection<ResolvedContentItem> children,
+        FieldValueResolutionContext context)
+    {
+        var items =
+            children.Select(
+                    child =>
+                        MapResponse(
+                            child,
+                            context,
+                            $"/api/v1/content/{child.Item.Id.Value}?lang={context.Language}&version={context.Version.Value}"))
+                .ToArray();
+
+        return new ContentItemCollectionResponse
+        {
+            Embedded = new ContentItemCollectionEmbeddedResponse
+            {
+                Items = items
+            },
+            Links = new ContentItemCollectionLinksResponse
+            {
+                Self = new LinkResponse
+                {
+                    Href = $"/api/v1/content/{parent.Item.Id.Value}/children?lang={context.Language}&version={context.Version.Value}"
+                },
+                Parent = new LinkResponse
+                {
+                    Href = $"/api/v1/content/{parent.Item.Id.Value}?lang={context.Language}&version={context.Version.Value}"
+                }
             }
         };
     }
