@@ -12,6 +12,15 @@ public static class ContentLookupEndpoints
         ArgumentNullException.ThrowIfNull(endpoints);
 
         endpoints.MapGet(
+                "/api/v1/content/{id:guid}",
+                GetByIdAsync)
+            .WithName("GetContentById")
+            .WithTags("Content")
+            .Produces<ContentItemResponse>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        endpoints.MapGet(
                 "/api/v1/content/by-path/{**path}",
                 GetByPathAsync)
             .WithName("GetContentByPath")
@@ -21,6 +30,50 @@ public static class ContentLookupEndpoints
             .ProducesProblem(StatusCodes.Status404NotFound);
 
         return endpoints;
+    }
+
+    public static async Task<Results<Ok<ContentItemResponse>, ProblemHttpResult>> GetByIdAsync(
+        Guid id,
+        string? lang,
+        int? version,
+        IContentItemService contentItemService,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(contentItemService);
+
+        try
+        {
+            var context =
+                CreateContext(
+                    lang,
+                    version);
+            var item =
+                await contentItemService.GetItemAsync(
+                    new ContentItemId(id),
+                    context,
+                    cancellationToken);
+
+            if (item == null)
+            {
+                return TypedResults.Problem(
+                    title: "Content item was not found",
+                    detail: $"No content item exists with id '{id}'.",
+                    statusCode: StatusCodes.Status404NotFound);
+            }
+
+            return TypedResults.Ok(
+                MapResponse(
+                    item,
+                    context,
+                    $"/api/v1/content/{item.Item.Id.Value}?lang={context.Language}&version={context.Version.Value}"));
+        }
+        catch (ArgumentException exception)
+        {
+            return TypedResults.Problem(
+                title: "Invalid content lookup request",
+                detail: exception.Message,
+                statusCode: StatusCodes.Status400BadRequest);
+        }
     }
 
     public static async Task<Results<Ok<ContentItemResponse>, ProblemHttpResult>> GetByPathAsync(
@@ -45,9 +98,9 @@ public static class ContentLookupEndpoints
             var normalizedPath =
                 new ContentPath("/" + path.Trim('/'));
             var context =
-                new FieldValueResolutionContext(
-                    new ContentLanguage(lang ?? "en"),
-                    new ContentVersion(version ?? ContentVersion.First.Value));
+                CreateContext(
+                    lang,
+                    version);
             var item =
                 await contentItemService.GetItemAsync(
                     normalizedPath,
@@ -65,7 +118,8 @@ public static class ContentLookupEndpoints
             return TypedResults.Ok(
                 MapResponse(
                     item,
-                    context));
+                    context,
+                    $"/api/v1/content/by-path/{normalizedPath.ToString().TrimStart('/')}?lang={context.Language}&version={context.Version.Value}"));
         }
         catch (ArgumentException exception)
         {
@@ -78,12 +132,11 @@ public static class ContentLookupEndpoints
 
     private static ContentItemResponse MapResponse(
         ResolvedContentItem item,
-        FieldValueResolutionContext context)
+        FieldValueResolutionContext context,
+        string selfHref)
     {
         var canonicalPath =
             item.Path.ToString();
-        var routePath =
-            canonicalPath.TrimStart('/');
         var fieldValues =
             item.Fields.ToDictionary(
                 pair => pair.Key,
@@ -103,7 +156,7 @@ public static class ContentLookupEndpoints
             {
                 Self = new LinkResponse
                 {
-                    Href = $"/api/v1/content/by-path/{routePath}?lang={context.Language}&version={context.Version.Value}"
+                    Href = selfHref
                 },
                 Template = new LinkResponse
                 {
@@ -125,5 +178,14 @@ public static class ContentLookupEndpoints
                     }
             }
         };
+    }
+
+    private static FieldValueResolutionContext CreateContext(
+        string? lang,
+        int? version)
+    {
+        return new FieldValueResolutionContext(
+            new ContentLanguage(lang ?? "en"),
+            new ContentVersion(version ?? ContentVersion.First.Value));
     }
 }

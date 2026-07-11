@@ -10,33 +10,81 @@ namespace TemplarCMS.Api.Tests.Content;
 public sealed class ContentLookupEndpointsTests
 {
     [Fact]
+    public async Task GetByIdAsync_ShouldReturnOk_WhenItemExists()
+    {
+        var itemId = new ContentItemId(Guid.NewGuid());
+        var resolvedItem =
+            CreateResolvedItem(
+                itemId: itemId,
+                parentId: new ContentItemId(Guid.NewGuid()));
+        var service =
+            new FakeContentItemService(
+                resolvedItem);
+
+        var result =
+            await ContentLookupEndpoints.GetByIdAsync(
+                itemId.Value,
+                "EN",
+                1,
+                service,
+                TestContext.Current.CancellationToken);
+
+        var ok = Assert.IsType<Ok<ContentItemResponse>>(result.Result);
+        Assert.NotNull(ok.Value);
+        Assert.NotNull(service.LastContext);
+
+        Assert.Equal(itemId.Value.ToString(), ok.Value.Id);
+        Assert.Equal("/home/articles/hello-world", ok.Value.Path);
+        Assert.Equal(
+            $"/api/v1/content/{itemId.Value}?lang=en&version=1",
+            ok.Value.Links.Self.Href);
+        Assert.Equal(itemId, service.LastRequestedItemId);
+        Assert.Equal(new ContentLanguage("en"), service.LastContext.Language);
+        Assert.Equal(ContentVersion.First, service.LastContext.Version);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_ShouldReturnProblem_WhenItemIsMissing()
+    {
+        var id = Guid.NewGuid();
+
+        var result =
+            await ContentLookupEndpoints.GetByIdAsync(
+                id,
+                "en",
+                1,
+                new FakeContentItemService(null),
+                TestContext.Current.CancellationToken);
+
+        var problem = Assert.IsType<ProblemHttpResult>(result.Result);
+
+        Assert.Equal(StatusCodes.Status404NotFound, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_ShouldReturnProblem_WhenVersionIsInvalid()
+    {
+        var result =
+            await ContentLookupEndpoints.GetByIdAsync(
+                Guid.NewGuid(),
+                "en",
+                -1,
+                new FakeContentItemService(null),
+                TestContext.Current.CancellationToken);
+
+        var problem = Assert.IsType<ProblemHttpResult>(result.Result);
+
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+    }
+
+    [Fact]
     public async Task GetByPathAsync_ShouldReturnOk_WhenItemExists()
     {
         var itemId = new ContentItemId(Guid.NewGuid());
-        var templateId = new TemplateId(Guid.NewGuid());
         var resolvedItem =
-            new ResolvedContentItem(
-                new ContentItemDefinition(
-                    itemId,
-                    "Hello World",
-                    new ContentItemKey("hello-world"),
-                    templateId,
-                    new ContentItemId(Guid.NewGuid())),
-                new ContentPath("/home/articles/hello-world"),
-                new Dictionary<string, ContentFieldValue?>
-                {
-                    ["title"] = new ContentFieldValue(
-                        itemId,
-                        new FieldId(Guid.NewGuid()),
-                        "title",
-                        new ContentLanguage("en"),
-                        ContentVersion.First,
-                        "Hello World")
-                },
-                new Dictionary<string, TypedFieldValue>
-                {
-                    ["title"] = new StringTypedFieldValue("Hello World")
-                });
+            CreateResolvedItem(
+                itemId: itemId,
+                parentId: new ContentItemId(Guid.NewGuid()));
         var service =
             new FakeContentItemService(
                 resolvedItem);
@@ -125,6 +173,8 @@ public sealed class ContentLookupEndpointsTests
             _item = item;
         }
 
+        public ContentItemId? LastRequestedItemId { get; private set; }
+
         public ContentPath? LastRequestedPath { get; private set; }
 
         public FieldValueResolutionContext? LastContext { get; private set; }
@@ -134,6 +184,7 @@ public sealed class ContentLookupEndpointsTests
             FieldValueResolutionContext context,
             CancellationToken cancellationToken = default)
         {
+            LastRequestedItemId = itemId;
             LastContext = context;
             return Task.FromResult(_item);
         }
@@ -177,5 +228,35 @@ public sealed class ContentLookupEndpointsTests
         {
             throw new NotSupportedException();
         }
+    }
+
+    private static ResolvedContentItem CreateResolvedItem(
+        ContentItemId itemId,
+        ContentItemId? parentId)
+    {
+        var templateId = new TemplateId(Guid.NewGuid());
+
+        return new ResolvedContentItem(
+            new ContentItemDefinition(
+                itemId,
+                "Hello World",
+                new ContentItemKey("hello-world"),
+                templateId,
+                parentId),
+            new ContentPath("/home/articles/hello-world"),
+            new Dictionary<string, ContentFieldValue?>
+            {
+                ["title"] = new ContentFieldValue(
+                    itemId,
+                    new FieldId(Guid.NewGuid()),
+                    "title",
+                    new ContentLanguage("en"),
+                    ContentVersion.First,
+                    "Hello World")
+            },
+            new Dictionary<string, TypedFieldValue>
+            {
+                ["title"] = new StringTypedFieldValue("Hello World")
+            });
     }
 }
