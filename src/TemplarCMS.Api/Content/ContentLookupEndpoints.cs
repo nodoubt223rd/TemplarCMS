@@ -46,6 +46,15 @@ public static class ContentLookupEndpoints
             .Produces<ContentItemCollectionResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest);
 
+        endpoints.MapPost(
+                "/api/v1/content",
+                CreateAsync)
+            .WithName("CreateContent")
+            .WithTags("Content")
+            .Produces<ContentItemResponse>(StatusCodes.Status201Created)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status409Conflict);
+
         return endpoints;
     }
 
@@ -227,6 +236,90 @@ public static class ContentLookupEndpoints
         {
             return TypedResults.Problem(
                 title: "Invalid content lookup request",
+                detail: exception.Message,
+                statusCode: StatusCodes.Status400BadRequest);
+        }
+    }
+
+    public static async Task<Results<Created<ContentItemResponse>, ProblemHttpResult>> CreateAsync(
+        CreateContentItemRequest? request,
+        IContentItemService contentItemService,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(contentItemService);
+
+        if (request == null)
+        {
+            return TypedResults.Problem(
+                title: "Content item request is required",
+                detail: "Provide a content item payload in the request body.",
+                statusCode: StatusCodes.Status400BadRequest);
+        }
+
+        try
+        {
+            var itemId =
+                new ContentItemId(Guid.NewGuid());
+            var item =
+                new ContentItemDefinition(
+                    itemId,
+                    request.Name,
+                    new ContentItemKey(request.Key),
+                    new TemplateId(request.TemplateId),
+                    request.ParentId == null ? null : new ContentItemId(request.ParentId.Value));
+
+            await contentItemService.SaveItemAsync(
+                item,
+                cancellationToken);
+
+            var context =
+                CreateContext(
+                    null,
+                    null);
+            var createdItem =
+                await contentItemService.GetItemAsync(
+                    itemId,
+                    context,
+                    cancellationToken);
+
+            if (createdItem == null)
+            {
+                return TypedResults.Problem(
+                    title: "Created content item could not be loaded",
+                    detail: $"Content item '{itemId}' was saved but could not be reloaded.",
+                    statusCode: StatusCodes.Status400BadRequest);
+            }
+
+            var location =
+                $"/api/v1/content/{createdItem.Item.Id.Value}?lang={context.Language}&version={context.Version.Value}";
+
+            return TypedResults.Created(
+                location,
+                MapResponse(
+                    createdItem,
+                    context,
+                    location));
+        }
+        catch (InvalidOperationException exception)
+        {
+            var statusCode =
+                exception.Message.Contains(
+                    "already exists under parent",
+                    StringComparison.OrdinalIgnoreCase)
+                    ? StatusCodes.Status409Conflict
+                    : StatusCodes.Status400BadRequest;
+
+            return TypedResults.Problem(
+                title: statusCode == StatusCodes.Status409Conflict
+                    ? "Content item could not be created"
+                    : "Invalid content create request",
+                detail: exception.Message,
+                statusCode: statusCode);
+        }
+        catch (ArgumentException exception)
+        {
+            return TypedResults.Problem(
+                title: "Invalid content create request",
                 detail: exception.Message,
                 statusCode: StatusCodes.Status400BadRequest);
         }

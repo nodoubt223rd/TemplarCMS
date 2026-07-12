@@ -2,6 +2,17 @@ using System.Text.Json.Serialization;
 
 namespace TemplarCMS.Api.Content;
 
+public sealed class CreateContentItemRequest
+{
+    public required string Name { get; init; }
+
+    public required string Key { get; init; }
+
+    public required Guid TemplateId { get; init; }
+
+    public Guid? ParentId { get; init; }
+}
+
 public sealed class ContentItemResponse
 {
     public required string Id { get; init; }

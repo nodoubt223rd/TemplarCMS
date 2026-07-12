@@ -540,6 +540,14 @@ POST /api/v1/content/{id}/values
 GET /api/v1/content/{id}/children?page=1&pageSize=20
 ```
 
+Authoring security note:
+
+- `POST`, `PUT`, `PATCH`, and `DELETE` routes are authoring operations.
+- Early development slices may shape these contracts before full auth is
+  in place.
+- Authentication and authorization must be added before write endpoints
+  are treated as production-ready API surface.
+
 Path lookup route note:
 
 - The public route accepts a slash-delimited relative route segment such as

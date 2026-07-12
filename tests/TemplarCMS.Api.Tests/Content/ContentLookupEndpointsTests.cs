@@ -369,6 +369,118 @@ public sealed class ContentLookupEndpointsTests
         Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
     }
 
+    [Fact]
+    public async Task CreateAsync_ShouldReturnCreated_WhenRequestIsValid()
+    {
+        var templateId = Guid.NewGuid();
+        var parentId = Guid.NewGuid();
+        var service =
+            new FakeContentItemService(
+                null,
+                []);
+        service.OnSaveItemAsync = item =>
+        {
+            service.StoredItem =
+                CreateResolvedItem(
+                    itemId: item.Id,
+                    parentId: item.ParentId,
+                    path: "/home-page",
+                    name: item.Name,
+                    key: item.Key.ToString(),
+                    title: item.Name,
+                    templateId: item.TemplateId);
+
+            return Task.CompletedTask;
+        };
+
+        var result =
+            await ContentLookupEndpoints.CreateAsync(
+                new CreateContentItemRequest
+                {
+                    Name = " Home Page ",
+                    Key = "Home Page",
+                    TemplateId = templateId,
+                    ParentId = parentId
+                },
+                service,
+                TestContext.Current.CancellationToken);
+
+        var created = Assert.IsType<Created<ContentItemResponse>>(result.Result);
+        Assert.NotNull(created.Value);
+        Assert.NotNull(service.LastSavedItem);
+
+        Assert.Equal("Home Page", service.LastSavedItem.Name);
+        Assert.Equal("home-page", service.LastSavedItem.Key.ToString());
+        Assert.Equal(new TemplateId(templateId), service.LastSavedItem.TemplateId);
+        Assert.Equal(new ContentItemId(parentId), service.LastSavedItem.ParentId);
+        Assert.Equal("/home-page", created.Value.Path);
+        Assert.Equal(
+            $"/api/v1/content/{service.LastSavedItem.Id.Value}?lang=en&version=1",
+            created.Location);
+        Assert.Equal(
+            $"/api/v1/content/{service.LastSavedItem.Id.Value}?lang=en&version=1",
+            created.Value.Links.Self.Href);
+    }
+
+    [Fact]
+    public async Task CreateAsync_ShouldReturnConflict_WhenSiblingKeyAlreadyExists()
+    {
+        var service =
+            new FakeContentItemService(
+                null,
+                []);
+        service.OnSaveItemAsync = _ => throw new InvalidOperationException(
+            "Content item key 'home-page' already exists under parent '<root>'.");
+
+        var result =
+            await ContentLookupEndpoints.CreateAsync(
+                new CreateContentItemRequest
+                {
+                    Name = "Home Page",
+                    Key = "home-page",
+                    TemplateId = Guid.NewGuid()
+                },
+                service,
+                TestContext.Current.CancellationToken);
+
+        var problem = Assert.IsType<ProblemHttpResult>(result.Result);
+
+        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateAsync_ShouldReturnProblem_WhenRequestIsMissing()
+    {
+        var result =
+            await ContentLookupEndpoints.CreateAsync(
+                null,
+                new FakeContentItemService(null, []),
+                TestContext.Current.CancellationToken);
+
+        var problem = Assert.IsType<ProblemHttpResult>(result.Result);
+
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateAsync_ShouldReturnProblem_WhenRequestIsInvalid()
+    {
+        var result =
+            await ContentLookupEndpoints.CreateAsync(
+                new CreateContentItemRequest
+                {
+                    Name = "Home Page",
+                    Key = " ",
+                    TemplateId = Guid.NewGuid()
+                },
+                new FakeContentItemService(null, []),
+                TestContext.Current.CancellationToken);
+
+        var problem = Assert.IsType<ProblemHttpResult>(result.Result);
+
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+    }
+
     private sealed class FakeContentItemService : IContentItemService
     {
         private readonly ResolvedContentItem? _item;
@@ -382,13 +494,19 @@ public sealed class ContentLookupEndpointsTests
             _children = children ?? [];
         }
 
+        public Func<ContentItemDefinition, Task>? OnSaveItemAsync { get; set; }
+
         public ContentItemId? LastRequestedItemId { get; private set; }
 
         public ContentItemId? LastRequestedChildParentId { get; private set; }
 
+        public ContentItemDefinition? LastSavedItem { get; private set; }
+
         public ContentPath? LastRequestedPath { get; private set; }
 
         public FieldValueResolutionContext? LastContext { get; private set; }
+
+        public ResolvedContentItem? StoredItem { get; set; }
 
         public Task<ResolvedContentItem?> GetItemAsync(
             ContentItemId itemId,
@@ -397,7 +515,7 @@ public sealed class ContentLookupEndpointsTests
         {
             LastRequestedItemId = itemId;
             LastContext = context;
-            return Task.FromResult(_item);
+            return Task.FromResult(StoredItem ?? _item);
         }
 
         public Task<ResolvedContentItem?> GetItemAsync(
@@ -424,7 +542,11 @@ public sealed class ContentLookupEndpointsTests
             ContentItemDefinition item,
             CancellationToken cancellationToken = default)
         {
-            throw new NotSupportedException();
+            LastSavedItem = item;
+
+            return OnSaveItemAsync == null
+                ? Task.CompletedTask
+                : OnSaveItemAsync(item);
         }
 
         public Task SaveFieldValuesAsync(
@@ -449,16 +571,17 @@ public sealed class ContentLookupEndpointsTests
         string path = "/home/articles/hello-world",
         string name = "Hello World",
         string key = "hello-world",
-        string title = "Hello World")
+        string title = "Hello World",
+        TemplateId? templateId = null)
     {
-        var templateId = new TemplateId(Guid.NewGuid());
+        var resolvedTemplateId = templateId ?? new TemplateId(Guid.NewGuid());
 
         return new ResolvedContentItem(
             new ContentItemDefinition(
                 itemId,
                 name,
                 new ContentItemKey(key),
-                templateId,
+                resolvedTemplateId,
                 parentId),
             new ContentPath(path),
             new Dictionary<string, ContentFieldValue?>

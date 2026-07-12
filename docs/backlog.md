@@ -2,6 +2,25 @@
 
 ## API
 
+### Authoring Endpoint Security
+
+Status: Future
+
+Problem:
+The first public write endpoints can be shaped before authentication
+and authorization are fully implemented, but authoring operations must
+not remain unsecured once the API moves beyond early development.
+
+Goals:
+- Treat `POST`, `PUT`, `PATCH`, and `DELETE` endpoints as authoring
+  operations
+- Add authentication before the authoring API is considered
+  production-ready
+- Add authorization policies for content creation, update, and delete
+  operations
+- Keep current endpoint contracts compatible with future `401` and
+  `403` responses
+
 ### ProblemDetails Error Catalog
 
 Status: Future
