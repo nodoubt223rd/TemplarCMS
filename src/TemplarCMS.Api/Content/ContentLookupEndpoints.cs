@@ -64,6 +64,15 @@ public static class ContentLookupEndpoints
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound);
 
+        endpoints.MapDelete(
+                "/api/v1/content/{id:guid}",
+                DeleteAsync)
+            .WithName("DeleteContent")
+            .WithTags("Content")
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
         return endpoints;
     }
 
@@ -413,6 +422,55 @@ public static class ContentLookupEndpoints
         {
             return TypedResults.Problem(
                 title: "Invalid content field value request",
+                detail: exception.Message,
+                statusCode: StatusCodes.Status400BadRequest);
+        }
+    }
+
+    public static async Task<Results<NoContent, ProblemHttpResult>> DeleteAsync(
+        Guid id,
+        IContentItemService contentItemService,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(contentItemService);
+
+        try
+        {
+            var itemId =
+                new ContentItemId(id);
+            var existingItem =
+                await contentItemService.GetItemAsync(
+                    itemId,
+                    CreateContext(
+                        null,
+                        null),
+                    cancellationToken);
+
+            if (existingItem == null)
+            {
+                return TypedResults.Problem(
+                    title: "Content item was not found",
+                    detail: $"No content item exists with id '{id}'.",
+                    statusCode: StatusCodes.Status404NotFound);
+            }
+
+            await contentItemService.DeleteItemAsync(
+                itemId,
+                cancellationToken);
+
+            return TypedResults.NoContent();
+        }
+        catch (InvalidOperationException exception)
+        {
+            return TypedResults.Problem(
+                title: "Content item could not be deleted",
+                detail: exception.Message,
+                statusCode: StatusCodes.Status400BadRequest);
+        }
+        catch (ArgumentException exception)
+        {
+            return TypedResults.Problem(
+                title: "Invalid content delete request",
                 detail: exception.Message,
                 statusCode: StatusCodes.Status400BadRequest);
         }

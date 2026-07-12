@@ -606,6 +606,89 @@ public sealed class ContentLookupEndpointsTests
         Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
     }
 
+    [Fact]
+    public async Task DeleteAsync_ShouldReturnNoContent_WhenItemExists()
+    {
+        var itemId = new ContentItemId(Guid.NewGuid());
+        var item =
+            CreateResolvedItem(
+                itemId: itemId,
+                parentId: null,
+                path: "/home",
+                name: "Home",
+                key: "home");
+        var service =
+            new FakeContentItemService(
+                item,
+                []);
+
+        var result =
+            await ContentLookupEndpoints.DeleteAsync(
+                itemId.Value,
+                service,
+                TestContext.Current.CancellationToken);
+
+        Assert.IsType<NoContent>(result.Result);
+        Assert.Equal(itemId, service.LastDeletedItemId);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_ShouldReturnProblem_WhenItemIsMissing()
+    {
+        var result =
+            await ContentLookupEndpoints.DeleteAsync(
+                Guid.NewGuid(),
+                new FakeContentItemService(null, []),
+                TestContext.Current.CancellationToken);
+
+        var problem = Assert.IsType<ProblemHttpResult>(result.Result);
+
+        Assert.Equal(StatusCodes.Status404NotFound, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_ShouldReturnProblem_WhenItemHasChildren()
+    {
+        var itemId = new ContentItemId(Guid.NewGuid());
+        var item =
+            CreateResolvedItem(
+                itemId: itemId,
+                parentId: null,
+                path: "/home",
+                name: "Home",
+                key: "home");
+        var service =
+            new FakeContentItemService(
+                item,
+                []);
+        service.OnDeleteItemAsync = _ => throw new InvalidOperationException(
+            $"Content item '{itemId}' cannot be deleted because it has direct child items.");
+
+        var result =
+            await ContentLookupEndpoints.DeleteAsync(
+                itemId.Value,
+                service,
+                TestContext.Current.CancellationToken);
+
+        var problem = Assert.IsType<ProblemHttpResult>(result.Result);
+
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_ShouldReturnProblem_WhenIdIsInvalid()
+    {
+        var result =
+            await ContentLookupEndpoints.DeleteAsync(
+                Guid.Empty,
+                new FakeContentItemService(null, []),
+                TestContext.Current.CancellationToken);
+
+        var problem = Assert.IsType<ProblemHttpResult>(result.Result);
+
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+    }
+
     private sealed class FakeContentItemService : IContentItemService
     {
         private readonly ResolvedContentItem? _item;
@@ -623,6 +706,8 @@ public sealed class ContentLookupEndpointsTests
 
         public Func<ContentItemId, FieldValueResolutionContext, IReadOnlyDictionary<string, string?>, Task>? OnSaveFieldValuesByKeyAsync { get; set; }
 
+        public Func<ContentItemId, Task>? OnDeleteItemAsync { get; set; }
+
         public ContentItemId? LastRequestedItemId { get; private set; }
 
         public ContentItemId? LastRequestedChildParentId { get; private set; }
@@ -630,6 +715,8 @@ public sealed class ContentLookupEndpointsTests
         public ContentItemDefinition? LastSavedItem { get; private set; }
 
         public ContentItemId? LastSavedValuesItemId { get; private set; }
+
+        public ContentItemId? LastDeletedItemId { get; private set; }
 
         public FieldValueResolutionContext? LastSavedValuesContext { get; private set; }
 
@@ -709,7 +796,11 @@ public sealed class ContentLookupEndpointsTests
             ContentItemId itemId,
             CancellationToken cancellationToken = default)
         {
-            throw new NotSupportedException();
+            LastDeletedItemId = itemId;
+
+            return OnDeleteItemAsync == null
+                ? Task.CompletedTask
+                : OnDeleteItemAsync(itemId);
         }
     }
 
