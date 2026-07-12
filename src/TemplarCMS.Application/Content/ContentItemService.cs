@@ -10,6 +10,8 @@ namespace TemplarCMS.Application.Content;
 /// </summary>
 public sealed class ContentItemService : IContentItemService
 {
+    private static readonly ContentLanguage SharedFieldLanguage = new("shared");
+
     private readonly IContentRepository _contentRepository;
     private readonly IContentModelCatalog _contentModelCatalog;
     private readonly IContentItemResolver _contentItemResolver;
@@ -232,6 +234,71 @@ public sealed class ContentItemService : IContentItemService
     }
 
     /// <inheritdoc />
+    public async Task SaveFieldValuesAsync(
+        ContentItemId itemId,
+        FieldValueResolutionContext context,
+        IReadOnlyDictionary<string, string?> values,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(values);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var item =
+            await _contentRepository.GetItemAsync(
+                itemId,
+                cancellationToken);
+
+        if (item == null)
+        {
+            throw new InvalidOperationException(
+                $"Content item '{itemId}' was not found.");
+        }
+
+        var template =
+            await EnsureEffectiveTemplateExistsAsync(
+                item.TemplateId,
+                item.Id,
+                cancellationToken);
+        var fieldsByKey =
+            template.Fields.ToDictionary(
+                field => field.Key,
+                StringComparer.OrdinalIgnoreCase);
+        var storedValues =
+            new List<ContentFieldValue>(values.Count);
+
+        foreach (var pair in values)
+        {
+            if (string.IsNullOrWhiteSpace(pair.Key))
+            {
+                throw new ArgumentException(
+                    "Field key is required.",
+                    nameof(values));
+            }
+
+            if (!fieldsByKey.TryGetValue(pair.Key, out var field))
+            {
+                throw new InvalidOperationException(
+                    $"Field key '{pair.Key}' is not defined by template '{template.Id}'.");
+            }
+
+            storedValues.Add(
+                new ContentFieldValue(
+                    itemId,
+                    field.Id,
+                    field.Key,
+                    GetStoredLanguage(field, context),
+                    GetStoredVersion(field, context),
+                    pair.Value));
+        }
+
+        await SaveFieldValuesAsync(
+            itemId,
+            storedValues,
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
     public async Task DeleteItemAsync(
         ContentItemId itemId,
         CancellationToken cancellationToken = default)
@@ -378,5 +445,23 @@ public sealed class ContentItemService : IContentItemService
         }
 
         return template;
+    }
+
+    private static ContentLanguage GetStoredLanguage(
+        FieldDefinition field,
+        FieldValueResolutionContext context)
+    {
+        return field.ValueScope == FieldValueScope.Shared
+            ? SharedFieldLanguage
+            : context.Language;
+    }
+
+    private static ContentVersion GetStoredVersion(
+        FieldDefinition field,
+        FieldValueResolutionContext context)
+    {
+        return field.ValueScope == FieldValueScope.Versioned
+            ? context.Version
+            : ContentVersion.Shared;
     }
 }

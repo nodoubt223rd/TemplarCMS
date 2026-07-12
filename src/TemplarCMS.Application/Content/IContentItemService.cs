@@ -100,6 +100,28 @@ public interface IContentItemService
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Persists field values for a content item using public field keys and
+    /// the requested language/version context.
+    /// </summary>
+    /// <param name="itemId">
+    /// The content item identifier that owns the values.
+    /// </param>
+    /// <param name="context">
+    /// The requested language and version for the write operation.
+    /// </param>
+    /// <param name="values">
+    /// The field values keyed by public field key.
+    /// </param>
+    /// <param name="cancellationToken">
+    /// A token used to cancel the operation.
+    /// </param>
+    Task SaveFieldValuesAsync(
+        ContentItemId itemId,
+        FieldValueResolutionContext context,
+        IReadOnlyDictionary<string, string?> values,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Deletes a stored content item when it has no direct children.
     /// </summary>
     /// <param name="itemId">

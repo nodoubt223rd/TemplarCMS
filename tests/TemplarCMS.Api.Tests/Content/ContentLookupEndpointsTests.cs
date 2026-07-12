@@ -481,6 +481,131 @@ public sealed class ContentLookupEndpointsTests
         Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
     }
 
+    [Fact]
+    public async Task SetValuesAsync_ShouldReturnOk_WhenRequestIsValid()
+    {
+        var itemId = new ContentItemId(Guid.NewGuid());
+        var initialItem =
+            CreateResolvedItem(
+                itemId: itemId,
+                parentId: null,
+                path: "/home",
+                name: "Home",
+                key: "home",
+                title: "Before");
+        var service =
+            new FakeContentItemService(
+                initialItem,
+                []);
+        service.OnSaveFieldValuesByKeyAsync = (savedItemId, context, values) =>
+        {
+            service.StoredItem =
+                CreateResolvedItem(
+                    itemId: savedItemId,
+                    parentId: null,
+                    path: "/home",
+                    name: "Home",
+                    key: "home",
+                    title: values["title"] ?? string.Empty);
+
+            return Task.CompletedTask;
+        };
+
+        var result =
+            await ContentLookupEndpoints.SetValuesAsync(
+                itemId.Value,
+                new SetContentFieldValuesRequest
+                {
+                    Language = "fr-ca",
+                    Version = 3,
+                    Values = new Dictionary<string, string?>
+                    {
+                        ["title"] = "Bonjour"
+                    }
+                },
+                service,
+                TestContext.Current.CancellationToken);
+
+        var ok = Assert.IsType<Ok<ContentItemResponse>>(result.Result);
+        Assert.NotNull(ok.Value);
+        Assert.NotNull(service.LastSavedValuesContext);
+        Assert.NotNull(service.LastSavedValues);
+
+        Assert.Equal(itemId, service.LastSavedValuesItemId);
+        Assert.Equal(new ContentLanguage("fr-ca"), service.LastSavedValuesContext.Language);
+        Assert.Equal(new ContentVersion(3), service.LastSavedValuesContext.Version);
+        Assert.Equal("Bonjour", service.LastSavedValues["title"]);
+        Assert.Equal("Bonjour", ok.Value.Fields["title"]);
+        Assert.Equal("fr-ca", ok.Value.Language);
+        Assert.Equal(3, ok.Value.Version);
+    }
+
+    [Fact]
+    public async Task SetValuesAsync_ShouldReturnProblem_WhenRequestIsMissing()
+    {
+        var result =
+            await ContentLookupEndpoints.SetValuesAsync(
+                Guid.NewGuid(),
+                null,
+                new FakeContentItemService(null, []),
+                TestContext.Current.CancellationToken);
+
+        var problem = Assert.IsType<ProblemHttpResult>(result.Result);
+
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task SetValuesAsync_ShouldReturnProblem_WhenItemIsMissing()
+    {
+        var service =
+            new FakeContentItemService(null, []);
+        service.OnSaveFieldValuesByKeyAsync = (_, _, _) =>
+            throw new InvalidOperationException("Content item 'missing' was not found.");
+
+        var result =
+            await ContentLookupEndpoints.SetValuesAsync(
+                Guid.NewGuid(),
+                new SetContentFieldValuesRequest
+                {
+                    Language = "en",
+                    Version = 1,
+                    Values = new Dictionary<string, string?>
+                    {
+                        ["title"] = "Home"
+                    }
+                },
+                service,
+                TestContext.Current.CancellationToken);
+
+        var problem = Assert.IsType<ProblemHttpResult>(result.Result);
+
+        Assert.Equal(StatusCodes.Status404NotFound, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task SetValuesAsync_ShouldReturnProblem_WhenRequestIsInvalid()
+    {
+        var result =
+            await ContentLookupEndpoints.SetValuesAsync(
+                Guid.NewGuid(),
+                new SetContentFieldValuesRequest
+                {
+                    Language = " ",
+                    Version = 1,
+                    Values = new Dictionary<string, string?>
+                    {
+                        ["title"] = "Home"
+                    }
+                },
+                new FakeContentItemService(null, []),
+                TestContext.Current.CancellationToken);
+
+        var problem = Assert.IsType<ProblemHttpResult>(result.Result);
+
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+    }
+
     private sealed class FakeContentItemService : IContentItemService
     {
         private readonly ResolvedContentItem? _item;
@@ -496,11 +621,19 @@ public sealed class ContentLookupEndpointsTests
 
         public Func<ContentItemDefinition, Task>? OnSaveItemAsync { get; set; }
 
+        public Func<ContentItemId, FieldValueResolutionContext, IReadOnlyDictionary<string, string?>, Task>? OnSaveFieldValuesByKeyAsync { get; set; }
+
         public ContentItemId? LastRequestedItemId { get; private set; }
 
         public ContentItemId? LastRequestedChildParentId { get; private set; }
 
         public ContentItemDefinition? LastSavedItem { get; private set; }
+
+        public ContentItemId? LastSavedValuesItemId { get; private set; }
+
+        public FieldValueResolutionContext? LastSavedValuesContext { get; private set; }
+
+        public IReadOnlyDictionary<string, string?>? LastSavedValues { get; private set; }
 
         public ContentPath? LastRequestedPath { get; private set; }
 
@@ -555,6 +688,21 @@ public sealed class ContentLookupEndpointsTests
             CancellationToken cancellationToken = default)
         {
             throw new NotSupportedException();
+        }
+
+        public Task SaveFieldValuesAsync(
+            ContentItemId itemId,
+            FieldValueResolutionContext context,
+            IReadOnlyDictionary<string, string?> values,
+            CancellationToken cancellationToken = default)
+        {
+            LastSavedValuesItemId = itemId;
+            LastSavedValuesContext = context;
+            LastSavedValues = values;
+
+            return OnSaveFieldValuesByKeyAsync == null
+                ? Task.CompletedTask
+                : OnSaveFieldValuesByKeyAsync(itemId, context, values);
         }
 
         public Task DeleteItemAsync(

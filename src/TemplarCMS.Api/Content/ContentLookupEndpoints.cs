@@ -55,6 +55,15 @@ public static class ContentLookupEndpoints
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status409Conflict);
 
+        endpoints.MapPost(
+                "/api/v1/content/{id:guid}/values",
+                SetValuesAsync)
+            .WithName("SetContentValues")
+            .WithTags("Content")
+            .Produces<ContentItemResponse>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
         return endpoints;
     }
 
@@ -320,6 +329,90 @@ public static class ContentLookupEndpoints
         {
             return TypedResults.Problem(
                 title: "Invalid content create request",
+                detail: exception.Message,
+                statusCode: StatusCodes.Status400BadRequest);
+        }
+    }
+
+    public static async Task<Results<Ok<ContentItemResponse>, ProblemHttpResult>> SetValuesAsync(
+        Guid id,
+        SetContentFieldValuesRequest? request,
+        IContentItemService contentItemService,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(contentItemService);
+
+        if (request == null)
+        {
+            return TypedResults.Problem(
+                title: "Content field value request is required",
+                detail: "Provide a field value payload in the request body.",
+                statusCode: StatusCodes.Status400BadRequest);
+        }
+
+        if (request.Values == null)
+        {
+            return TypedResults.Problem(
+                title: "Content field values are required",
+                detail: "Provide one or more field values keyed by field key.",
+                statusCode: StatusCodes.Status400BadRequest);
+        }
+
+        try
+        {
+            var itemId =
+                new ContentItemId(id);
+            var context =
+                CreateContext(
+                    request.Language,
+                    request.Version);
+
+            await contentItemService.SaveFieldValuesAsync(
+                itemId,
+                context,
+                request.Values,
+                cancellationToken);
+
+            var item =
+                await contentItemService.GetItemAsync(
+                    itemId,
+                    context,
+                    cancellationToken);
+
+            if (item == null)
+            {
+                return TypedResults.Problem(
+                    title: "Content item was not found",
+                    detail: $"No content item exists with id '{id}'.",
+                    statusCode: StatusCodes.Status404NotFound);
+            }
+
+            return TypedResults.Ok(
+                MapResponse(
+                    item,
+                    context,
+                    $"/api/v1/content/{item.Item.Id.Value}?lang={context.Language}&version={context.Version.Value}"));
+        }
+        catch (InvalidOperationException exception)
+        {
+            var statusCode =
+                exception.Message.Contains(
+                    "was not found",
+                    StringComparison.OrdinalIgnoreCase)
+                    ? StatusCodes.Status404NotFound
+                    : StatusCodes.Status400BadRequest;
+
+            return TypedResults.Problem(
+                title: statusCode == StatusCodes.Status404NotFound
+                    ? "Content item was not found"
+                    : "Content field values could not be saved",
+                detail: exception.Message,
+                statusCode: statusCode);
+        }
+        catch (ArgumentException exception)
+        {
+            return TypedResults.Problem(
+                title: "Invalid content field value request",
                 detail: exception.Message,
                 statusCode: StatusCodes.Status400BadRequest);
         }

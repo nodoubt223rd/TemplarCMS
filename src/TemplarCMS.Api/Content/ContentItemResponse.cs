@@ -13,6 +13,15 @@ public sealed class CreateContentItemRequest
     public Guid? ParentId { get; init; }
 }
 
+public sealed class SetContentFieldValuesRequest
+{
+    public required string Language { get; init; }
+
+    public required int Version { get; init; }
+
+    public required IReadOnlyDictionary<string, string?> Values { get; init; }
+}
+
 public sealed class ContentItemResponse
 {
     public required string Id { get; init; }

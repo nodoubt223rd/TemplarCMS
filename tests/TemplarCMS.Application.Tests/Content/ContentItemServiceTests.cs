@@ -727,6 +727,139 @@ public sealed class ContentItemServiceTests
     }
 
     [Fact]
+    public async Task SaveFieldValuesAsync_ByFieldKey_ShouldPersistValues_WithStorageConventions()
+    {
+        var template = CreateTemplate("article-page");
+        var item = CreateItem(template.Id);
+        var values =
+            new Dictionary<string, string?>
+            {
+                ["title"] = "Home",
+                ["body"] = "<p>Welcome</p>",
+                ["price"] = "12.34"
+            };
+        var context =
+            new FieldValueResolutionContext(
+                new ContentLanguage("fr-ca"),
+                new ContentVersion(7));
+
+        var (service, repository) =
+            CreateService(
+                new[] { template },
+                new[] { item });
+
+        await service.SaveFieldValuesAsync(
+            item.Id,
+            context,
+            values,
+            TestContext.Current.CancellationToken);
+
+        var stored =
+            await repository.GetFieldValuesAsync(
+                item.Id,
+                TestContext.Current.CancellationToken);
+
+        Assert.Equal(3, stored.Count);
+        Assert.Contains(
+            stored,
+            value =>
+                value.FieldKey == "title" &&
+                value.Language == new ContentLanguage("fr-ca") &&
+                value.Version == ContentVersion.Shared &&
+                value.Value == "Home");
+        Assert.Contains(
+            stored,
+            value =>
+                value.FieldKey == "body" &&
+                value.Language == new ContentLanguage("fr-ca") &&
+                value.Version == new ContentVersion(7) &&
+                value.Value == "<p>Welcome</p>");
+        Assert.Contains(
+            stored,
+            value =>
+                value.FieldKey == "price" &&
+                value.Language == new ContentLanguage("fr-ca") &&
+                value.Version == ContentVersion.Shared &&
+                value.Value == "12.34");
+    }
+
+    [Fact]
+    public async Task SaveFieldValuesAsync_ByFieldKey_ShouldUseSharedStorageMarker_ForSharedFields()
+    {
+        var sharedField =
+            new FieldDefinition(
+                new FieldId(Guid.NewGuid()),
+                "Site Name",
+                "site-name",
+                FieldType.SingleLineText,
+                isShared: true);
+        var section =
+            new TemplateSectionDefinition(
+                Guid.NewGuid(),
+                "Metadata",
+                "metadata",
+                100,
+                new[] { sharedField });
+        var template =
+            new EffectiveTemplateDefinition(
+                new TemplateId(Guid.NewGuid()),
+                "Shared Page",
+                new TemplateKey("shared-page"),
+                new[] { section });
+        var item = CreateItem(template.Id);
+        var context =
+            new FieldValueResolutionContext(
+                new ContentLanguage("fr-ca"),
+                new ContentVersion(5));
+
+        var (service, repository) =
+            CreateService(
+                new[] { template },
+                new[] { item });
+
+        await service.SaveFieldValuesAsync(
+            item.Id,
+            context,
+            new Dictionary<string, string?>
+            {
+                ["site-name"] = "Templar CMS"
+            },
+            TestContext.Current.CancellationToken);
+
+        var stored =
+            await repository.GetFieldValuesAsync(
+                item.Id,
+                TestContext.Current.CancellationToken);
+
+        var value = Assert.Single(stored);
+        Assert.Equal("site-name", value.FieldKey);
+        Assert.Equal(new ContentLanguage("shared"), value.Language);
+        Assert.Equal(ContentVersion.Shared, value.Version);
+        Assert.Equal("Templar CMS", value.Value);
+    }
+
+    [Fact]
+    public async Task SaveFieldValuesAsync_ByFieldKey_ShouldThrow_WhenFieldKeyMissingFromTemplate()
+    {
+        var template = CreateTemplate("article-page");
+        var item = CreateItem(template.Id);
+        var (service, _) =
+            CreateService(
+                new[] { template },
+                new[] { item });
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.SaveFieldValuesAsync(
+                item.Id,
+                CreateContext(),
+                new Dictionary<string, string?>
+                {
+                    ["headline"] = "Saved"
+                },
+                TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
     public async Task DeleteItemAsync_ShouldDeleteItem_WhenNoDirectChildrenExist()
     {
         var template = CreateTemplate("article-page");
