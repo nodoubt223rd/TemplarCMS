@@ -39,7 +39,7 @@ public sealed class ContentItemCollectionLinksResponse
 {
     public required LinkResponse Self { get; init; }
 
-    public required LinkResponse Parent { get; init; }
+    public LinkResponse? Parent { get; init; }
 }
 
 public sealed class ContentItemLinksResponse

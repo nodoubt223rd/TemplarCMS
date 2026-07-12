@@ -535,6 +535,7 @@ GET /api/v1/templates/{id}/fields
 POST /api/v1/content
 GET /api/v1/content/{id}?lang=en&version=1
 GET /api/v1/content/by-path/{**path}?lang=en&version=1
+GET /api/v1/content/root/children?lang=en&version=1
 POST /api/v1/content/{id}/values
 GET /api/v1/content/{id}/children?page=1&pageSize=20
 ```

@@ -204,6 +204,7 @@ public sealed class ContentLookupEndpointsTests
         var ok = Assert.IsType<Ok<ContentItemCollectionResponse>>(result.Result);
         Assert.NotNull(ok.Value);
         Assert.NotNull(service.LastContext);
+        Assert.NotNull(ok.Value.Links.Parent);
 
         Assert.Equal(
             $"/api/v1/content/{parentId.Value}/children?lang=en&version=1",
@@ -273,6 +274,91 @@ public sealed class ContentLookupEndpointsTests
         var result =
             await ContentLookupEndpoints.GetChildrenAsync(
                 Guid.NewGuid(),
+                "en",
+                -1,
+                new FakeContentItemService(null, []),
+                TestContext.Current.CancellationToken);
+
+        var problem = Assert.IsType<ProblemHttpResult>(result.Result);
+
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetRootChildrenAsync_ShouldReturnOk_WhenRootItemsExist()
+    {
+        var rootA =
+            CreateResolvedItem(
+                itemId: new ContentItemId(Guid.NewGuid()),
+                parentId: null,
+                path: "/home",
+                name: "Home",
+                key: "home",
+                title: "Home");
+        var rootB =
+            CreateResolvedItem(
+                itemId: new ContentItemId(Guid.NewGuid()),
+                parentId: null,
+                path: "/articles",
+                name: "Articles",
+                key: "articles",
+                title: "Articles");
+        var service =
+            new FakeContentItemService(
+                null,
+                [rootA, rootB]);
+
+        var result =
+            await ContentLookupEndpoints.GetRootChildrenAsync(
+                "EN",
+                1,
+                service,
+                TestContext.Current.CancellationToken);
+
+        var ok = Assert.IsType<Ok<ContentItemCollectionResponse>>(result.Result);
+        Assert.NotNull(ok.Value);
+        Assert.NotNull(service.LastContext);
+
+        Assert.Equal(
+            "/api/v1/content/root/children?lang=en&version=1",
+            ok.Value.Links.Self.Href);
+        Assert.Null(ok.Value.Links.Parent);
+        Assert.Equal(2, ok.Value.Embedded.Items.Count);
+        Assert.Equal(
+            new[] { "/home", "/articles" },
+            ok.Value.Embedded.Items.Select(item => item.Path).ToArray());
+        Assert.Null(service.LastRequestedChildParentId);
+        Assert.Equal(new ContentLanguage("en"), service.LastContext.Language);
+        Assert.Equal(ContentVersion.First, service.LastContext.Version);
+    }
+
+    [Fact]
+    public async Task GetRootChildrenAsync_ShouldReturnOk_WhenNoRootItemsExist()
+    {
+        var service =
+            new FakeContentItemService(
+                null,
+                []);
+
+        var result =
+            await ContentLookupEndpoints.GetRootChildrenAsync(
+                "en",
+                1,
+                service,
+                TestContext.Current.CancellationToken);
+
+        var ok = Assert.IsType<Ok<ContentItemCollectionResponse>>(result.Result);
+        Assert.NotNull(ok.Value);
+
+        Assert.Empty(ok.Value.Embedded.Items);
+        Assert.Null(ok.Value.Links.Parent);
+    }
+
+    [Fact]
+    public async Task GetRootChildrenAsync_ShouldReturnProblem_WhenVersionIsInvalid()
+    {
+        var result =
+            await ContentLookupEndpoints.GetRootChildrenAsync(
                 "en",
                 -1,
                 new FakeContentItemService(null, []),

@@ -38,6 +38,14 @@ public static class ContentLookupEndpoints
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound);
 
+        endpoints.MapGet(
+                "/api/v1/content/root/children",
+                GetRootChildrenAsync)
+            .WithName("GetRootContentChildren")
+            .WithTags("Content")
+            .Produces<ContentItemCollectionResponse>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest);
+
         return endpoints;
     }
 
@@ -176,7 +184,42 @@ public static class ContentLookupEndpoints
 
             return TypedResults.Ok(
                 MapCollectionResponse(
-                    parent,
+                    parent.Item.Id,
+                    children,
+                    context));
+        }
+        catch (ArgumentException exception)
+        {
+            return TypedResults.Problem(
+                title: "Invalid content lookup request",
+                detail: exception.Message,
+                statusCode: StatusCodes.Status400BadRequest);
+        }
+    }
+
+    public static async Task<Results<Ok<ContentItemCollectionResponse>, ProblemHttpResult>> GetRootChildrenAsync(
+        string? lang,
+        int? version,
+        IContentItemService contentItemService,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(contentItemService);
+
+        try
+        {
+            var context =
+                CreateContext(
+                    lang,
+                    version);
+            var children =
+                await contentItemService.GetChildItemsAsync(
+                    null,
+                    context,
+                    cancellationToken);
+
+            return TypedResults.Ok(
+                MapCollectionResponse(
+                    null,
                     children,
                     context));
         }
@@ -240,7 +283,7 @@ public static class ContentLookupEndpoints
     }
 
     private static ContentItemCollectionResponse MapCollectionResponse(
-        ResolvedContentItem parent,
+        ContentItemId? parentId,
         IReadOnlyCollection<ResolvedContentItem> children,
         FieldValueResolutionContext context)
     {
@@ -263,12 +306,16 @@ public static class ContentLookupEndpoints
             {
                 Self = new LinkResponse
                 {
-                    Href = $"/api/v1/content/{parent.Item.Id.Value}/children?lang={context.Language}&version={context.Version.Value}"
+                    Href = parentId == null
+                        ? $"/api/v1/content/root/children?lang={context.Language}&version={context.Version.Value}"
+                        : $"/api/v1/content/{parentId.Value.Value}/children?lang={context.Language}&version={context.Version.Value}"
                 },
-                Parent = new LinkResponse
-                {
-                    Href = $"/api/v1/content/{parent.Item.Id.Value}?lang={context.Language}&version={context.Version.Value}"
-                }
+                Parent = parentId == null
+                    ? null
+                    : new LinkResponse
+                    {
+                        Href = $"/api/v1/content/{parentId.Value.Value}?lang={context.Language}&version={context.Version.Value}"
+                    }
             }
         };
     }
