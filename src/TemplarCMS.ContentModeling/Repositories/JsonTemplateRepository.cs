@@ -183,6 +183,55 @@ public sealed class JsonTemplateRepository : ITemplateRepository
     }
 
     /// <inheritdoc />
+    public async Task UpdateTemplateAsync(
+        TemplateKey existingKey,
+        TemplateDefinition template,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(template);
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var existingTemplatePath =
+            GetTemplatePath(
+                existingKey);
+
+        if (!File.Exists(existingTemplatePath))
+        {
+            throw new InvalidOperationException(
+                $"Template key '{existingKey}' was not found.");
+        }
+
+        var updatedTemplatePath =
+            GetTemplatePath(
+                template.Key);
+
+        if (template.Key != existingKey && File.Exists(updatedTemplatePath))
+        {
+            throw new InvalidOperationException(
+                $"Template key '{template.Key}' already exists.");
+        }
+
+        var json =
+            JsonSerializer.Serialize(
+                MapJsonTemplateDefinition(template),
+                SerializerOptions);
+
+        await File.WriteAllTextAsync(
+            updatedTemplatePath,
+            json,
+            cancellationToken);
+
+        if (!string.Equals(
+                existingTemplatePath,
+                updatedTemplatePath,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            File.Delete(existingTemplatePath);
+        }
+    }
+
+    /// <inheritdoc />
     public Task DeleteTemplateAsync(
         TemplateKey key,
         CancellationToken cancellationToken = default)

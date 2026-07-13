@@ -673,6 +673,11 @@ Initial validations:
 - Field values can only be set for fields defined by the item’s effective template.
 - Field values should match their declared field type before persistence.
 - Field value writes should merge by item, field, language, and version identity rather than replacing unrelated stored values.
+- Delete semantics remain intentionally open for a later product decision.
+- Future work should decide whether author-facing delete uses hard delete,
+  soft delete, or a recycle-bin workflow with retention and restore.
+- Future work should also define how parent-child delete impact is
+  surfaced before cascading operations are allowed.
 
 ## 19. Error Handling
 

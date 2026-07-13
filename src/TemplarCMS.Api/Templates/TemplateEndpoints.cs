@@ -31,6 +31,25 @@ public static class TemplateEndpoints
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status409Conflict);
 
+        endpoints.MapPut(
+                "/api/v1/templates/{id:guid}",
+                UpdateAsync)
+            .WithName("UpdateTemplate")
+            .WithTags("Templates")
+            .Produces<TemplateResponse>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict);
+
+        endpoints.MapDelete(
+                "/api/v1/templates/{id:guid}",
+                DeleteAsync)
+            .WithName("DeleteTemplate")
+            .WithTags("Templates")
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
         endpoints.MapGet(
                 "/api/v1/templates/{id:guid}",
                 GetByIdAsync)
@@ -221,6 +240,133 @@ public static class TemplateEndpoints
         }
     }
 
+    public static async Task<Results<Ok<TemplateResponse>, ProblemHttpResult>> UpdateAsync(
+        Guid id,
+        CreateTemplateRequest? request,
+        ITemplateRepository templateRepository,
+        IContentModelCatalog contentModelCatalog,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(templateRepository);
+        ArgumentNullException.ThrowIfNull(contentModelCatalog);
+
+        if (request == null)
+        {
+            return TypedResults.Problem(
+                title: "Template request is required",
+                detail: "Provide a template payload in the request body.",
+                statusCode: StatusCodes.Status400BadRequest);
+        }
+
+        TemplateDefinition? existingTemplate = null;
+        TemplateDefinition? updatedTemplate = null;
+
+        try
+        {
+            existingTemplate =
+                await contentModelCatalog.GetTemplateAsync(
+                    new TemplateId(id),
+                    cancellationToken);
+
+            if (existingTemplate == null)
+            {
+                return TypedResults.Problem(
+                    title: "Template was not found",
+                    detail: $"No template exists with id '{id}'.",
+                    statusCode: StatusCodes.Status404NotFound);
+            }
+
+            updatedTemplate =
+                await MapTemplateRequestAsync(
+                    existingTemplate.Id,
+                    request,
+                    contentModelCatalog,
+                    cancellationToken);
+
+            await templateRepository.UpdateTemplateAsync(
+                existingTemplate.Key,
+                updatedTemplate,
+                cancellationToken);
+
+            try
+            {
+                await contentModelCatalog.RefreshAsync(
+                    cancellationToken);
+            }
+            catch
+            {
+                await RollbackUpdateAsync(
+                    templateRepository,
+                    contentModelCatalog,
+                    existingTemplate,
+                    updatedTemplate.Key,
+                    cancellationToken);
+
+                throw;
+            }
+
+            var refreshedTemplate =
+                await contentModelCatalog.GetEffectiveTemplateAsync(
+                    existingTemplate.Id,
+                    cancellationToken);
+
+            if (refreshedTemplate == null)
+            {
+                return TypedResults.Problem(
+                    title: "Updated template could not be loaded",
+                    detail: $"Template '{existingTemplate.Id}' was saved but could not be reloaded.",
+                    statusCode: StatusCodes.Status400BadRequest);
+            }
+
+            return TypedResults.Ok(
+                MapResponse(refreshedTemplate));
+        }
+        catch (ContentModelCatalogRefreshException exception)
+        {
+            var detail =
+                exception.Errors.Count == 0
+                    ? exception.Message
+                    : string.Join(
+                        " ",
+                        exception.Errors.Select(error => error.Message));
+
+            return TypedResults.Problem(
+                title: "Template could not be updated",
+                detail: detail,
+                statusCode: StatusCodes.Status400BadRequest);
+        }
+        catch (InvalidOperationException exception)
+        {
+            var statusCode =
+                exception.Message.Contains(
+                    "already exists",
+                    StringComparison.OrdinalIgnoreCase)
+                    ? StatusCodes.Status409Conflict
+                    : exception.Message.Contains(
+                        "was not found",
+                        StringComparison.OrdinalIgnoreCase)
+                        ? StatusCodes.Status404NotFound
+                        : StatusCodes.Status400BadRequest;
+
+            return TypedResults.Problem(
+                title: statusCode switch
+                {
+                    StatusCodes.Status404NotFound => "Template was not found",
+                    StatusCodes.Status409Conflict => "Template could not be updated",
+                    _ => "Invalid template update request"
+                },
+                detail: exception.Message,
+                statusCode: statusCode);
+        }
+        catch (ArgumentException exception)
+        {
+            return TypedResults.Problem(
+                title: "Invalid template update request",
+                detail: exception.Message,
+                statusCode: StatusCodes.Status400BadRequest);
+        }
+    }
+
     public static async Task<Results<Ok<TemplateFieldCollectionResponse>, ProblemHttpResult>> GetFieldsByIdAsync(
         Guid id,
         IContentModelCatalog contentModelCatalog,
@@ -250,6 +396,93 @@ public static class TemplateEndpoints
         {
             return TypedResults.Problem(
                 title: "Invalid template lookup request",
+                detail: exception.Message,
+                statusCode: StatusCodes.Status400BadRequest);
+        }
+    }
+
+    public static async Task<Results<NoContent, ProblemHttpResult>> DeleteAsync(
+        Guid id,
+        ITemplateRepository templateRepository,
+        IContentModelCatalog contentModelCatalog,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(templateRepository);
+        ArgumentNullException.ThrowIfNull(contentModelCatalog);
+
+        TemplateDefinition? template = null;
+
+        try
+        {
+            template =
+                await contentModelCatalog.GetTemplateAsync(
+                    new TemplateId(id),
+                    cancellationToken);
+
+            if (template == null)
+            {
+                return TypedResults.Problem(
+                    title: "Template was not found",
+                    detail: $"No template exists with id '{id}'.",
+                    statusCode: StatusCodes.Status404NotFound);
+            }
+
+            await templateRepository.DeleteTemplateAsync(
+                template.Key,
+                cancellationToken);
+
+            try
+            {
+                await contentModelCatalog.RefreshAsync(
+                    cancellationToken);
+            }
+            catch
+            {
+                await RollbackDeleteAsync(
+                    templateRepository,
+                    contentModelCatalog,
+                    template,
+                    cancellationToken);
+
+                throw;
+            }
+
+            return TypedResults.NoContent();
+        }
+        catch (ContentModelCatalogRefreshException exception)
+        {
+            var detail =
+                exception.Errors.Count == 0
+                    ? exception.Message
+                    : string.Join(
+                        " ",
+                        exception.Errors.Select(error => error.Message));
+
+            return TypedResults.Problem(
+                title: "Template could not be deleted",
+                detail: detail,
+                statusCode: StatusCodes.Status400BadRequest);
+        }
+        catch (InvalidOperationException exception)
+        {
+            var statusCode =
+                exception.Message.Contains(
+                    "was not found",
+                    StringComparison.OrdinalIgnoreCase)
+                    ? StatusCodes.Status404NotFound
+                    : StatusCodes.Status400BadRequest;
+
+            return TypedResults.Problem(
+                title: statusCode == StatusCodes.Status404NotFound
+                    ? "Template was not found"
+                    : "Template could not be deleted",
+                detail: exception.Message,
+                statusCode: statusCode);
+        }
+        catch (ArgumentException exception)
+        {
+            return TypedResults.Problem(
+                title: "Invalid template delete request",
                 detail: exception.Message,
                 statusCode: StatusCodes.Status400BadRequest);
         }
@@ -329,7 +562,20 @@ public static class TemplateEndpoints
         };
     }
 
-    private static async Task<TemplateDefinition> MapCreateRequestAsync(
+    private static Task<TemplateDefinition> MapCreateRequestAsync(
+        CreateTemplateRequest request,
+        IContentModelCatalog contentModelCatalog,
+        CancellationToken cancellationToken)
+    {
+        return MapTemplateRequestAsync(
+            new TemplateId(Guid.NewGuid()),
+            request,
+            contentModelCatalog,
+            cancellationToken);
+    }
+
+    private static async Task<TemplateDefinition> MapTemplateRequestAsync(
+        TemplateId templateId,
         CreateTemplateRequest request,
         IContentModelCatalog contentModelCatalog,
         CancellationToken cancellationToken)
@@ -369,7 +615,7 @@ public static class TemplateEndpoints
         }
 
         return new TemplateDefinition(
-            new TemplateId(Guid.NewGuid()),
+            templateId,
             request.Name,
             new TemplateKey(request.Key),
             baseTemplate,
@@ -489,6 +735,50 @@ public static class TemplateEndpoints
         catch
         {
             // Preserve the original create failure; the caller will still receive it.
+        }
+    }
+
+    private static async Task RollbackDeleteAsync(
+        ITemplateRepository templateRepository,
+        IContentModelCatalog contentModelCatalog,
+        TemplateDefinition template,
+        CancellationToken cancellationToken)
+    {
+        await templateRepository.CreateTemplateAsync(
+            template,
+            cancellationToken);
+
+        try
+        {
+            await contentModelCatalog.RefreshAsync(
+                cancellationToken);
+        }
+        catch
+        {
+            // Preserve the original delete failure; the caller will still receive it.
+        }
+    }
+
+    private static async Task RollbackUpdateAsync(
+        ITemplateRepository templateRepository,
+        IContentModelCatalog contentModelCatalog,
+        TemplateDefinition originalTemplate,
+        TemplateKey updatedTemplateKey,
+        CancellationToken cancellationToken)
+    {
+        await templateRepository.UpdateTemplateAsync(
+            updatedTemplateKey,
+            originalTemplate,
+            cancellationToken);
+
+        try
+        {
+            await contentModelCatalog.RefreshAsync(
+                cancellationToken);
+        }
+        catch
+        {
+            // Preserve the original update failure; the caller will still receive it.
         }
     }
 }

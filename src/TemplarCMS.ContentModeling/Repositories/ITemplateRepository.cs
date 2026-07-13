@@ -51,6 +51,14 @@ namespace TemplarCMS.ContentModeling.Repositories
             CancellationToken cancellationToken = default);
 
         /// <summary>
+        /// Replaces an existing authored template definition.
+        /// </summary>
+        Task UpdateTemplateAsync(
+            TemplateKey existingKey,
+            TemplateDefinition template,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
         /// Deletes an authored template definition by key.
         /// </summary>
         Task DeleteTemplateAsync(
