@@ -162,6 +162,75 @@ public sealed class TemplateEndpointsTests
     }
 
     [Fact]
+    public async Task CreateAsync_ShouldAssignBaseTemplate_WhenBaseTemplateKeyIsProvided()
+    {
+        var baseTemplate =
+            CreateAuthoredTemplate(
+                "Base Page",
+                "base-page");
+        var catalog =
+            new FakeContentModelCatalog(
+                authoredTemplates: [baseTemplate]);
+        var repository =
+            new FakeTemplateRepository();
+        repository.OnCreateTemplateAsync = template =>
+        {
+            catalog.AddTemplate(
+                new EffectiveTemplateDefinition(
+                    template.Id,
+                    template.Name,
+                    template.Key,
+                    template.Sections.ToArray()));
+
+            return Task.CompletedTask;
+        };
+
+        var result =
+            await TemplateEndpoints.CreateAsync(
+                new CreateTemplateRequest
+                {
+                    Name = "Article Page",
+                    Key = "article-page",
+                    BaseTemplateKeys = ["base-page"],
+                    Sections = []
+                },
+                repository,
+                catalog,
+                TestContext.Current.CancellationToken);
+
+        var created = Assert.IsType<Created<TemplateResponse>>(result.Result);
+        Assert.NotNull(created.Value);
+        Assert.NotNull(repository.LastCreatedTemplate);
+        Assert.NotNull(repository.LastCreatedTemplate.BaseTemplate);
+        Assert.Equal(new TemplateKey("base-page"), repository.LastCreatedTemplate.BaseTemplate.Key);
+    }
+
+    [Fact]
+    public async Task CreateAsync_ShouldReturnProblem_WhenMultipleBaseTemplateKeysAreProvided()
+    {
+        var result =
+            await TemplateEndpoints.CreateAsync(
+                new CreateTemplateRequest
+                {
+                    Name = "Article Page",
+                    Key = "article-page",
+                    BaseTemplateKeys =
+                    [
+                        "base-page",
+                        "metadata"
+                    ],
+                    Sections = []
+                },
+                new FakeTemplateRepository(),
+                new FakeContentModelCatalog(),
+                TestContext.Current.CancellationToken);
+
+        var problem = Assert.IsType<ProblemHttpResult>(result.Result);
+
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+    }
+
+    [Fact]
     public async Task CreateAsync_ShouldReturnConflict_WhenTemplateKeyAlreadyExists()
     {
         var repository =
@@ -186,6 +255,27 @@ public sealed class TemplateEndpointsTests
         var problem = Assert.IsType<ProblemHttpResult>(result.Result);
 
         Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateAsync_ShouldReturnProblem_WhenBaseTemplateIsMissing()
+    {
+        var result =
+            await TemplateEndpoints.CreateAsync(
+                new CreateTemplateRequest
+                {
+                    Name = "Article Page",
+                    Key = "article-page",
+                    BaseTemplateKeys = ["missing-base"],
+                    Sections = []
+                },
+                new FakeTemplateRepository(),
+                new FakeContentModelCatalog(),
+                TestContext.Current.CancellationToken);
+
+        var problem = Assert.IsType<ProblemHttpResult>(result.Result);
+
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
     }
 
     [Fact]
@@ -363,13 +453,38 @@ public sealed class TemplateEndpointsTests
             new[] { section });
     }
 
+    private static TemplateDefinition CreateAuthoredTemplate(
+        string name,
+        string key,
+        TemplateDefinition? baseTemplate = null)
+    {
+        return new TemplateDefinition(
+            new TemplateId(Guid.NewGuid()),
+            name,
+            new TemplateKey(key),
+            baseTemplate,
+            []);
+    }
+
     private sealed class FakeContentModelCatalog : IContentModelCatalog
     {
+        private readonly Dictionary<TemplateId, TemplateDefinition> _authoredTemplates;
         private readonly Dictionary<TemplateId, EffectiveTemplateDefinition> _templates;
 
         public FakeContentModelCatalog(
             params EffectiveTemplateDefinition?[] templates)
+            : this(
+                Array.Empty<TemplateDefinition>(),
+                templates)
         {
+        }
+
+        public FakeContentModelCatalog(
+            IReadOnlyCollection<TemplateDefinition> authoredTemplates,
+            params EffectiveTemplateDefinition?[] templates)
+        {
+            _authoredTemplates = (authoredTemplates ?? Array.Empty<TemplateDefinition>())
+                .ToDictionary(template => template.Id);
             _templates = (templates ?? Array.Empty<EffectiveTemplateDefinition?>())
                 .Where(template => template != null)
                 .Cast<EffectiveTemplateDefinition>()
@@ -386,14 +501,19 @@ public sealed class TemplateEndpointsTests
             TemplateId id,
             CancellationToken cancellationToken = default)
         {
-            throw new NotSupportedException();
+            _authoredTemplates.TryGetValue(id, out var template);
+            return Task.FromResult(template);
         }
 
         public Task<TemplateDefinition?> GetTemplateAsync(
             TemplateKey key,
             CancellationToken cancellationToken = default)
         {
-            throw new NotSupportedException();
+            var template =
+                _authoredTemplates.Values.FirstOrDefault(
+                    value => value.Key == key);
+
+            return Task.FromResult(template);
         }
 
         public Task<EffectiveTemplateDefinition?> GetEffectiveTemplateAsync(
@@ -431,6 +551,12 @@ public sealed class TemplateEndpointsTests
             EffectiveTemplateDefinition template)
         {
             _templates[template.Id] = template;
+        }
+
+        public void AddAuthoredTemplate(
+            TemplateDefinition template)
+        {
+            _authoredTemplates[template.Id] = template;
         }
 
         public Task InvalidateAsync(
