@@ -73,6 +73,15 @@ public static class ContentLookupEndpoints
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound);
 
+        endpoints.MapGet(
+                "/api/v1/content/{id:guid}/dependencies",
+                GetDependenciesAsync)
+            .WithName("GetContentDependencies")
+            .WithTags("Content")
+            .Produces<ContentItemDependencyResponse>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
         return endpoints;
     }
 
@@ -476,6 +485,82 @@ public static class ContentLookupEndpoints
         }
     }
 
+    public static async Task<Results<Ok<ContentItemDependencyResponse>, ProblemHttpResult>> GetDependenciesAsync(
+        Guid id,
+        string? lang,
+        int? version,
+        IContentItemService contentItemService,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(contentItemService);
+
+        try
+        {
+            var context =
+                CreateContext(
+                    lang,
+                    version);
+            var itemId =
+                new ContentItemId(id);
+            var item =
+                await contentItemService.GetItemAsync(
+                    itemId,
+                    context,
+                    cancellationToken);
+
+            if (item == null)
+            {
+                return TypedResults.Problem(
+                    title: "Content item was not found",
+                    detail: $"No content item exists with id '{id}'.",
+                    statusCode: StatusCodes.Status404NotFound);
+            }
+
+            var children =
+                await contentItemService.GetChildItemsAsync(
+                    itemId,
+                    context,
+                    cancellationToken);
+
+            return TypedResults.Ok(
+                new ContentItemDependencyResponse
+                {
+                    Id = item.Item.Id.Value.ToString(),
+                    Path = item.Path.ToString(),
+                    CanDelete = children.Count == 0,
+                    Summary = new ContentItemDependencySummaryResponse
+                    {
+                        DirectChildCount = children.Count
+                    },
+                    Embedded = new ContentItemDependencyEmbeddedResponse
+                    {
+                        Children = children
+                            .OrderBy(child => child.Path.ToString(), StringComparer.Ordinal)
+                            .Select(child => MapDependencyChildResponse(child, context))
+                            .ToArray()
+                    },
+                    Links = new ContentItemDependencyLinksResponse
+                    {
+                        Self = new LinkResponse
+                        {
+                            Href = $"/api/v1/content/{item.Item.Id.Value}/dependencies?lang={context.Language}&version={context.Version.Value}"
+                        },
+                        ContentItem = new LinkResponse
+                        {
+                            Href = $"/api/v1/content/{item.Item.Id.Value}?lang={context.Language}&version={context.Version.Value}"
+                        }
+                    }
+                });
+        }
+        catch (ArgumentException exception)
+        {
+            return TypedResults.Problem(
+                title: "Invalid content lookup request",
+                detail: exception.Message,
+                statusCode: StatusCodes.Status400BadRequest);
+        }
+    }
+
     private static ContentItemResponse MapResponse(
         ResolvedContentItem item,
         FieldValueResolutionContext context,
@@ -511,6 +596,10 @@ public static class ContentLookupEndpoints
                 Children = new LinkResponse
                 {
                     Href = $"/api/v1/content/{item.Item.Id.Value}/children?lang={context.Language}&version={context.Version.Value}"
+                },
+                Dependencies = new LinkResponse
+                {
+                    Href = $"/api/v1/content/{item.Item.Id.Value}/dependencies?lang={context.Language}&version={context.Version.Value}"
                 },
                 SetValues = new LinkResponse
                 {
@@ -560,6 +649,25 @@ public static class ContentLookupEndpoints
                     {
                         Href = $"/api/v1/content/{parentId.Value.Value}?lang={context.Language}&version={context.Version.Value}"
                     }
+            }
+        };
+    }
+
+    private static ContentItemDependencyChildResponse MapDependencyChildResponse(
+        ResolvedContentItem child,
+        FieldValueResolutionContext context)
+    {
+        return new ContentItemDependencyChildResponse
+        {
+            Id = child.Item.Id.Value.ToString(),
+            Name = child.Item.Name,
+            Path = child.Path.ToString(),
+            Links = new ContentItemDependencyChildLinksResponse
+            {
+                Self = new LinkResponse
+                {
+                    Href = $"/api/v1/content/{child.Item.Id.Value}?lang={context.Language}&version={context.Version.Value}"
+                }
             }
         };
     }

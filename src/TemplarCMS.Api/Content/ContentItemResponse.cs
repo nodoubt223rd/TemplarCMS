@@ -70,10 +70,62 @@ public sealed class ContentItemLinksResponse
 
     public required LinkResponse Children { get; init; }
 
+    public required LinkResponse Dependencies { get; init; }
+
     [JsonPropertyName("set-values")]
     public required LinkResponse SetValues { get; init; }
 
     public LinkResponse? Parent { get; init; }
+}
+
+public sealed class ContentItemDependencyResponse
+{
+    public required string Id { get; init; }
+
+    public required string Path { get; init; }
+
+    public required bool CanDelete { get; init; }
+
+    public required ContentItemDependencySummaryResponse Summary { get; init; }
+
+    public required ContentItemDependencyEmbeddedResponse Embedded { get; init; }
+
+    [JsonPropertyName("_links")]
+    public required ContentItemDependencyLinksResponse Links { get; init; }
+}
+
+public sealed class ContentItemDependencySummaryResponse
+{
+    public required int DirectChildCount { get; init; }
+}
+
+public sealed class ContentItemDependencyEmbeddedResponse
+{
+    public required IReadOnlyCollection<ContentItemDependencyChildResponse> Children { get; init; }
+}
+
+public sealed class ContentItemDependencyChildResponse
+{
+    public required string Id { get; init; }
+
+    public required string Name { get; init; }
+
+    public required string Path { get; init; }
+
+    [JsonPropertyName("_links")]
+    public required ContentItemDependencyChildLinksResponse Links { get; init; }
+}
+
+public sealed class ContentItemDependencyChildLinksResponse
+{
+    public required LinkResponse Self { get; init; }
+}
+
+public sealed class ContentItemDependencyLinksResponse
+{
+    public required LinkResponse Self { get; init; }
+
+    public required LinkResponse ContentItem { get; init; }
 }
 
 public sealed class LinkResponse
