@@ -137,8 +137,10 @@ public static class TemplateEndpoints
         try
         {
             template =
-                MapCreateRequest(
-                    request);
+                await MapCreateRequestAsync(
+                    request,
+                    contentModelCatalog,
+                    cancellationToken);
 
             await templateRepository.CreateTemplateAsync(
                 template,
@@ -327,9 +329,13 @@ public static class TemplateEndpoints
         };
     }
 
-    private static TemplateDefinition MapCreateRequest(
-        CreateTemplateRequest request)
+    private static async Task<TemplateDefinition> MapCreateRequestAsync(
+        CreateTemplateRequest request,
+        IContentModelCatalog contentModelCatalog,
+        CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(contentModelCatalog);
+
         if (request.Sections == null)
         {
             throw new ArgumentException(
@@ -337,10 +343,36 @@ public static class TemplateEndpoints
                 nameof(request));
         }
 
+        TemplateDefinition? baseTemplate = null;
+
+        if (request.BaseTemplateKeys != null && request.BaseTemplateKeys.Count > 1)
+        {
+            throw new InvalidOperationException(
+                "Multiple base templates are not supported yet. Provide zero or one base template key.");
+        }
+
+        var baseTemplateKey =
+            request.BaseTemplateKeys?.SingleOrDefault();
+
+        if (!string.IsNullOrWhiteSpace(baseTemplateKey))
+        {
+            baseTemplate =
+                await contentModelCatalog.GetTemplateAsync(
+                    new TemplateKey(baseTemplateKey),
+                    cancellationToken);
+
+            if (baseTemplate == null)
+            {
+                throw new InvalidOperationException(
+                    $"Base template '{baseTemplateKey.Trim()}' was not found.");
+            }
+        }
+
         return new TemplateDefinition(
             new TemplateId(Guid.NewGuid()),
             request.Name,
             new TemplateKey(request.Key),
+            baseTemplate,
             sections: request.Sections
                 .Select(
                     section => new TemplateSectionDefinition(

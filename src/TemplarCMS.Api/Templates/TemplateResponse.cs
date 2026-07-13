@@ -31,6 +31,8 @@ public sealed class CreateTemplateRequest
 
     public required string Key { get; init; }
 
+    public IReadOnlyCollection<string>? BaseTemplateKeys { get; init; }
+
     public required IReadOnlyCollection<CreateTemplateSectionRequest> Sections { get; init; }
 }
 
