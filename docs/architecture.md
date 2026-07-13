@@ -512,6 +512,7 @@ The initial API should support these link relations:
 | self | Current resource |
 | template | Template used by a content item |
 | fields | Effective fields for a template |
+| dependencies | Delete-impact dependencies for a template |
 | create-item | Create content from a template |
 | set-values | Set content item field values |
 | children | Child content items |
@@ -527,6 +528,7 @@ The initial API should support these link relations:
 POST /api/v1/templates
 GET /api/v1/templates/{id}
 GET /api/v1/templates/{id}/fields
+GET /api/v1/templates/{id}/dependencies
 ```
 
 ### Content
@@ -591,6 +593,21 @@ The authored JSON repository format is documented separately. It uses
 `baseTemplates` in JSON, but the repository resolves that into the single
 `BaseTemplate` domain relationship. Zero or one base template key is supported;
 multiple entries are rejected.
+
+### Template Dependency Response
+
+`GET /api/v1/templates/{id}/dependencies` exposes the current blockers for a
+safe template delete attempt.
+
+Current behavior:
+
+- `dependentTemplates` includes authored descendant templates that inherit
+  directly or indirectly from the requested template
+- `contentItems` includes stored content items assigned directly to the
+  requested template
+- `canDelete` is `true` only when both dependency collections are empty
+- This endpoint is a read-only preflight contract and does not imply cascade,
+  recycle-bin, or restore semantics
 
 ## 14. Example Template Response
 

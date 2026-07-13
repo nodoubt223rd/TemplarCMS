@@ -653,6 +653,37 @@ Changing an existing item's parent or key is currently rejected until
 explicit move/rename semantics are implemented.
 ```
 
+## Template Delete Dependency Contract
+
+Implemented.
+
+Current API behavior:
+
+```text
+GET /api/v1/templates/{id}/dependencies
+```
+
+Response intent:
+
+```text
+Expose whether a template can currently be deleted without relying on
+trial-and-error against DELETE.
+```
+
+Current dependency coverage:
+
+```text
+Authored descendant templates that inherit from the requested template.
+Stored content items assigned directly to the requested template.
+```
+
+Current note:
+
+```text
+This is a preflight/read contract only.
+It does not imply cascade delete, soft delete, or recycle-bin behavior.
+```
+
 Dictionary key:
 
 ```text
