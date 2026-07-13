@@ -37,6 +37,12 @@ public interface IContentModelCatalog
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets all fully resolved effective template definitions.
+    /// </summary>
+    Task<IReadOnlyCollection<EffectiveTemplateDefinition>> GetEffectiveTemplatesAsync(
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Clears cached content model definitions so the next read reloads them.
     /// </summary>
     Task InvalidateAsync(

@@ -14,6 +14,13 @@ public static class TemplateEndpoints
         ArgumentNullException.ThrowIfNull(endpoints);
 
         endpoints.MapGet(
+                "/api/v1/templates",
+                GetAllAsync)
+            .WithName("GetTemplates")
+            .WithTags("Templates")
+            .Produces<TemplateCollectionResponse>(StatusCodes.Status200OK);
+
+        endpoints.MapGet(
                 "/api/v1/templates/{id:guid}",
                 GetByIdAsync)
             .WithName("GetTemplateById")
@@ -32,6 +39,35 @@ public static class TemplateEndpoints
             .ProducesProblem(StatusCodes.Status404NotFound);
 
         return endpoints;
+    }
+
+    public static async Task<Ok<TemplateCollectionResponse>> GetAllAsync(
+        IContentModelCatalog contentModelCatalog,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(contentModelCatalog);
+
+        var templates =
+            await contentModelCatalog.GetEffectiveTemplatesAsync(
+                cancellationToken);
+
+        return TypedResults.Ok(
+            new TemplateCollectionResponse
+            {
+                Embedded = new TemplateCollectionEmbeddedResponse
+                {
+                    Templates = templates
+                        .Select(MapSummaryResponse)
+                        .ToArray()
+                },
+                Links = new TemplateCollectionLinksResponse
+                {
+                    Self = new LinkResponse
+                    {
+                        Href = "/api/v1/templates"
+                    }
+                }
+            });
     }
 
     public static async Task<Results<Ok<TemplateResponse>, ProblemHttpResult>> GetByIdAsync(
@@ -132,6 +168,32 @@ public static class TemplateEndpoints
                             .ToArray()
                     })
                 .ToArray(),
+            Links = new TemplateLinksResponse
+            {
+                Self = new LinkResponse
+                {
+                    Href = $"/api/v1/templates/{template.Id.Value}"
+                },
+                Fields = new LinkResponse
+                {
+                    Href = $"/api/v1/templates/{template.Id.Value}/fields"
+                },
+                CreateItem = new LinkResponse
+                {
+                    Href = "/api/v1/content"
+                }
+            }
+        };
+    }
+
+    private static TemplateSummaryResponse MapSummaryResponse(
+        EffectiveTemplateDefinition template)
+    {
+        return new TemplateSummaryResponse
+        {
+            Id = template.Id.Value.ToString(),
+            Name = template.Name,
+            Key = template.Key.ToString(),
             Links = new TemplateLinksResponse
             {
                 Self = new LinkResponse

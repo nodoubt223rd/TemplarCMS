@@ -11,6 +11,39 @@ namespace TemplarCMS.Api.Tests.Templates;
 public sealed class TemplateEndpointsTests
 {
     [Fact]
+    public async Task GetAllAsync_ShouldReturnTemplatesInStableOrder()
+    {
+        var article =
+            CreateTemplate(
+                "Article Page",
+                "article-page");
+        var landing =
+            CreateTemplate(
+                "Landing Page",
+                "landing-page");
+        var catalog =
+            new FakeContentModelCatalog(
+                article,
+                landing);
+
+        var result =
+            await TemplateEndpoints.GetAllAsync(
+                catalog,
+                TestContext.Current.CancellationToken);
+
+        Assert.NotNull(result.Value);
+
+        var templates = result.Value.Embedded.Templates.ToArray();
+        Assert.Equal(2, templates.Length);
+        Assert.Equal("article-page", templates[0].Key);
+        Assert.Equal("landing-page", templates[1].Key);
+        Assert.Equal("/api/v1/templates", result.Value.Links.Self.Href);
+        Assert.Equal($"/api/v1/templates/{article.Id.Value}", templates[0].Links.Self.Href);
+        Assert.Equal($"/api/v1/templates/{article.Id.Value}/fields", templates[0].Links.Fields.Href);
+        Assert.Equal("/api/v1/content", templates[0].Links.CreateItem.Href);
+    }
+
+    [Fact]
     public async Task GetByIdAsync_ShouldReturnOk_WhenTemplateExists()
     {
         var template =
@@ -44,7 +77,7 @@ public sealed class TemplateEndpointsTests
         var result =
             await TemplateEndpoints.GetByIdAsync(
                 Guid.NewGuid(),
-                new FakeContentModelCatalog(null),
+                new FakeContentModelCatalog(),
                 TestContext.Current.CancellationToken);
 
         var problem = Assert.IsType<ProblemHttpResult>(result.Result);
@@ -58,7 +91,7 @@ public sealed class TemplateEndpointsTests
         var result =
             await TemplateEndpoints.GetByIdAsync(
                 Guid.Empty,
-                new FakeContentModelCatalog(null),
+                new FakeContentModelCatalog(),
                 TestContext.Current.CancellationToken);
 
         var problem = Assert.IsType<ProblemHttpResult>(result.Result);
@@ -99,7 +132,7 @@ public sealed class TemplateEndpointsTests
         var result =
             await TemplateEndpoints.GetFieldsByIdAsync(
                 Guid.NewGuid(),
-                new FakeContentModelCatalog(null),
+                new FakeContentModelCatalog(),
                 TestContext.Current.CancellationToken);
 
         var problem = Assert.IsType<ProblemHttpResult>(result.Result);
@@ -113,7 +146,7 @@ public sealed class TemplateEndpointsTests
         var result =
             await TemplateEndpoints.GetFieldsByIdAsync(
                 Guid.Empty,
-                new FakeContentModelCatalog(null),
+                new FakeContentModelCatalog(),
                 TestContext.Current.CancellationToken);
 
         var problem = Assert.IsType<ProblemHttpResult>(result.Result);
@@ -122,6 +155,15 @@ public sealed class TemplateEndpointsTests
     }
 
     private static EffectiveTemplateDefinition CreateTemplate()
+    {
+        return CreateTemplate(
+            "Article Page",
+            "article-page");
+    }
+
+    private static EffectiveTemplateDefinition CreateTemplate(
+        string name,
+        string key)
     {
         var field =
             new FieldDefinition(
@@ -140,19 +182,22 @@ public sealed class TemplateEndpointsTests
 
         return new EffectiveTemplateDefinition(
             new TemplateId(Guid.NewGuid()),
-            "Article Page",
-            new TemplateKey("article-page"),
+            name,
+            new TemplateKey(key),
             new[] { section });
     }
 
     private sealed class FakeContentModelCatalog : IContentModelCatalog
     {
-        private readonly EffectiveTemplateDefinition? _template;
+        private readonly Dictionary<TemplateId, EffectiveTemplateDefinition> _templates;
 
         public FakeContentModelCatalog(
-            EffectiveTemplateDefinition? template)
+            params EffectiveTemplateDefinition?[] templates)
         {
-            _template = template;
+            _templates = (templates ?? Array.Empty<EffectiveTemplateDefinition?>())
+                .Where(template => template != null)
+                .Cast<EffectiveTemplateDefinition>()
+                .ToDictionary(template => template.Id);
         }
 
         public TemplateId? LastRequestedTemplateId { get; private set; }
@@ -176,14 +221,30 @@ public sealed class TemplateEndpointsTests
             CancellationToken cancellationToken = default)
         {
             LastRequestedTemplateId = id;
-            return Task.FromResult(_template);
+            _templates.TryGetValue(id, out var template);
+            return Task.FromResult(template);
         }
 
         public Task<EffectiveTemplateDefinition?> GetEffectiveTemplateAsync(
             TemplateKey key,
             CancellationToken cancellationToken = default)
         {
-            throw new NotSupportedException();
+            var template =
+                _templates.Values.FirstOrDefault(
+                    value => value.Key == key);
+
+            return Task.FromResult(template);
+        }
+
+        public Task<IReadOnlyCollection<EffectiveTemplateDefinition>> GetEffectiveTemplatesAsync(
+            CancellationToken cancellationToken = default)
+        {
+            var templates =
+                _templates.Values
+                    .OrderBy(template => template.Key.ToString(), StringComparer.Ordinal)
+                    .ToArray();
+
+            return Task.FromResult<IReadOnlyCollection<EffectiveTemplateDefinition>>(templates);
         }
 
         public Task InvalidateAsync(

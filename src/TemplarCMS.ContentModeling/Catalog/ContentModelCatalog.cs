@@ -105,6 +105,20 @@ namespace TemplarCMS.ContentModeling.Catalog
         }
 
         /// <inheritdoc />
+        public Task<IReadOnlyCollection<EffectiveTemplateDefinition>> GetEffectiveTemplatesAsync(
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var templates =
+                _snapshot.EffectiveTemplates.Values
+                    .OrderBy(template => template.Key.ToString(), StringComparer.Ordinal)
+                    .ToArray();
+
+            return Task.FromResult<IReadOnlyCollection<EffectiveTemplateDefinition>>(templates);
+        }
+
+        /// <inheritdoc />
         public Task InvalidateAsync(
             CancellationToken cancellationToken = default)
         {

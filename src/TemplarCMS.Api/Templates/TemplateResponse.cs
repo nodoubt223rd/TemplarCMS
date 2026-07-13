@@ -17,6 +17,31 @@ public sealed class TemplateResponse
     public required TemplateLinksResponse Links { get; init; }
 }
 
+public sealed class TemplateCollectionResponse
+{
+    public required TemplateCollectionEmbeddedResponse Embedded { get; init; }
+
+    [JsonPropertyName("_links")]
+    public required TemplateCollectionLinksResponse Links { get; init; }
+}
+
+public sealed class TemplateCollectionEmbeddedResponse
+{
+    public required IReadOnlyCollection<TemplateSummaryResponse> Templates { get; init; }
+}
+
+public sealed class TemplateSummaryResponse
+{
+    public required string Id { get; init; }
+
+    public required string Name { get; init; }
+
+    public required string Key { get; init; }
+
+    [JsonPropertyName("_links")]
+    public required TemplateLinksResponse Links { get; init; }
+}
+
 public sealed class TemplateSectionResponse
 {
     public required string Id { get; init; }
@@ -99,4 +124,9 @@ public sealed class TemplateLinksResponse
 
     [JsonPropertyName("create-item")]
     public required LinkResponse CreateItem { get; init; }
+}
+
+public sealed class TemplateCollectionLinksResponse
+{
+    public required LinkResponse Self { get; init; }
 }
