@@ -500,6 +500,123 @@ public sealed class JsonTemplateRepositoryTests
                 TestContext.Current.CancellationToken));
     }
 
+    [Fact]
+    public async Task UpdateTemplateAsync_ShouldReplaceTemplateFile_WhenKeyIsUnchanged()
+    {
+        using var directory = new TemporaryDirectory();
+
+        CreateTemplateFile(
+            directory.Path,
+            "article-page.json",
+            "Article Page",
+            "article-page");
+
+        var repository =
+            CreateRepository(directory.Path);
+        var updatedTemplate =
+            new TemplateDefinition(
+                new TemplateId(Guid.NewGuid()),
+                "Article Page Updated",
+                new TemplateKey("article-page"));
+
+        await repository.UpdateTemplateAsync(
+            new TemplateKey("article-page"),
+            updatedTemplate,
+            TestContext.Current.CancellationToken);
+
+        var json =
+            await File.ReadAllTextAsync(
+                Path.Combine(directory.Path, "article-page.json"),
+                TestContext.Current.CancellationToken);
+        var dto =
+            JsonSerializer.Deserialize<JsonTemplateDefinition>(json);
+
+        Assert.NotNull(dto);
+        Assert.Equal("Article Page Updated", dto.Name);
+        Assert.Equal("article-page", dto.Key);
+    }
+
+    [Fact]
+    public async Task UpdateTemplateAsync_ShouldRenameTemplateFile_WhenKeyChanges()
+    {
+        using var directory = new TemporaryDirectory();
+
+        CreateTemplateFile(
+            directory.Path,
+            "article-page.json",
+            "Article Page",
+            "article-page");
+
+        var repository =
+            CreateRepository(directory.Path);
+        var updatedTemplate =
+            new TemplateDefinition(
+                new TemplateId(Guid.NewGuid()),
+                "Landing Page",
+                new TemplateKey("landing-page"));
+
+        await repository.UpdateTemplateAsync(
+            new TemplateKey("article-page"),
+            updatedTemplate,
+            TestContext.Current.CancellationToken);
+
+        Assert.False(File.Exists(Path.Combine(directory.Path, "article-page.json")));
+        Assert.True(File.Exists(Path.Combine(directory.Path, "landing-page.json")));
+    }
+
+    [Fact]
+    public async Task UpdateTemplateAsync_ShouldThrow_WhenNewKeyAlreadyExists()
+    {
+        using var directory = new TemporaryDirectory();
+
+        CreateTemplateFile(
+            directory.Path,
+            "article-page.json",
+            "Article Page",
+            "article-page");
+
+        CreateTemplateFile(
+            directory.Path,
+            "landing-page.json",
+            "Landing Page",
+            "landing-page");
+
+        var repository =
+            CreateRepository(directory.Path);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            repository.UpdateTemplateAsync(
+                new TemplateKey("article-page"),
+                new TemplateDefinition(
+                    new TemplateId(Guid.NewGuid()),
+                    "Landing Page Updated",
+                    new TemplateKey("landing-page")),
+                TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task DeleteTemplateAsync_ShouldRemoveTemplateFile_WhenFileExists()
+    {
+        using var directory = new TemporaryDirectory();
+
+        CreateTemplateFile(
+            directory.Path,
+            "article-page.json",
+            "Article Page",
+            "article-page");
+
+        var repository =
+            CreateRepository(directory.Path);
+
+        await repository.DeleteTemplateAsync(
+            new TemplateKey("article-page"),
+            TestContext.Current.CancellationToken);
+
+        Assert.False(
+            File.Exists(
+                Path.Combine(directory.Path, "article-page.json")));
+    }
+
     private JsonTemplateRepository CreateRepository(
         string templatesPath)
     {

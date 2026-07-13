@@ -37,6 +37,27 @@ Goals:
 - Avoid ad hoc hardcoded strings scattered through API handlers
 - Leave room for stable error codes or typed factory helpers later
 
+### Delete Semantics
+
+Status: Future
+
+Problem:
+The current delete endpoints focus on basic lifecycle behavior, but CMS
+authoring needs richer deletion semantics before those APIs are treated
+as settled.
+
+Goals:
+- Decide whether delete means hard delete, soft delete, or recycle-bin
+  by default
+- Decide how parent-child delete impact is surfaced before destructive
+  operations
+- Decide whether cascading child deletion requires explicit client
+  confirmation or a preflight step
+- Define restore semantics for soft-deleted or recycled content
+- Define retention and garbage-collection behavior for recycled content
+- Keep current delete contracts compatible with a future recycle-bin or
+  restore workflow
+
 ## Runtime
 
 ### Cookie Management

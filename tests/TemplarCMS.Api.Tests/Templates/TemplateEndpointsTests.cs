@@ -366,6 +366,224 @@ public sealed class TemplateEndpointsTests
     }
 
     [Fact]
+    public async Task DeleteAsync_ShouldReturnNoContent_WhenTemplateExists()
+    {
+        var template =
+            CreateAuthoredTemplate(
+                "Article Page",
+                "article-page");
+        var repository =
+            new FakeTemplateRepository();
+
+        var result =
+            await TemplateEndpoints.DeleteAsync(
+                template.Id.Value,
+                repository,
+                new FakeContentModelCatalog(
+                    authoredTemplates: [template]),
+                TestContext.Current.CancellationToken);
+
+        Assert.IsType<NoContent>(result.Result);
+        Assert.Equal(new TemplateKey("article-page"), repository.LastDeletedTemplateKey);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_ShouldReturnProblem_WhenTemplateMissing()
+    {
+        var result =
+            await TemplateEndpoints.DeleteAsync(
+                Guid.NewGuid(),
+                new FakeTemplateRepository(),
+                new FakeContentModelCatalog(),
+                TestContext.Current.CancellationToken);
+
+        var problem = Assert.IsType<ProblemHttpResult>(result.Result);
+
+        Assert.Equal(StatusCodes.Status404NotFound, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ShouldReturnOk_WhenTemplateExists()
+    {
+        var existingTemplate =
+            CreateAuthoredTemplate(
+                "Article Page",
+                "article-page");
+        var catalog =
+            new FakeContentModelCatalog(
+                authoredTemplates: [existingTemplate]);
+        var repository =
+            new FakeTemplateRepository();
+        repository.OnUpdateTemplateAsync = (_, template) =>
+        {
+            catalog.AddTemplate(
+                new EffectiveTemplateDefinition(
+                    template.Id,
+                    template.Name,
+                    template.Key,
+                    template.Sections.ToArray()));
+
+            return Task.CompletedTask;
+        };
+
+        var result =
+            await TemplateEndpoints.UpdateAsync(
+                existingTemplate.Id.Value,
+                new CreateTemplateRequest
+                {
+                    Name = "Landing Page",
+                    Key = "landing-page",
+                    Sections = []
+                },
+                repository,
+                catalog,
+                TestContext.Current.CancellationToken);
+
+        var ok = Assert.IsType<Ok<TemplateResponse>>(result.Result);
+        Assert.NotNull(ok.Value);
+        Assert.NotNull(repository.LastUpdatedTemplate);
+        Assert.Equal(existingTemplate.Key, repository.LastUpdatedExistingKey);
+        Assert.Equal(existingTemplate.Id, repository.LastUpdatedTemplate.Id);
+        Assert.Equal("landing-page", repository.LastUpdatedTemplate.Key.ToString());
+        Assert.Equal("landing-page", ok.Value.Key);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ShouldReturnProblem_WhenTemplateMissing()
+    {
+        var result =
+            await TemplateEndpoints.UpdateAsync(
+                Guid.NewGuid(),
+                new CreateTemplateRequest
+                {
+                    Name = "Landing Page",
+                    Key = "landing-page",
+                    Sections = []
+                },
+                new FakeTemplateRepository(),
+                new FakeContentModelCatalog(),
+                TestContext.Current.CancellationToken);
+
+        var problem = Assert.IsType<ProblemHttpResult>(result.Result);
+
+        Assert.Equal(StatusCodes.Status404NotFound, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ShouldReturnConflict_WhenTemplateKeyAlreadyExists()
+    {
+        var existingTemplate =
+            CreateAuthoredTemplate(
+                "Article Page",
+                "article-page");
+        var repository =
+            new FakeTemplateRepository
+            {
+                OnUpdateTemplateAsync = (_, _) => throw new InvalidOperationException(
+                    "Template key 'landing-page' already exists.")
+            };
+
+        var result =
+            await TemplateEndpoints.UpdateAsync(
+                existingTemplate.Id.Value,
+                new CreateTemplateRequest
+                {
+                    Name = "Landing Page",
+                    Key = "landing-page",
+                    Sections = []
+                },
+                repository,
+                new FakeContentModelCatalog(
+                    authoredTemplates: [existingTemplate]),
+                TestContext.Current.CancellationToken);
+
+        var problem = Assert.IsType<ProblemHttpResult>(result.Result);
+
+        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ShouldRollback_WhenCatalogRefreshFails()
+    {
+        var existingTemplate =
+            CreateAuthoredTemplate(
+                "Article Page",
+                "article-page");
+        var catalog =
+            new FakeContentModelCatalog(
+                authoredTemplates: [existingTemplate])
+            {
+                RefreshException = new ContentModelCatalogRefreshException(
+                    [
+                        new ValidationError(
+                            "DuplicateFieldKeyInTemplate",
+                            "Template 'landing-page' contains multiple fields with key 'title'.",
+                            "title")
+                    ])
+            };
+        var repository =
+            new FakeTemplateRepository();
+
+        var result =
+            await TemplateEndpoints.UpdateAsync(
+                existingTemplate.Id.Value,
+                new CreateTemplateRequest
+                {
+                    Name = "Landing Page",
+                    Key = "landing-page",
+                    Sections = []
+                },
+                repository,
+                catalog,
+                TestContext.Current.CancellationToken);
+
+        var problem = Assert.IsType<ProblemHttpResult>(result.Result);
+
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        Assert.NotNull(repository.LastRollbackTemplate);
+        Assert.Equal(existingTemplate.Key, repository.LastRollbackTemplate.Key);
+        Assert.Equal(new TemplateKey("landing-page"), repository.LastRollbackExistingKey);
+        Assert.Equal(2, catalog.RefreshCallCount);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_ShouldRollback_WhenCatalogRefreshFails()
+    {
+        var template =
+            CreateAuthoredTemplate(
+                "Article Page",
+                "article-page");
+        var catalog =
+            new FakeContentModelCatalog(
+                authoredTemplates: [template])
+            {
+                RefreshException = new ContentModelCatalogRefreshException(
+                    [
+                        new ValidationError(
+                            "TemplateStillReferenced",
+                            "Template 'article-page' is still referenced.",
+                            "article-page")
+                    ])
+            };
+        var repository =
+            new FakeTemplateRepository();
+
+        var result =
+            await TemplateEndpoints.DeleteAsync(
+                template.Id.Value,
+                repository,
+                catalog,
+                TestContext.Current.CancellationToken);
+
+        var problem = Assert.IsType<ProblemHttpResult>(result.Result);
+
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        Assert.NotNull(repository.LastRecreatedTemplate);
+        Assert.Equal(template.Key, repository.LastRecreatedTemplate.Key);
+        Assert.Equal(2, catalog.RefreshCallCount);
+    }
+
+    [Fact]
     public async Task GetFieldsByIdAsync_ShouldReturnOk_WhenTemplateExists()
     {
         var template =
@@ -583,7 +801,19 @@ public sealed class TemplateEndpointsTests
     {
         public Func<TemplateDefinition, Task>? OnCreateTemplateAsync { get; set; }
 
+        public Func<TemplateKey, TemplateDefinition, Task>? OnUpdateTemplateAsync { get; set; }
+
         public TemplateDefinition? LastCreatedTemplate { get; private set; }
+
+        public TemplateDefinition? LastRecreatedTemplate { get; private set; }
+
+        public TemplateKey? LastUpdatedExistingKey { get; private set; }
+
+        public TemplateDefinition? LastUpdatedTemplate { get; private set; }
+
+        public TemplateKey? LastRollbackExistingKey { get; private set; }
+
+        public TemplateDefinition? LastRollbackTemplate { get; private set; }
 
         public TemplateKey? LastDeletedTemplateKey { get; private set; }
 
@@ -597,11 +827,39 @@ public sealed class TemplateEndpointsTests
             TemplateDefinition template,
             CancellationToken cancellationToken = default)
         {
-            LastCreatedTemplate = template;
+            if (LastDeletedTemplateKey == null)
+            {
+                LastCreatedTemplate = template;
+            }
+            else
+            {
+                LastRecreatedTemplate = template;
+            }
 
             return OnCreateTemplateAsync == null
                 ? Task.CompletedTask
                 : OnCreateTemplateAsync(template);
+        }
+
+        public Task UpdateTemplateAsync(
+            TemplateKey existingKey,
+            TemplateDefinition template,
+            CancellationToken cancellationToken = default)
+        {
+            if (LastUpdatedExistingKey == null)
+            {
+                LastUpdatedExistingKey = existingKey;
+                LastUpdatedTemplate = template;
+            }
+            else
+            {
+                LastRollbackExistingKey = existingKey;
+                LastRollbackTemplate = template;
+            }
+
+            return OnUpdateTemplateAsync == null
+                ? Task.CompletedTask
+                : OnUpdateTemplateAsync(existingKey, template);
         }
 
         public Task DeleteTemplateAsync(
