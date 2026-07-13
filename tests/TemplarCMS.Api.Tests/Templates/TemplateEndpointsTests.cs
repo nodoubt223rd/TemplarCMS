@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
+using TemplarCMS.Application.Content;
 using TemplarCMS.Abstractions.Content;
 using TemplarCMS.Api.Templates;
 using TemplarCMS.ContentModeling.Abstractions;
@@ -44,6 +45,7 @@ public sealed class TemplateEndpointsTests
         Assert.Equal("/api/v1/templates", result.Value.Links.Self.Href);
         Assert.Equal($"/api/v1/templates/{article.Id.Value}", templates[0].Links.Self.Href);
         Assert.Equal($"/api/v1/templates/{article.Id.Value}/fields", templates[0].Links.Fields.Href);
+        Assert.Equal($"/api/v1/templates/{article.Id.Value}/dependencies", templates[0].Links.Dependencies.Href);
         Assert.Equal("/api/v1/content", templates[0].Links.CreateItem.Href);
     }
 
@@ -71,6 +73,7 @@ public sealed class TemplateEndpointsTests
         Assert.Single(ok.Value.Sections);
         Assert.Equal($"/api/v1/templates/{template.Id.Value}", ok.Value.Links.Self.Href);
         Assert.Equal($"/api/v1/templates/{template.Id.Value}/fields", ok.Value.Links.Fields.Href);
+        Assert.Equal($"/api/v1/templates/{template.Id.Value}/dependencies", ok.Value.Links.Dependencies.Href);
         Assert.Equal("/api/v1/content", ok.Value.Links.CreateItem.Href);
         Assert.Equal(new TemplateId(template.Id.Value), catalog.LastRequestedTemplateId);
     }
@@ -678,7 +681,159 @@ public sealed class TemplateEndpointsTests
         Assert.Equal("content", field.SectionKey);
         Assert.Equal($"/api/v1/templates/{template.Id.Value}/fields", ok.Value.Links.Self.Href);
         Assert.Equal($"/api/v1/templates/{template.Id.Value}", ok.Value.Links.Template.Href);
+        Assert.Equal($"/api/v1/templates/{template.Id.Value}/dependencies", ok.Value.Links.Dependencies.Href);
         Assert.Equal("/api/v1/content", ok.Value.Links.CreateItem.Href);
+    }
+
+    [Fact]
+    public async Task GetDependenciesByIdAsync_ShouldReturnOk_WhenTemplateHasNoDependencies()
+    {
+        var template =
+            CreateAuthoredTemplate(
+                "Article Page",
+                "article-page");
+        var catalog =
+            new FakeContentModelCatalog(
+                authoredTemplates: [template]);
+
+        var result =
+            await TemplateEndpoints.GetDependenciesByIdAsync(
+                template.Id.Value,
+                new FakeTemplateRepository(
+                    authoredTemplates: [template]),
+                catalog,
+                new FakeContentRepository(),
+                new FakeContentPathResolver(),
+                TestContext.Current.CancellationToken);
+
+        var ok = Assert.IsType<Ok<TemplateDependencyResponse>>(result.Result);
+        Assert.NotNull(ok.Value);
+
+        Assert.Equal(template.Id.Value.ToString(), ok.Value.TemplateId);
+        Assert.Equal("article-page", ok.Value.TemplateKey);
+        Assert.True(ok.Value.CanDelete);
+        Assert.Equal(0, ok.Value.Summary.DependentTemplateCount);
+        Assert.Equal(0, ok.Value.Summary.DependentContentItemCount);
+        Assert.Empty(ok.Value.Embedded.Templates);
+        Assert.Empty(ok.Value.Embedded.ContentItems);
+        Assert.Equal($"/api/v1/templates/{template.Id.Value}/dependencies", ok.Value.Links.Self.Href);
+        Assert.Equal($"/api/v1/templates/{template.Id.Value}", ok.Value.Links.Template.Href);
+    }
+
+    [Fact]
+    public async Task GetDependenciesByIdAsync_ShouldReturnTemplatesAndContentItems_WhenDependenciesExist()
+    {
+        var baseTemplate =
+            CreateAuthoredTemplate(
+                "Base Page",
+                "base-page");
+        var childTemplate =
+            CreateAuthoredTemplate(
+                "Article Page",
+                "article-page",
+                baseTemplate);
+        var grandchildTemplate =
+            CreateAuthoredTemplate(
+                "News Article Page",
+                "news-article-page",
+                childTemplate);
+        var homeItem =
+            CreateContentItem(
+                baseTemplate.Id,
+                name: "Home",
+                key: "home");
+        var articleItem =
+            CreateContentItem(
+                baseTemplate.Id,
+                name: "Article",
+                key: "article",
+                parentId: homeItem.Id);
+
+        var result =
+            await TemplateEndpoints.GetDependenciesByIdAsync(
+                baseTemplate.Id.Value,
+                new FakeTemplateRepository(
+                    authoredTemplates:
+                    [
+                        baseTemplate,
+                        childTemplate,
+                        grandchildTemplate
+                    ]),
+                new FakeContentModelCatalog(
+                    authoredTemplates:
+                    [
+                        baseTemplate,
+                        childTemplate,
+                        grandchildTemplate
+                    ]),
+                new FakeContentRepository(
+                    [
+                        articleItem,
+                        homeItem
+                    ]),
+                new FakeContentPathResolver(),
+                TestContext.Current.CancellationToken);
+
+        var ok = Assert.IsType<Ok<TemplateDependencyResponse>>(result.Result);
+        Assert.NotNull(ok.Value);
+
+        Assert.False(ok.Value.CanDelete);
+        Assert.Equal(2, ok.Value.Summary.DependentTemplateCount);
+        Assert.Equal(2, ok.Value.Summary.DependentContentItemCount);
+        Assert.Equal(
+            new[]
+            {
+                "article-page",
+                "news-article-page"
+            },
+            ok.Value.Embedded.Templates.Select(template => template.Key).ToArray());
+        Assert.Equal(
+            new[]
+            {
+                "/home",
+                "/home/article"
+            },
+            ok.Value.Embedded.ContentItems.Select(item => item.Path).ToArray());
+        Assert.Equal(
+            $"/api/v1/templates/{childTemplate.Id.Value}",
+            ok.Value.Embedded.Templates.First().Links.Self.Href);
+        Assert.Equal(
+            $"/api/v1/content/{homeItem.Id.Value}?lang=en&version=1",
+            ok.Value.Embedded.ContentItems.First().Links.Self.Href);
+    }
+
+    [Fact]
+    public async Task GetDependenciesByIdAsync_ShouldReturnProblem_WhenTemplateMissing()
+    {
+        var result =
+            await TemplateEndpoints.GetDependenciesByIdAsync(
+                Guid.NewGuid(),
+                new FakeTemplateRepository(),
+                new FakeContentModelCatalog(),
+                new FakeContentRepository(),
+                new FakeContentPathResolver(),
+                TestContext.Current.CancellationToken);
+
+        var problem = Assert.IsType<ProblemHttpResult>(result.Result);
+
+        Assert.Equal(StatusCodes.Status404NotFound, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetDependenciesByIdAsync_ShouldReturnProblem_WhenIdIsInvalid()
+    {
+        var result =
+            await TemplateEndpoints.GetDependenciesByIdAsync(
+                Guid.Empty,
+                new FakeTemplateRepository(),
+                new FakeContentModelCatalog(),
+                new FakeContentRepository(),
+                new FakeContentPathResolver(),
+                TestContext.Current.CancellationToken);
+
+        var problem = Assert.IsType<ProblemHttpResult>(result.Result);
+
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
     }
 
     [Fact]
@@ -756,13 +911,17 @@ public sealed class TemplateEndpointsTests
     }
 
     private static ContentItemDefinition CreateContentItem(
-        TemplateId templateId)
+        TemplateId templateId,
+        string name = "Home",
+        string key = "home",
+        ContentItemId? parentId = null)
     {
         return new ContentItemDefinition(
             new ContentItemId(Guid.NewGuid()),
-            "Home",
-            new ContentItemKey("home"),
-            templateId);
+            name,
+            new ContentItemKey(key),
+            templateId,
+            parentId);
     }
 
     private sealed class FakeContentModelCatalog : IContentModelCatalog
@@ -974,7 +1133,11 @@ public sealed class TemplateEndpointsTests
             ContentItemId itemId,
             CancellationToken cancellationToken = default)
         {
-            throw new NotSupportedException();
+            var item =
+                _items.FirstOrDefault(
+                    candidate => candidate.Id == itemId);
+
+            return Task.FromResult(item);
         }
 
         public Task<ContentItemDefinition?> GetItemAsync(
@@ -1026,6 +1189,37 @@ public sealed class TemplateEndpointsTests
             CancellationToken cancellationToken = default)
         {
             throw new NotSupportedException();
+        }
+    }
+
+    private sealed class FakeContentPathResolver : IContentPathResolver
+    {
+        public Task<ContentPath> ResolveAsync(
+            ContentItemDefinition item,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(item);
+
+            return Task.FromResult(
+                item.ParentId == null
+                    ? ContentPath.FromRoot(item.Key)
+                    : new ContentPath($"/home/{item.Key}"));
+        }
+
+        public Task<IReadOnlyDictionary<ContentItemId, ContentPath>> ResolveAsync(
+            IReadOnlyCollection<ContentItemDefinition> items,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(items);
+
+            IReadOnlyDictionary<ContentItemId, ContentPath> resolved =
+                items.ToDictionary(
+                    item => item.Id,
+                    item => item.ParentId == null
+                        ? ContentPath.FromRoot(item.Key)
+                        : new ContentPath($"/home/{item.Key}"));
+
+            return Task.FromResult(resolved);
         }
     }
 }

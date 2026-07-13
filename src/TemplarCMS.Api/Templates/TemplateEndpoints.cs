@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Http.HttpResults;
+using TemplarCMS.Application.Content;
 using TemplarCMS.Abstractions.Content;
 using TemplarCMS.Api.Content;
 using TemplarCMS.ContentModeling.Abstractions;
@@ -66,6 +67,15 @@ public static class TemplateEndpoints
             .WithName("GetTemplateFieldsById")
             .WithTags("Templates")
             .Produces<TemplateFieldCollectionResponse>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        endpoints.MapGet(
+                "/api/v1/templates/{id:guid}/dependencies",
+                GetDependenciesByIdAsync)
+            .WithName("GetTemplateDependenciesById")
+            .WithTags("Templates")
+            .Produces<TemplateDependencyResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound);
 
@@ -402,6 +412,96 @@ public static class TemplateEndpoints
         }
     }
 
+    public static async Task<Results<Ok<TemplateDependencyResponse>, ProblemHttpResult>> GetDependenciesByIdAsync(
+        Guid id,
+        ITemplateRepository templateRepository,
+        IContentModelCatalog contentModelCatalog,
+        IContentRepository contentRepository,
+        IContentPathResolver contentPathResolver,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(templateRepository);
+        ArgumentNullException.ThrowIfNull(contentModelCatalog);
+        ArgumentNullException.ThrowIfNull(contentRepository);
+        ArgumentNullException.ThrowIfNull(contentPathResolver);
+
+        try
+        {
+            var template =
+                await contentModelCatalog.GetTemplateAsync(
+                    new TemplateId(id),
+                    cancellationToken);
+
+            if (template == null)
+            {
+                return TypedResults.Problem(
+                    title: "Template was not found",
+                    detail: $"No template exists with id '{id}'.",
+                    statusCode: StatusCodes.Status404NotFound);
+            }
+
+            var templates =
+                await templateRepository.GetTemplatesAsync(
+                    cancellationToken);
+            var dependentTemplates =
+                GetDependentTemplates(
+                    template.Id,
+                    templates);
+            var dependentItems =
+                await contentRepository.GetItemsByTemplateAsync(
+                    template.Id,
+                    cancellationToken);
+            var itemPaths =
+                await contentPathResolver.ResolveAsync(
+                    dependentItems,
+                    cancellationToken);
+
+            return TypedResults.Ok(
+                new TemplateDependencyResponse
+                {
+                    TemplateId = template.Id.Value.ToString(),
+                    TemplateKey = template.Key.ToString(),
+                    CanDelete = dependentTemplates.Count == 0 && dependentItems.Count == 0,
+                    Summary = new TemplateDependencySummaryResponse
+                    {
+                        DependentTemplateCount = dependentTemplates.Count,
+                        DependentContentItemCount = dependentItems.Count
+                    },
+                    Embedded = new TemplateDependencyEmbeddedResponse
+                    {
+                        Templates = dependentTemplates
+                            .Select(MapDependencyTemplateResponse)
+                            .ToArray(),
+                        ContentItems = dependentItems
+                            .Select(
+                                item => MapDependencyContentItemResponse(
+                                    item,
+                                    itemPaths[item.Id]))
+                            .OrderBy(item => item.Path, StringComparer.Ordinal)
+                            .ToArray()
+                    },
+                    Links = new TemplateDependencyLinksResponse
+                    {
+                        Self = new LinkResponse
+                        {
+                            Href = $"/api/v1/templates/{template.Id.Value}/dependencies"
+                        },
+                        Template = new LinkResponse
+                        {
+                            Href = $"/api/v1/templates/{template.Id.Value}"
+                        }
+                    }
+                });
+        }
+        catch (ArgumentException exception)
+        {
+            return TypedResults.Problem(
+                title: "Invalid template lookup request",
+                detail: exception.Message,
+                statusCode: StatusCodes.Status400BadRequest);
+        }
+    }
+
     public static async Task<Results<NoContent, ProblemHttpResult>> DeleteAsync(
         Guid id,
         ITemplateRepository templateRepository,
@@ -559,6 +659,10 @@ public static class TemplateEndpoints
                 {
                     Href = $"/api/v1/templates/{template.Id.Value}/fields"
                 },
+                Dependencies = new LinkResponse
+                {
+                    Href = $"/api/v1/templates/{template.Id.Value}/dependencies"
+                },
                 CreateItem = new LinkResponse
                 {
                     Href = "/api/v1/content"
@@ -584,6 +688,10 @@ public static class TemplateEndpoints
                 Fields = new LinkResponse
                 {
                     Href = $"/api/v1/templates/{template.Id.Value}/fields"
+                },
+                Dependencies = new LinkResponse
+                {
+                    Href = $"/api/v1/templates/{template.Id.Value}/dependencies"
                 },
                 CreateItem = new LinkResponse
                 {
@@ -712,6 +820,10 @@ public static class TemplateEndpoints
                 {
                     Href = $"/api/v1/templates/{template.Id.Value}"
                 },
+                Dependencies = new LinkResponse
+                {
+                    Href = $"/api/v1/templates/{template.Id.Value}/dependencies"
+                },
                 CreateItem = new LinkResponse
                 {
                     Href = "/api/v1/content"
@@ -745,6 +857,89 @@ public static class TemplateEndpoints
             "json" => FieldType.Json,
             _ => throw new InvalidOperationException(
                 $"Unsupported field type '{fieldType}'.")
+        };
+    }
+
+    private static IReadOnlyCollection<TemplateDefinition> GetDependentTemplates(
+        TemplateId templateId,
+        IReadOnlyCollection<TemplateDefinition> templates)
+    {
+        var dependentsByBaseTemplateId =
+            templates
+                .Where(candidate => candidate.BaseTemplate != null)
+                .GroupBy(candidate => candidate.BaseTemplate!.Id)
+                .ToDictionary(
+                    group => group.Key,
+                    group => group.ToArray());
+        var dependentTemplates =
+            new List<TemplateDefinition>();
+        var visited =
+            new HashSet<TemplateId>();
+        var pending =
+            new Queue<TemplateId>();
+
+        pending.Enqueue(templateId);
+
+        while (pending.Count > 0)
+        {
+            var currentTemplateId = pending.Dequeue();
+
+            if (!dependentsByBaseTemplateId.TryGetValue(currentTemplateId, out var directDependents))
+            {
+                continue;
+            }
+
+            foreach (var dependent in directDependents)
+            {
+                if (!visited.Add(dependent.Id))
+                {
+                    continue;
+                }
+
+                dependentTemplates.Add(dependent);
+                pending.Enqueue(dependent.Id);
+            }
+        }
+
+        return dependentTemplates
+            .OrderBy(candidate => candidate.Key.ToString(), StringComparer.Ordinal)
+            .ToArray();
+    }
+
+    private static TemplateDependencyTemplateItemResponse MapDependencyTemplateResponse(
+        TemplateDefinition template)
+    {
+        return new TemplateDependencyTemplateItemResponse
+        {
+            Id = template.Id.Value.ToString(),
+            Name = template.Name,
+            Key = template.Key.ToString(),
+            Links = new TemplateDependencyTemplateItemLinksResponse
+            {
+                Self = new LinkResponse
+                {
+                    Href = $"/api/v1/templates/{template.Id.Value}"
+                }
+            }
+        };
+    }
+
+    private static TemplateDependencyContentItemResponse MapDependencyContentItemResponse(
+        ContentItemDefinition item,
+        ContentPath path)
+    {
+        return new TemplateDependencyContentItemResponse
+        {
+            Id = item.Id.Value.ToString(),
+            Name = item.Name,
+            Path = path.ToString(),
+            Links = new TemplateDependencyContentItemLinksResponse
+            {
+                Self = new LinkResponse
+                {
+                    Href = $"/api/v1/content/{item.Id.Value}?lang=en&version=1"
+                }
+            }
         };
     }
 

@@ -149,6 +149,8 @@ public sealed class TemplateFieldCollectionLinksResponse
 
     public required LinkResponse Template { get; init; }
 
+    public required LinkResponse Dependencies { get; init; }
+
     [JsonPropertyName("create-item")]
     public required LinkResponse CreateItem { get; init; }
 }
@@ -159,6 +161,8 @@ public sealed class TemplateLinksResponse
 
     public required LinkResponse Fields { get; init; }
 
+    public required LinkResponse Dependencies { get; init; }
+
     [JsonPropertyName("create-item")]
     public required LinkResponse CreateItem { get; init; }
 }
@@ -166,4 +170,75 @@ public sealed class TemplateLinksResponse
 public sealed class TemplateCollectionLinksResponse
 {
     public required LinkResponse Self { get; init; }
+}
+
+public sealed class TemplateDependencyResponse
+{
+    public required string TemplateId { get; init; }
+
+    public required string TemplateKey { get; init; }
+
+    public required bool CanDelete { get; init; }
+
+    public required TemplateDependencySummaryResponse Summary { get; init; }
+
+    public required TemplateDependencyEmbeddedResponse Embedded { get; init; }
+
+    [JsonPropertyName("_links")]
+    public required TemplateDependencyLinksResponse Links { get; init; }
+}
+
+public sealed class TemplateDependencySummaryResponse
+{
+    public required int DependentTemplateCount { get; init; }
+
+    public required int DependentContentItemCount { get; init; }
+}
+
+public sealed class TemplateDependencyEmbeddedResponse
+{
+    public required IReadOnlyCollection<TemplateDependencyTemplateItemResponse> Templates { get; init; }
+
+    public required IReadOnlyCollection<TemplateDependencyContentItemResponse> ContentItems { get; init; }
+}
+
+public sealed class TemplateDependencyTemplateItemResponse
+{
+    public required string Id { get; init; }
+
+    public required string Name { get; init; }
+
+    public required string Key { get; init; }
+
+    [JsonPropertyName("_links")]
+    public required TemplateDependencyTemplateItemLinksResponse Links { get; init; }
+}
+
+public sealed class TemplateDependencyTemplateItemLinksResponse
+{
+    public required LinkResponse Self { get; init; }
+}
+
+public sealed class TemplateDependencyContentItemResponse
+{
+    public required string Id { get; init; }
+
+    public required string Name { get; init; }
+
+    public required string Path { get; init; }
+
+    [JsonPropertyName("_links")]
+    public required TemplateDependencyContentItemLinksResponse Links { get; init; }
+}
+
+public sealed class TemplateDependencyContentItemLinksResponse
+{
+    public required LinkResponse Self { get; init; }
+}
+
+public sealed class TemplateDependencyLinksResponse
+{
+    public required LinkResponse Self { get; init; }
+
+    public required LinkResponse Template { get; init; }
 }
