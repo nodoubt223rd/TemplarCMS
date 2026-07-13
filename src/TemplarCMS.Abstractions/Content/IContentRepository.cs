@@ -68,6 +68,13 @@ namespace TemplarCMS.Abstractions.Content
             CancellationToken cancellationToken = default);
 
         /// <summary>
+        /// Retrieves the content items that reference a template.
+        /// </summary>
+        Task<IReadOnlyCollection<ContentItemDefinition>> GetItemsByTemplateAsync(
+            TemplateId templateId,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
         /// Retrieves all stored field values for a content item.
         /// </summary>
         /// <param name="itemId">

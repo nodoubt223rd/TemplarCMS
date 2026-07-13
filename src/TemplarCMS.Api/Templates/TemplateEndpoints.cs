@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Http.HttpResults;
+using TemplarCMS.Abstractions.Content;
 using TemplarCMS.Api.Content;
 using TemplarCMS.ContentModeling.Abstractions;
 using TemplarCMS.ContentModeling.Catalog;
@@ -405,10 +406,12 @@ public static class TemplateEndpoints
         Guid id,
         ITemplateRepository templateRepository,
         IContentModelCatalog contentModelCatalog,
+        IContentRepository contentRepository,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(templateRepository);
         ArgumentNullException.ThrowIfNull(contentModelCatalog);
+        ArgumentNullException.ThrowIfNull(contentRepository);
 
         TemplateDefinition? template = null;
 
@@ -425,6 +428,34 @@ public static class TemplateEndpoints
                     title: "Template was not found",
                     detail: $"No template exists with id '{id}'.",
                     statusCode: StatusCodes.Status404NotFound);
+            }
+
+            var templates =
+                await templateRepository.GetTemplatesAsync(
+                    cancellationToken);
+            var dependentTemplate =
+                templates.FirstOrDefault(
+                    candidate => candidate.BaseTemplate?.Id == template.Id);
+
+            if (dependentTemplate != null)
+            {
+                return TypedResults.Problem(
+                    title: "Template could not be deleted",
+                    detail: $"Template '{template.Key}' is used as a base template by '{dependentTemplate.Key}'.",
+                    statusCode: StatusCodes.Status400BadRequest);
+            }
+
+            var dependentItems =
+                await contentRepository.GetItemsByTemplateAsync(
+                    template.Id,
+                    cancellationToken);
+
+            if (dependentItems.Count > 0)
+            {
+                return TypedResults.Problem(
+                    title: "Template could not be deleted",
+                    detail: $"Template '{template.Key}' is still assigned to one or more content items.",
+                    statusCode: StatusCodes.Status400BadRequest);
             }
 
             await templateRepository.DeleteTemplateAsync(
