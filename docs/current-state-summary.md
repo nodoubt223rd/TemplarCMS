@@ -714,6 +714,30 @@ This is a preflight/read contract only.
 It keeps future cascade, soft-delete, or recycle-bin decisions open.
 ```
 
+## Content Metadata Update Contract
+
+Implemented.
+
+Current API behavior:
+
+```text
+PUT /api/v1/content/{id}
+```
+
+Current update scope:
+
+```text
+Content item name only.
+```
+
+Current guardrail:
+
+```text
+The API intentionally preserves key, parent, and template identity for
+this update contract so it does not blur into rename, move, or template
+reassignment semantics.
+```
+
 Dictionary key:
 
 ```text

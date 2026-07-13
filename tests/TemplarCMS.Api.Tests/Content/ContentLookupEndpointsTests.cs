@@ -472,6 +472,134 @@ public sealed class ContentLookupEndpointsTests
     }
 
     [Fact]
+    public async Task UpdateAsync_ShouldReturnOk_WhenRequestIsValid()
+    {
+        var itemId = new ContentItemId(Guid.NewGuid());
+        var existingItem =
+            CreateResolvedItem(
+                itemId: itemId,
+                parentId: null,
+                path: "/home",
+                name: "Home",
+                key: "home");
+        var service =
+            new FakeContentItemService(
+                existingItem,
+                []);
+        service.StoredItem = existingItem;
+        service.OnSaveItemAsync = item =>
+        {
+            service.StoredItem =
+                CreateResolvedItem(
+                    itemId: item.Id,
+                    parentId: item.ParentId,
+                    path: "/home",
+                    name: item.Name,
+                    key: item.Key.ToString(),
+                    title: item.Name,
+                    templateId: item.TemplateId);
+
+            return Task.CompletedTask;
+        };
+
+        var result =
+            await ContentLookupEndpoints.UpdateAsync(
+                itemId.Value,
+                new UpdateContentItemRequest
+                {
+                    Name = "Home Updated"
+                },
+                "EN",
+                1,
+                service,
+                TestContext.Current.CancellationToken);
+
+        var ok = Assert.IsType<Ok<ContentItemResponse>>(result.Result);
+        Assert.NotNull(ok.Value);
+        Assert.NotNull(service.LastSavedItem);
+
+        Assert.Equal(itemId, service.LastSavedItem.Id);
+        Assert.Equal("Home Updated", service.LastSavedItem.Name);
+        Assert.Equal(new ContentItemKey("home"), service.LastSavedItem.Key);
+        Assert.Equal(existingItem.Item.TemplateId, service.LastSavedItem.TemplateId);
+        Assert.Equal("/home", ok.Value.Path);
+        Assert.Equal("Home Updated", ok.Value.Name);
+        Assert.Equal(
+            $"/api/v1/content/{itemId.Value}?lang=en&version=1",
+            ok.Value.Links.Self.Href);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ShouldReturnProblem_WhenRequestIsMissing()
+    {
+        var result =
+            await ContentLookupEndpoints.UpdateAsync(
+                Guid.NewGuid(),
+                null,
+                "en",
+                1,
+                new FakeContentItemService(null, []),
+                TestContext.Current.CancellationToken);
+
+        var problem = Assert.IsType<ProblemHttpResult>(result.Result);
+
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ShouldReturnProblem_WhenItemIsMissing()
+    {
+        var result =
+            await ContentLookupEndpoints.UpdateAsync(
+                Guid.NewGuid(),
+                new UpdateContentItemRequest
+                {
+                    Name = "Home Updated"
+                },
+                "en",
+                1,
+                new FakeContentItemService(null, []),
+                TestContext.Current.CancellationToken);
+
+        var problem = Assert.IsType<ProblemHttpResult>(result.Result);
+
+        Assert.Equal(StatusCodes.Status404NotFound, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ShouldReturnProblem_WhenRequestIsInvalid()
+    {
+        var itemId = new ContentItemId(Guid.NewGuid());
+        var existingItem =
+            CreateResolvedItem(
+                itemId: itemId,
+                parentId: null,
+                path: "/home",
+                name: "Home",
+                key: "home");
+        var service =
+            new FakeContentItemService(
+                existingItem,
+                []);
+
+        var result =
+            await ContentLookupEndpoints.UpdateAsync(
+                itemId.Value,
+                new UpdateContentItemRequest
+                {
+                    Name = " "
+                },
+                "en",
+                1,
+                service,
+                TestContext.Current.CancellationToken);
+
+        var problem = Assert.IsType<ProblemHttpResult>(result.Result);
+
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+    }
+
+    [Fact]
     public async Task CreateAsync_ShouldReturnProblem_WhenRequestIsInvalid()
     {
         var result =
