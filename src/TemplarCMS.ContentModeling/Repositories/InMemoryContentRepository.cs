@@ -72,6 +72,22 @@ namespace TemplarCMS.ContentModeling.Repositories
         }
 
         /// <inheritdoc />
+        public Task<IReadOnlyCollection<ContentItemDefinition>> GetItemsByTemplateAsync(
+            TemplateId templateId,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var items =
+                _items.Values
+                    .Where(item => item.TemplateId == templateId)
+                    .OrderBy(item => item.Key.Value, StringComparer.Ordinal)
+                    .ToArray();
+
+            return Task.FromResult<IReadOnlyCollection<ContentItemDefinition>>(items);
+        }
+
+        /// <inheritdoc />
         public Task<IReadOnlyCollection<ContentFieldValue>> GetFieldValuesAsync(
             ContentItemId itemId,
             CancellationToken cancellationToken = default)

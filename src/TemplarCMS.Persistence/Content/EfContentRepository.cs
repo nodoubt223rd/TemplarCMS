@@ -79,6 +79,22 @@ public sealed class EfContentRepository : IContentRepository
             .ToArray();
     }
 
+    public async Task<IReadOnlyCollection<ContentItemDefinition>> GetItemsByTemplateAsync(
+        TemplateId templateId,
+        CancellationToken cancellationToken = default)
+    {
+        var items =
+            await _dbContext.ContentItems
+                .AsNoTracking()
+                .Where(value => value.TemplateId == templateId.Value)
+                .OrderBy(value => value.Key)
+                .ToListAsync(cancellationToken);
+
+        return items
+            .Select(MapItem)
+            .ToArray();
+    }
+
     public async Task<IReadOnlyCollection<ContentFieldValue>> GetFieldValuesAsync(
         ContentItemId itemId,
         CancellationToken cancellationToken = default)

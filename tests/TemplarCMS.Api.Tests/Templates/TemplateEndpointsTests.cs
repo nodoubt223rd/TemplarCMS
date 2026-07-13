@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
+using TemplarCMS.Abstractions.Content;
 using TemplarCMS.Api.Templates;
 using TemplarCMS.ContentModeling.Abstractions;
 using TemplarCMS.ContentModeling.Catalog;
@@ -381,6 +382,7 @@ public sealed class TemplateEndpointsTests
                 repository,
                 new FakeContentModelCatalog(
                     authoredTemplates: [template]),
+                new FakeContentRepository(),
                 TestContext.Current.CancellationToken);
 
         Assert.IsType<NoContent>(result.Result);
@@ -395,6 +397,7 @@ public sealed class TemplateEndpointsTests
                 Guid.NewGuid(),
                 new FakeTemplateRepository(),
                 new FakeContentModelCatalog(),
+                new FakeContentRepository(),
                 TestContext.Current.CancellationToken);
 
         var problem = Assert.IsType<ProblemHttpResult>(result.Result);
@@ -547,6 +550,73 @@ public sealed class TemplateEndpointsTests
     }
 
     [Fact]
+    public async Task DeleteAsync_ShouldReturnProblem_WhenTemplateIsBaseForAnotherTemplate()
+    {
+        var baseTemplate =
+            CreateAuthoredTemplate(
+                "Base Page",
+                "base-page");
+        var childTemplate =
+            CreateAuthoredTemplate(
+                "Article Page",
+                "article-page",
+                baseTemplate);
+        var repository =
+            new FakeTemplateRepository(
+                authoredTemplates:
+                [
+                    baseTemplate,
+                    childTemplate
+                ]);
+
+        var result =
+            await TemplateEndpoints.DeleteAsync(
+                baseTemplate.Id.Value,
+                repository,
+                new FakeContentModelCatalog(
+                    authoredTemplates:
+                    [
+                        baseTemplate,
+                        childTemplate
+                    ]),
+                new FakeContentRepository(),
+                TestContext.Current.CancellationToken);
+
+        var problem = Assert.IsType<ProblemHttpResult>(result.Result);
+
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        Assert.Null(repository.LastDeletedTemplateKey);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_ShouldReturnProblem_WhenContentItemsStillUseTemplate()
+    {
+        var template =
+            CreateAuthoredTemplate(
+                "Article Page",
+                "article-page");
+        var contentRepository =
+            new FakeContentRepository(
+                [
+                    CreateContentItem(template.Id)
+                ]);
+
+        var result =
+            await TemplateEndpoints.DeleteAsync(
+                template.Id.Value,
+                new FakeTemplateRepository(
+                    authoredTemplates: [template]),
+                new FakeContentModelCatalog(
+                    authoredTemplates: [template]),
+                contentRepository,
+                TestContext.Current.CancellationToken);
+
+        var problem = Assert.IsType<ProblemHttpResult>(result.Result);
+
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+    }
+
+    [Fact]
     public async Task DeleteAsync_ShouldRollback_WhenCatalogRefreshFails()
     {
         var template =
@@ -573,6 +643,7 @@ public sealed class TemplateEndpointsTests
                 template.Id.Value,
                 repository,
                 catalog,
+                new FakeContentRepository(),
                 TestContext.Current.CancellationToken);
 
         var problem = Assert.IsType<ProblemHttpResult>(result.Result);
@@ -682,6 +753,16 @@ public sealed class TemplateEndpointsTests
             new TemplateKey(key),
             baseTemplate,
             []);
+    }
+
+    private static ContentItemDefinition CreateContentItem(
+        TemplateId templateId)
+    {
+        return new ContentItemDefinition(
+            new ContentItemId(Guid.NewGuid()),
+            "Home",
+            new ContentItemKey("home"),
+            templateId);
     }
 
     private sealed class FakeContentModelCatalog : IContentModelCatalog
@@ -799,6 +880,14 @@ public sealed class TemplateEndpointsTests
 
     private sealed class FakeTemplateRepository : ITemplateRepository
     {
+        private readonly IReadOnlyCollection<TemplateDefinition> _authoredTemplates;
+
+        public FakeTemplateRepository(
+            IReadOnlyCollection<TemplateDefinition>? authoredTemplates = null)
+        {
+            _authoredTemplates = authoredTemplates ?? [];
+        }
+
         public Func<TemplateDefinition, Task>? OnCreateTemplateAsync { get; set; }
 
         public Func<TemplateKey, TemplateDefinition, Task>? OnUpdateTemplateAsync { get; set; }
@@ -820,7 +909,7 @@ public sealed class TemplateEndpointsTests
         public Task<IReadOnlyCollection<TemplateDefinition>> GetTemplatesAsync(
             CancellationToken cancellationToken = default)
         {
-            throw new NotSupportedException();
+            return Task.FromResult(_authoredTemplates);
         }
 
         public Task CreateTemplateAsync(
@@ -868,6 +957,75 @@ public sealed class TemplateEndpointsTests
         {
             LastDeletedTemplateKey = key;
             return Task.CompletedTask;
+        }
+    }
+
+    private sealed class FakeContentRepository : IContentRepository
+    {
+        private readonly IReadOnlyCollection<ContentItemDefinition> _items;
+
+        public FakeContentRepository(
+            IReadOnlyCollection<ContentItemDefinition>? items = null)
+        {
+            _items = items ?? [];
+        }
+
+        public Task<ContentItemDefinition?> GetItemAsync(
+            ContentItemId itemId,
+            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task<ContentItemDefinition?> GetItemAsync(
+            ContentPath path,
+            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task<IReadOnlyCollection<ContentItemDefinition>> GetChildItemsAsync(
+            ContentItemId? parentId,
+            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task<IReadOnlyCollection<ContentItemDefinition>> GetItemsByTemplateAsync(
+            TemplateId templateId,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyCollection<ContentItemDefinition>>(
+                _items.Where(item => item.TemplateId == templateId).ToArray());
+        }
+
+        public Task<IReadOnlyCollection<ContentFieldValue>> GetFieldValuesAsync(
+            ContentItemId itemId,
+            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task SaveItemAsync(
+            ContentItemDefinition item,
+            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task SaveFieldValuesAsync(
+            ContentItemId itemId,
+            IReadOnlyCollection<ContentFieldValue> values,
+            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task DeleteItemAsync(
+            ContentItemId itemId,
+            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
         }
     }
 }
