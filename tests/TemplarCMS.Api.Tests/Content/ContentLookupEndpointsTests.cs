@@ -38,6 +38,9 @@ public sealed class ContentLookupEndpointsTests
         Assert.Equal(
             $"/api/v1/content/{itemId.Value}?lang=en&version=1",
             ok.Value.Links.Self.Href);
+        Assert.Equal(
+            $"/api/v1/content/{itemId.Value}/dependencies?lang=en&version=1",
+            ok.Value.Links.Dependencies.Href);
         Assert.Equal(itemId, service.LastRequestedItemId);
         Assert.Equal(new ContentLanguage("en"), service.LastContext.Language);
         Assert.Equal(ContentVersion.First, service.LastContext.Version);
@@ -108,6 +111,9 @@ public sealed class ContentLookupEndpointsTests
         Assert.Equal(
             "/api/v1/content/by-path/home/articles/hello-world?lang=en&version=1",
             ok.Value.Links.Self.Href);
+        Assert.Equal(
+            $"/api/v1/content/{itemId.Value}/dependencies?lang=en&version=1",
+            ok.Value.Links.Dependencies.Href);
         Assert.Equal(
             new ContentPath("/home/articles/hello-world"),
             service.LastRequestedPath);
@@ -420,6 +426,9 @@ public sealed class ContentLookupEndpointsTests
         Assert.Equal(
             $"/api/v1/content/{service.LastSavedItem.Id.Value}?lang=en&version=1",
             created.Value.Links.Self.Href);
+        Assert.Equal(
+            $"/api/v1/content/{service.LastSavedItem.Id.Value}/dependencies?lang=en&version=1",
+            created.Value.Links.Dependencies.Href);
     }
 
     [Fact]
@@ -538,6 +547,9 @@ public sealed class ContentLookupEndpointsTests
         Assert.Equal("Bonjour", ok.Value.Fields["title"]);
         Assert.Equal("fr-ca", ok.Value.Language);
         Assert.Equal(3, ok.Value.Version);
+        Assert.Equal(
+            $"/api/v1/content/{itemId.Value}/dependencies?lang=fr-ca&version=3",
+            ok.Value.Links.Dependencies.Href);
     }
 
     [Fact]
@@ -681,6 +693,135 @@ public sealed class ContentLookupEndpointsTests
         var result =
             await ContentLookupEndpoints.DeleteAsync(
                 Guid.Empty,
+                new FakeContentItemService(null, []),
+                TestContext.Current.CancellationToken);
+
+        var problem = Assert.IsType<ProblemHttpResult>(result.Result);
+
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetDependenciesAsync_ShouldReturnOk_WhenItemHasNoChildren()
+    {
+        var itemId = new ContentItemId(Guid.NewGuid());
+        var item =
+            CreateResolvedItem(
+                itemId: itemId,
+                parentId: null,
+                path: "/home",
+                name: "Home",
+                key: "home");
+        var service =
+            new FakeContentItemService(
+                item,
+                []);
+
+        var result =
+            await ContentLookupEndpoints.GetDependenciesAsync(
+                itemId.Value,
+                "EN",
+                1,
+                service,
+                TestContext.Current.CancellationToken);
+
+        var ok = Assert.IsType<Ok<ContentItemDependencyResponse>>(result.Result);
+        Assert.NotNull(ok.Value);
+
+        Assert.Equal(itemId.Value.ToString(), ok.Value.Id);
+        Assert.Equal("/home", ok.Value.Path);
+        Assert.True(ok.Value.CanDelete);
+        Assert.Equal(0, ok.Value.Summary.DirectChildCount);
+        Assert.Empty(ok.Value.Embedded.Children);
+        Assert.Equal(
+            $"/api/v1/content/{itemId.Value}/dependencies?lang=en&version=1",
+            ok.Value.Links.Self.Href);
+        Assert.Equal(
+            $"/api/v1/content/{itemId.Value}?lang=en&version=1",
+            ok.Value.Links.ContentItem.Href);
+    }
+
+    [Fact]
+    public async Task GetDependenciesAsync_ShouldReturnChildren_WhenDirectChildrenExist()
+    {
+        var itemId = new ContentItemId(Guid.NewGuid());
+        var item =
+            CreateResolvedItem(
+                itemId: itemId,
+                parentId: null,
+                path: "/home",
+                name: "Home",
+                key: "home");
+        var childA =
+            CreateResolvedItem(
+                itemId: new ContentItemId(Guid.NewGuid()),
+                parentId: itemId,
+                path: "/home/a-child",
+                name: "A Child",
+                key: "a-child",
+                title: "A");
+        var childB =
+            CreateResolvedItem(
+                itemId: new ContentItemId(Guid.NewGuid()),
+                parentId: itemId,
+                path: "/home/b-child",
+                name: "B Child",
+                key: "b-child",
+                title: "B");
+        var service =
+            new FakeContentItemService(
+                item,
+                [childB, childA]);
+
+        var result =
+            await ContentLookupEndpoints.GetDependenciesAsync(
+                itemId.Value,
+                "en",
+                1,
+                service,
+                TestContext.Current.CancellationToken);
+
+        var ok = Assert.IsType<Ok<ContentItemDependencyResponse>>(result.Result);
+        Assert.NotNull(ok.Value);
+
+        Assert.False(ok.Value.CanDelete);
+        Assert.Equal(2, ok.Value.Summary.DirectChildCount);
+        Assert.Equal(
+            new[]
+            {
+                "/home/a-child",
+                "/home/b-child"
+            },
+            ok.Value.Embedded.Children.Select(child => child.Path).ToArray());
+        Assert.Equal(
+            $"/api/v1/content/{childA.Item.Id.Value}?lang=en&version=1",
+            ok.Value.Embedded.Children.First().Links.Self.Href);
+    }
+
+    [Fact]
+    public async Task GetDependenciesAsync_ShouldReturnProblem_WhenItemMissing()
+    {
+        var result =
+            await ContentLookupEndpoints.GetDependenciesAsync(
+                Guid.NewGuid(),
+                "en",
+                1,
+                new FakeContentItemService(null, []),
+                TestContext.Current.CancellationToken);
+
+        var problem = Assert.IsType<ProblemHttpResult>(result.Result);
+
+        Assert.Equal(StatusCodes.Status404NotFound, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetDependenciesAsync_ShouldReturnProblem_WhenVersionIsInvalid()
+    {
+        var result =
+            await ContentLookupEndpoints.GetDependenciesAsync(
+                Guid.NewGuid(),
+                "en",
+                -1,
                 new FakeContentItemService(null, []),
                 TestContext.Current.CancellationToken);
 
