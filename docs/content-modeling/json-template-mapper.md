@@ -64,9 +64,12 @@ The JSON format stores base template references as template keys:
 }
 ```
 
-Resolving those references requires visibility into all templates loaded by the repository.
+The current runtime model supports only single inheritance, so the JSON array
+may contain at most one key.
 
-For that reason, base template resolution occurs after mapping.
+Resolving that reference requires visibility into all templates loaded by the repository.
+
+For that reason, base template resolution occurs in the repository after mapping.
 
 ## Repository Configuration
 

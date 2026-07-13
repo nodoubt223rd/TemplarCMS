@@ -85,8 +85,8 @@ public sealed class JsonTemplateRepository : ITemplateRepository
                     StringComparer.Ordinal)
                 .ToArray();
 
-        var templates =
-            new List<TemplateDefinition>(
+        var mappedTemplates =
+            new List<(JsonTemplateDefinition Dto, TemplateDefinition Template)>(
                 templateFiles.Length);
 
         foreach (var templateFile in templateFiles)
@@ -109,11 +109,25 @@ public sealed class JsonTemplateRepository : ITemplateRepository
                     $"Unable to deserialize template file '{templateFile}'.");
             }
 
-            templates.Add(
-                _mapper.Map(dto));
+            mappedTemplates.Add(
+                (
+                    dto,
+                    _mapper.Map(dto)));
         }
 
-        return [.. templates];
+        var templatesByKey =
+            mappedTemplates.ToDictionary(
+                pair => pair.Template.Key,
+                pair => pair.Template);
+
+        return mappedTemplates
+            .Select(
+                pair =>
+                    ResolveBaseTemplate(
+                        pair.Dto,
+                        pair.Template,
+                        templatesByKey))
+            .ToArray();
     }
 
     /// <inheritdoc />
@@ -195,7 +209,9 @@ public sealed class JsonTemplateRepository : ITemplateRepository
             Id = template.Id.Value,
             Name = template.Name,
             Key = template.Key.ToString(),
-            BaseTemplates = [],
+            BaseTemplates = template.BaseTemplate == null
+                ? []
+                : [template.BaseTemplate.Key.ToString()],
             Sections = template.Sections
                 .Select(
                     section => new JsonTemplateSectionDefinition
@@ -230,5 +246,38 @@ public sealed class JsonTemplateRepository : ITemplateRepository
         return Path.Combine(
             _options.TemplatesPath,
             $"{key}.json");
+    }
+
+    private static TemplateDefinition ResolveBaseTemplate(
+        JsonTemplateDefinition dto,
+        TemplateDefinition template,
+        IReadOnlyDictionary<TemplateKey, TemplateDefinition> templatesByKey)
+    {
+        if (dto.BaseTemplates == null || dto.BaseTemplates.Count == 0)
+        {
+            return template;
+        }
+
+        if (dto.BaseTemplates.Count > 1)
+        {
+            throw new InvalidOperationException(
+                $"Template '{template.Key}' declares multiple base templates, but only single inheritance is supported.");
+        }
+
+        var baseTemplateKey =
+            new TemplateKey(dto.BaseTemplates[0]);
+
+        if (!templatesByKey.TryGetValue(baseTemplateKey, out var baseTemplate))
+        {
+            throw new InvalidOperationException(
+                $"Template '{template.Key}' references missing base template '{baseTemplateKey}'.");
+        }
+
+        return new TemplateDefinition(
+            template.Id,
+            template.Name,
+            template.Key,
+            baseTemplate,
+            template.Sections);
     }
 }
