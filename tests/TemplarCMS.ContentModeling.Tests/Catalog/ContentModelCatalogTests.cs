@@ -64,6 +64,51 @@ public sealed class ContentModelCatalogTests
     }
 
     [Fact]
+    public async Task GetEffectiveTemplatesAsync_ReturnsTemplatesOrderedByKey()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var landing = CreateTemplate("Landing", "landing");
+        var article = CreateTemplate("Article", "article");
+        var effectiveLanding = CreateEffectiveTemplate(landing);
+        var effectiveArticle = CreateEffectiveTemplate(article);
+
+        var context = CreateContext();
+
+        context.TemplateRepository
+            .GetTemplatesAsync(Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<IReadOnlyCollection<TemplateDefinition>>(
+                [landing, article]));
+
+        context.TemplateValidator
+            .ValidateAsync(Arg.Any<TemplateDefinition>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(new ValidationResult()));
+
+        context.EffectiveTemplateBuilder
+            .BuildEffectiveTemplateAsync(landing, Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(new ValidationResult<EffectiveTemplateDefinition>(
+                effectiveLanding)));
+
+        context.EffectiveTemplateBuilder
+            .BuildEffectiveTemplateAsync(article, Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(new ValidationResult<EffectiveTemplateDefinition>(
+                effectiveArticle)));
+
+        context.EffectiveTemplateValidator
+            .ValidateAsync(Arg.Any<EffectiveTemplateDefinition>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(new ValidationResult()));
+
+        await context.Catalog.RefreshAsync(cancellationToken);
+
+        var templates =
+            await context.Catalog.GetEffectiveTemplatesAsync(cancellationToken);
+
+        Assert.Collection(
+            templates,
+            template => Assert.Equal(new TemplateKey("article"), template.Key),
+            template => Assert.Equal(new TemplateKey("landing"), template.Key));
+    }
+
+    [Fact]
     public async Task InvalidateAsync_ClearsPublishedSnapshot()
     {
         var cancellationToken = TestContext.Current.CancellationToken;

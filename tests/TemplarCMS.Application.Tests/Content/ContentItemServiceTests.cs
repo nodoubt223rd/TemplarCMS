@@ -1108,6 +1108,13 @@ public sealed class ContentItemServiceTests
             return Task.FromResult(template);
         }
 
+        public Task<IReadOnlyCollection<EffectiveTemplateDefinition>> GetEffectiveTemplatesAsync(
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult<IReadOnlyCollection<EffectiveTemplateDefinition>>(_templates.Values.ToArray());
+        }
+
         public Task InvalidateAsync(CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
