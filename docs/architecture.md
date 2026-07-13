@@ -878,6 +878,9 @@ Already decided in code and ADRs:
   writes for supported field types.
 - `ContentItemKey` is normalized to lowercase hyphenated form.
 - Content paths are computed at runtime rather than stored.
+- `Microsoft.Extensions.Logging` is the logging abstraction, with a
+  pragmatic structured logging baseline rather than verbose method-level
+  tracing.
 
 ## 27. Recommended MVP Defaults
 

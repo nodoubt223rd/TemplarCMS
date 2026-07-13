@@ -1,4 +1,5 @@
 using TemplarCMS.Api.Content;
+using TemplarCMS.Api.Templates;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,6 +9,7 @@ var app = builder.Build();
 
 app.UseExceptionHandler();
 app.MapContentLookupEndpoints();
+app.MapTemplateEndpoints();
 
 app.Run();
 

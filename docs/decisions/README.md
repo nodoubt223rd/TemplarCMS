@@ -43,3 +43,4 @@ Optional follow-up decisions or implementation work.
 | ADR-0005 | Define the Template Inheritance Model | Accepted |
 | ADR-0006 | Effective Template Runtime Model | Accepted |
 | ADR-0007 | Strong Domain Typing and Pragmatic Patterns | Accepted |
+| ADR-0008 | Pragmatic Logging Baseline | Accepted |

@@ -6,6 +6,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\TemplarCMS.Application\TemplarCMS.Application.csproj" />
+    <ProjectReference Include="..\TemplarCMS.ContentModeling\TemplarCMS.ContentModeling.csproj" />
     <ProjectReference Include="..\TemplarCMS.Domain\TemplarCMS.Domain.csproj" />
   </ItemGroup>
 </Project>
