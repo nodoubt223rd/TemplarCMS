@@ -25,6 +25,41 @@ public sealed class TemplateCollectionResponse
     public required TemplateCollectionLinksResponse Links { get; init; }
 }
 
+public sealed class CreateTemplateRequest
+{
+    public required string Name { get; init; }
+
+    public required string Key { get; init; }
+
+    public required IReadOnlyCollection<CreateTemplateSectionRequest> Sections { get; init; }
+}
+
+public sealed class CreateTemplateSectionRequest
+{
+    public required string Name { get; init; }
+
+    public required string Key { get; init; }
+
+    public int SortOrder { get; init; } = 100;
+
+    public required IReadOnlyCollection<CreateTemplateFieldRequest> Fields { get; init; }
+}
+
+public sealed class CreateTemplateFieldRequest
+{
+    public required string Name { get; init; }
+
+    public required string Key { get; init; }
+
+    public required string Type { get; init; }
+
+    public bool IsShared { get; init; }
+
+    public bool IsUnversioned { get; init; }
+
+    public IReadOnlyDictionary<string, string>? Metadata { get; init; }
+}
+
 public sealed class TemplateCollectionEmbeddedResponse
 {
     public required IReadOnlyCollection<TemplateSummaryResponse> Templates { get; init; }

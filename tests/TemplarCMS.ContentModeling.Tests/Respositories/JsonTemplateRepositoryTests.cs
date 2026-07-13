@@ -242,6 +242,103 @@ public sealed class JsonTemplateRepositoryTests
                 cancellationTokenSource.Token));
     }
 
+    [Fact]
+    public async Task CreateTemplateAsync_ShouldPersistTemplateAsJson()
+    {
+        using var directory = new TemporaryDirectory();
+        var repository =
+            CreateRepository(directory.Path);
+        var template =
+            new TemplateDefinition(
+                new TemplateId(Guid.NewGuid()),
+                "Article Page",
+                new TemplateKey("article-page"),
+                sections:
+                [
+                    new TemplateSectionDefinition(
+                        Guid.NewGuid(),
+                        "Content",
+                        "content",
+                        100,
+                        [
+                            new FieldDefinition(
+                                new FieldId(Guid.NewGuid()),
+                                "Title",
+                                "title",
+                                FieldType.SingleLineText,
+                                isUnversioned: true,
+                                metadata: new Dictionary<string, string>
+                                {
+                                    ["maxLength"] = "100"
+                                })
+                        ])
+                ]);
+
+        await repository.CreateTemplateAsync(
+            template,
+            TestContext.Current.CancellationToken);
+
+        var templatePath =
+            Path.Combine(
+                directory.Path,
+                "article-page.json");
+
+        Assert.True(File.Exists(templatePath));
+
+        var json =
+            await File.ReadAllTextAsync(
+                templatePath,
+                TestContext.Current.CancellationToken);
+        var dto =
+            JsonSerializer.Deserialize<JsonTemplateDefinition>(
+                json);
+
+        Assert.NotNull(dto);
+        Assert.Equal(template.Id.Value, dto.Id);
+        Assert.Equal("Article Page", dto.Name);
+        Assert.Equal("article-page", dto.Key);
+
+        var section = Assert.Single(dto.Sections);
+        Assert.Equal("content", section.Key);
+
+        var field = Assert.Single(section.Fields);
+        Assert.Equal("title", field.Key);
+        Assert.Equal("SingleLineText", field.FieldType);
+        Assert.True(field.IsUnversioned);
+        Assert.Equal("100", field.Metadata["maxLength"]);
+    }
+
+    [Fact]
+    public async Task CreateTemplateAsync_ShouldThrow_WhenTemplateKeyAlreadyExists()
+    {
+        using var directory = new TemporaryDirectory();
+
+        CreateTemplateFile(
+            directory.Path,
+            "article-page.json",
+            "Article Page",
+            "article-page");
+
+        _mapper
+            .Map(Arg.Any<JsonTemplateDefinition>())
+            .Returns(
+                new TemplateDefinition(
+                    new TemplateId(Guid.NewGuid()),
+                    "Article Page",
+                    new TemplateKey("article-page")));
+
+        var repository =
+            CreateRepository(directory.Path);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            repository.CreateTemplateAsync(
+                new TemplateDefinition(
+                    new TemplateId(Guid.NewGuid()),
+                    "Another Article",
+                    new TemplateKey("article-page")),
+                TestContext.Current.CancellationToken));
+    }
+
     private JsonTemplateRepository CreateRepository(
         string templatesPath)
     {

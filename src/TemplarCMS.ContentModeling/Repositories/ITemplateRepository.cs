@@ -1,4 +1,5 @@
 using TemplarCMS.ContentModeling.Definitions;
+using TemplarCMS.Domain.Content;
 
 namespace TemplarCMS.ContentModeling.Repositories
 {
@@ -40,6 +41,20 @@ namespace TemplarCMS.ContentModeling.Repositories
         /// effective runtime models.
         /// </remarks>
         Task<IReadOnlyCollection<TemplateDefinition>> GetTemplatesAsync(
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Persists a new authored template definition.
+        /// </summary>
+        Task CreateTemplateAsync(
+            TemplateDefinition template,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Deletes an authored template definition by key.
+        /// </summary>
+        Task DeleteTemplateAsync(
+            TemplateKey key,
             CancellationToken cancellationToken = default);
     }
 }
