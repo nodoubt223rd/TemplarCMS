@@ -540,6 +540,7 @@ GET /api/v1/content/by-path/{**path}?lang=en&version=1
 GET /api/v1/content/root/children?lang=en&version=1
 POST /api/v1/content/{id}/values
 GET /api/v1/content/{id}/children?page=1&pageSize=20
+GET /api/v1/content/{id}/dependencies?lang=en&version=1
 ```
 
 Authoring security note:
@@ -608,6 +609,20 @@ Current behavior:
 - `canDelete` is `true` only when both dependency collections are empty
 - This endpoint is a read-only preflight contract and does not imply cascade,
   recycle-bin, or restore semantics
+
+### Content Dependency Response
+
+`GET /api/v1/content/{id}/dependencies?lang=en&version=1` exposes the current
+blockers for a safe content delete attempt.
+
+Current behavior:
+
+- `children` includes direct child content items only
+- `canDelete` is `true` only when the direct child collection is empty
+- Child responses include canonical resolved paths and item links in the
+  requested language/version context
+- This endpoint is a read-only preflight contract and does not imply cascade,
+  soft-delete, recycle-bin, or restore semantics
 
 ## 14. Example Template Response
 

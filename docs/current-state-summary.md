@@ -684,6 +684,36 @@ This is a preflight/read contract only.
 It does not imply cascade delete, soft delete, or recycle-bin behavior.
 ```
 
+## Content Delete Dependency Contract
+
+Implemented.
+
+Current API behavior:
+
+```text
+GET /api/v1/content/{id}/dependencies?lang=en&version=1
+```
+
+Response intent:
+
+```text
+Expose whether a content item can currently be deleted without relying
+on trial-and-error against DELETE.
+```
+
+Current dependency coverage:
+
+```text
+Direct child content items only.
+```
+
+Current note:
+
+```text
+This is a preflight/read contract only.
+It keeps future cascade, soft-delete, or recycle-bin decisions open.
+```
+
 Dictionary key:
 
 ```text
