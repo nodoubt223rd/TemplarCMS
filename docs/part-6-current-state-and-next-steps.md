@@ -263,6 +263,12 @@ Recommended future doc cleanup:
 - Update inheritance examples to show a single linear chain.
 - Update JSON examples to reflect the current template model.
 
+Current implementation note:
+
+- The authored JSON format still uses `baseTemplates` for compatibility and readability.
+- The repository now resolves that field into the single `BaseTemplate` domain relationship.
+- Zero or one base template key is supported; multiple entries are rejected.
+
 ## What Is Still Missing
 
 The template modeling foundation is solid, but TemplarCMS still needs the next layer of domain behavior.

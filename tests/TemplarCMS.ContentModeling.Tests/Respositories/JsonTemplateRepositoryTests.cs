@@ -184,6 +184,132 @@ public sealed class JsonTemplateRepositoryTests
     }
 
     [Fact]
+    public async Task GetTemplatesAsync_ShouldResolveSingleBaseTemplate_ByKey()
+    {
+        using var directory = new TemporaryDirectory();
+
+        CreateTemplateFile(
+            directory.Path,
+            "article-page.json",
+            "Article Page",
+            "article-page",
+            baseTemplateKeys: ["base-page"]);
+
+        CreateTemplateFile(
+            directory.Path,
+            "base-page.json",
+            "Base Page",
+            "base-page");
+
+        _mapper
+            .Map(Arg.Any<JsonTemplateDefinition>())
+            .Returns(callInfo =>
+            {
+                var dto =
+                    callInfo.Arg<JsonTemplateDefinition>();
+
+                return new TemplateDefinition(
+                    new TemplateId(dto.Id),
+                    dto.Name!,
+                    new TemplateKey(dto.Key!));
+            });
+
+        var repository =
+            CreateRepository(directory.Path);
+
+        var result =
+            await repository.GetTemplatesAsync(TestContext.Current.CancellationToken);
+
+        var article =
+            Assert.Single(
+                result,
+                template => template.Key == new TemplateKey("article-page"));
+
+        Assert.NotNull(article.BaseTemplate);
+        Assert.Equal(new TemplateKey("base-page"), article.BaseTemplate.Key);
+    }
+
+    [Fact]
+    public async Task GetTemplatesAsync_ShouldThrow_WhenMultipleBaseTemplatesAreDeclared()
+    {
+        using var directory = new TemporaryDirectory();
+
+        CreateTemplateFile(
+            directory.Path,
+            "article-page.json",
+            "Article Page",
+            "article-page",
+            baseTemplateKeys:
+            [
+                "base-page",
+                "metadata"
+            ]);
+
+        CreateTemplateFile(
+            directory.Path,
+            "base-page.json",
+            "Base Page",
+            "base-page");
+
+        CreateTemplateFile(
+            directory.Path,
+            "metadata.json",
+            "Metadata",
+            "metadata");
+
+        _mapper
+            .Map(Arg.Any<JsonTemplateDefinition>())
+            .Returns(callInfo =>
+            {
+                var dto =
+                    callInfo.Arg<JsonTemplateDefinition>();
+
+                return new TemplateDefinition(
+                    new TemplateId(dto.Id),
+                    dto.Name!,
+                    new TemplateKey(dto.Key!));
+            });
+
+        var repository =
+            CreateRepository(directory.Path);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            repository.GetTemplatesAsync(TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task GetTemplatesAsync_ShouldThrow_WhenBaseTemplateIsMissing()
+    {
+        using var directory = new TemporaryDirectory();
+
+        CreateTemplateFile(
+            directory.Path,
+            "article-page.json",
+            "Article Page",
+            "article-page",
+            baseTemplateKeys: ["base-page"]);
+
+        _mapper
+            .Map(Arg.Any<JsonTemplateDefinition>())
+            .Returns(callInfo =>
+            {
+                var dto =
+                    callInfo.Arg<JsonTemplateDefinition>();
+
+                return new TemplateDefinition(
+                    new TemplateId(dto.Id),
+                    dto.Name!,
+                    new TemplateKey(dto.Key!));
+            });
+
+        var repository =
+            CreateRepository(directory.Path);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            repository.GetTemplatesAsync(TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
     public async Task GetTemplatesAsync_ShouldThrow_WhenJsonIsInvalid()
     {
         using var directory = new TemporaryDirectory();
@@ -306,6 +432,41 @@ public sealed class JsonTemplateRepositoryTests
         Assert.Equal("SingleLineText", field.FieldType);
         Assert.True(field.IsUnversioned);
         Assert.Equal("100", field.Metadata["maxLength"]);
+        Assert.Empty(dto.BaseTemplates);
+    }
+
+    [Fact]
+    public async Task CreateTemplateAsync_ShouldPersistBaseTemplateKey_WhenTemplateHasBaseTemplate()
+    {
+        using var directory = new TemporaryDirectory();
+        var repository =
+            CreateRepository(directory.Path);
+        var baseTemplate =
+            new TemplateDefinition(
+                new TemplateId(Guid.NewGuid()),
+                "Base Page",
+                new TemplateKey("base-page"));
+        var template =
+            new TemplateDefinition(
+                new TemplateId(Guid.NewGuid()),
+                "Article Page",
+                new TemplateKey("article-page"),
+                baseTemplate);
+
+        await repository.CreateTemplateAsync(
+            template,
+            TestContext.Current.CancellationToken);
+
+        var json =
+            await File.ReadAllTextAsync(
+                Path.Combine(directory.Path, "article-page.json"),
+                TestContext.Current.CancellationToken);
+        var dto =
+            JsonSerializer.Deserialize<JsonTemplateDefinition>(
+                json);
+
+        Assert.NotNull(dto);
+        Assert.Equal(["base-page"], dto.BaseTemplates);
     }
 
     [Fact]
@@ -357,14 +518,21 @@ public sealed class JsonTemplateRepositoryTests
         string directoryPath,
         string fileName,
         string name,
-        string key)
+        string key,
+        IReadOnlyCollection<string>? baseTemplateKeys = null)
     {
+        var baseTemplatesJson =
+            baseTemplateKeys == null || baseTemplateKeys.Count == 0
+                ? "[]"
+                : $"[ {string.Join(", ", baseTemplateKeys.Select(key => $"\"{key}\""))} ]";
+
         var json =
             $$"""
             {
               "id": "{{Guid.NewGuid()}}",
               "name": "{{name}}",
               "key": "{{key}}",
+              "baseTemplates": {{baseTemplatesJson}},
               "sections": []
             }
             """;

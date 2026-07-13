@@ -80,7 +80,7 @@ The file name should usually match the template key, but the `key` property insi
 | `id` | Yes | Stable template identity. Used by the runtime model and inheritance system. |
 | `name` | Yes | Human-readable display name. |
 | `key` | Yes | Stable lookup and serialization key. |
-| `baseTemplates` | No | Template keys for inherited base templates. |
+| `baseTemplates` | No | Template keys for inherited base templates. The current implementation supports zero or one entry only. |
 | `sections` | No | Authored template sections. |
 
 ## Section Properties
@@ -107,16 +107,19 @@ Fields do not currently require stable GUID identity. Field identity is key-base
 
 Base templates should be referenced by template key.
 
+The current runtime model supports single inheritance only, so `baseTemplates`
+must contain at most one key.
+
 ```json
 "baseTemplates": [
-  "base-page",
-  "metadata"
+  "base-page"
 ]
 ```
 
 Keys are preferred over GUIDs in authored JSON because they are easier to read, review, and maintain.
 
-The repository or mapping layer is responsible for resolving these keys into `TemplateDefinition` references before inheritance resolution.
+The repository layer is responsible for resolving this key into a
+`TemplateDefinition` reference before inheritance resolution.
 
 ## Field Type Values
 

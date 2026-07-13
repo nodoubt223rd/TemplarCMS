@@ -587,7 +587,10 @@ Path lookup route note:
 }
 ```
 
-The authored JSON repository format is documented separately. It currently uses `baseTemplates`, but only a single base template relationship is supported by the domain model and inheritance pipeline.
+The authored JSON repository format is documented separately. It uses
+`baseTemplates` in JSON, but the repository resolves that into the single
+`BaseTemplate` domain relationship. Zero or one base template key is supported;
+multiple entries are rejected.
 
 ## 14. Example Template Response
 
