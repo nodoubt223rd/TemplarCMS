@@ -66,6 +66,61 @@ public sealed class TemplateEndpointsTests
         Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
     }
 
+    [Fact]
+    public async Task GetFieldsByIdAsync_ShouldReturnOk_WhenTemplateExists()
+    {
+        var template =
+            CreateTemplate();
+        var catalog =
+            new FakeContentModelCatalog(
+                template);
+
+        var result =
+            await TemplateEndpoints.GetFieldsByIdAsync(
+                template.Id.Value,
+                catalog,
+                TestContext.Current.CancellationToken);
+
+        var ok = Assert.IsType<Ok<TemplateFieldCollectionResponse>>(result.Result);
+        Assert.NotNull(ok.Value);
+
+        var field = Assert.Single(ok.Value.Embedded.Fields);
+        Assert.Equal("title", field.Key);
+        Assert.Equal("SingleLineText", field.Type);
+        Assert.Equal("content", field.SectionKey);
+        Assert.Equal($"/api/v1/templates/{template.Id.Value}/fields", ok.Value.Links.Self.Href);
+        Assert.Equal($"/api/v1/templates/{template.Id.Value}", ok.Value.Links.Template.Href);
+        Assert.Equal("/api/v1/content", ok.Value.Links.CreateItem.Href);
+    }
+
+    [Fact]
+    public async Task GetFieldsByIdAsync_ShouldReturnProblem_WhenTemplateMissing()
+    {
+        var result =
+            await TemplateEndpoints.GetFieldsByIdAsync(
+                Guid.NewGuid(),
+                new FakeContentModelCatalog(null),
+                TestContext.Current.CancellationToken);
+
+        var problem = Assert.IsType<ProblemHttpResult>(result.Result);
+
+        Assert.Equal(StatusCodes.Status404NotFound, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetFieldsByIdAsync_ShouldReturnProblem_WhenIdIsInvalid()
+    {
+        var result =
+            await TemplateEndpoints.GetFieldsByIdAsync(
+                Guid.Empty,
+                new FakeContentModelCatalog(null),
+                TestContext.Current.CancellationToken);
+
+        var problem = Assert.IsType<ProblemHttpResult>(result.Result);
+
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+    }
+
     private static EffectiveTemplateDefinition CreateTemplate()
     {
         var field =
