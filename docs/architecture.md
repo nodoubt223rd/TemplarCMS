@@ -535,6 +535,7 @@ GET /api/v1/templates/{id}/dependencies
 
 ```http
 POST /api/v1/content
+PUT /api/v1/content/{id}
 GET /api/v1/content/{id}?lang=en&version=1
 GET /api/v1/content/by-path/{**path}?lang=en&version=1
 GET /api/v1/content/root/children?lang=en&version=1
@@ -560,6 +561,14 @@ Path lookup route note:
   lookup.
 - Responses should return the canonical absolute path so clients can store
   one stable representation.
+
+Content update note:
+
+- `PUT /api/v1/content/{id}` currently supports non-path-affecting metadata
+  updates only.
+- The current contract updates the content item name while preserving key,
+  parent, and template identity.
+- Rename, move, and template reassignment remain separate future decisions.
 
 ## 13. Example Template Creation Request
 

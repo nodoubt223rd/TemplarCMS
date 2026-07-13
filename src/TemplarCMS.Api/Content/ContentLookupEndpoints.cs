@@ -55,6 +55,15 @@ public static class ContentLookupEndpoints
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status409Conflict);
 
+        endpoints.MapPut(
+                "/api/v1/content/{id:guid}",
+                UpdateAsync)
+            .WithName("UpdateContent")
+            .WithTags("Content")
+            .Produces<ContentItemResponse>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
         endpoints.MapPost(
                 "/api/v1/content/{id:guid}/values",
                 SetValuesAsync)
@@ -347,6 +356,105 @@ public static class ContentLookupEndpoints
         {
             return TypedResults.Problem(
                 title: "Invalid content create request",
+                detail: exception.Message,
+                statusCode: StatusCodes.Status400BadRequest);
+        }
+    }
+
+    public static async Task<Results<Ok<ContentItemResponse>, ProblemHttpResult>> UpdateAsync(
+        Guid id,
+        UpdateContentItemRequest? request,
+        string? lang,
+        int? version,
+        IContentItemService contentItemService,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(contentItemService);
+
+        if (request == null)
+        {
+            return TypedResults.Problem(
+                title: "Content item request is required",
+                detail: "Provide a content item payload in the request body.",
+                statusCode: StatusCodes.Status400BadRequest);
+        }
+
+        try
+        {
+            var itemId =
+                new ContentItemId(id);
+            var existingItem =
+                await contentItemService.GetItemAsync(
+                    itemId,
+                    CreateContext(
+                        lang,
+                        version),
+                    cancellationToken);
+
+            if (existingItem == null)
+            {
+                return TypedResults.Problem(
+                    title: "Content item was not found",
+                    detail: $"No content item exists with id '{id}'.",
+                    statusCode: StatusCodes.Status404NotFound);
+            }
+
+            var updatedItem =
+                new ContentItemDefinition(
+                    existingItem.Item.Id,
+                    request.Name,
+                    existingItem.Item.Key,
+                    existingItem.Item.TemplateId,
+                    existingItem.Item.ParentId);
+
+            await contentItemService.SaveItemAsync(
+                updatedItem,
+                cancellationToken);
+
+            var context =
+                CreateContext(
+                    lang,
+                    version);
+            var refreshedItem =
+                await contentItemService.GetItemAsync(
+                    itemId,
+                    context,
+                    cancellationToken);
+
+            if (refreshedItem == null)
+            {
+                return TypedResults.Problem(
+                    title: "Updated content item could not be loaded",
+                    detail: $"Content item '{itemId}' was saved but could not be reloaded.",
+                    statusCode: StatusCodes.Status400BadRequest);
+            }
+
+            return TypedResults.Ok(
+                MapResponse(
+                    refreshedItem,
+                    context,
+                    $"/api/v1/content/{refreshedItem.Item.Id.Value}?lang={context.Language}&version={context.Version.Value}"));
+        }
+        catch (InvalidOperationException exception)
+        {
+            var statusCode =
+                exception.Message.Contains(
+                    "was not found",
+                    StringComparison.OrdinalIgnoreCase)
+                    ? StatusCodes.Status404NotFound
+                    : StatusCodes.Status400BadRequest;
+
+            return TypedResults.Problem(
+                title: statusCode == StatusCodes.Status404NotFound
+                    ? "Content item was not found"
+                    : "Invalid content update request",
+                detail: exception.Message,
+                statusCode: statusCode);
+        }
+        catch (ArgumentException exception)
+        {
+            return TypedResults.Problem(
+                title: "Invalid content update request",
                 detail: exception.Message,
                 statusCode: StatusCodes.Status400BadRequest);
         }

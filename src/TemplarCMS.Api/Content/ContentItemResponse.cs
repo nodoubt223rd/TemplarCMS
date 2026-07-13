@@ -13,6 +13,11 @@ public sealed class CreateContentItemRequest
     public Guid? ParentId { get; init; }
 }
 
+public sealed class UpdateContentItemRequest
+{
+    public required string Name { get; init; }
+}
+
 public sealed class SetContentFieldValuesRequest
 {
     public required string Language { get; init; }
