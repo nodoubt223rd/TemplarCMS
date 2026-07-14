@@ -83,6 +83,23 @@ public interface IContentItemService
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Renames a stored content item by updating its authored name and key.
+    /// </summary>
+    Task RenameItemAsync(
+        ContentItemId itemId,
+        string name,
+        ContentItemKey key,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Moves a stored content item beneath a new parent item or to the root.
+    /// </summary>
+    Task MoveItemAsync(
+        ContentItemId itemId,
+        ContentItemId? parentId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Persists stored field values for a content item.
     /// </summary>
     /// <param name="itemId">

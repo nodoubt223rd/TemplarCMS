@@ -18,6 +18,18 @@ public sealed class UpdateContentItemRequest
     public required string Name { get; init; }
 }
 
+public sealed class RenameContentItemRequest
+{
+    public required string Name { get; init; }
+
+    public required string Key { get; init; }
+}
+
+public sealed class MoveContentItemRequest
+{
+    public Guid? ParentId { get; init; }
+}
+
 public sealed class SetContentFieldValuesRequest
 {
     public required string Language { get; init; }
@@ -79,6 +91,10 @@ public sealed class ContentItemLinksResponse
 
     [JsonPropertyName("set-values")]
     public required LinkResponse SetValues { get; init; }
+
+    public required LinkResponse Rename { get; init; }
+
+    public required LinkResponse Move { get; init; }
 
     public LinkResponse? Parent { get; init; }
 }

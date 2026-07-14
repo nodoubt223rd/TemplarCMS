@@ -169,6 +169,63 @@ public sealed class ContentItemDefinitionTests
     }
 
     [Fact]
+    public void UpdateMetadata_ReturnsCopyWithUpdatedName()
+    {
+        var item = new ContentItemDefinition(
+            new ContentItemId(Guid.NewGuid()),
+            "Home",
+            new ContentItemKey("home"),
+            new TemplateId(Guid.NewGuid()));
+
+        var updated = item.UpdateMetadata(" Home Updated ");
+
+        Assert.Equal(item.Id, updated.Id);
+        Assert.Equal("Home Updated", updated.Name);
+        Assert.Equal(item.Key, updated.Key);
+        Assert.Equal(item.TemplateId, updated.TemplateId);
+        Assert.Equal(item.ParentId, updated.ParentId);
+    }
+
+    [Fact]
+    public void Rename_ReturnsCopyWithUpdatedNameAndKey()
+    {
+        var item = new ContentItemDefinition(
+            new ContentItemId(Guid.NewGuid()),
+            "Home",
+            new ContentItemKey("home"),
+            new TemplateId(Guid.NewGuid()));
+
+        var renamed = item.Rename(" Landing Page ", new ContentItemKey("landing page"));
+
+        Assert.Equal(item.Id, renamed.Id);
+        Assert.Equal("Landing Page", renamed.Name);
+        Assert.Equal(new ContentItemKey("landing-page"), renamed.Key);
+        Assert.Equal(item.TemplateId, renamed.TemplateId);
+        Assert.Equal(item.ParentId, renamed.ParentId);
+    }
+
+    [Fact]
+    public void MoveTo_ReturnsCopyWithUpdatedParent()
+    {
+        var originalParentId = new ContentItemId(Guid.NewGuid());
+        var newParentId = new ContentItemId(Guid.NewGuid());
+        var item = new ContentItemDefinition(
+            new ContentItemId(Guid.NewGuid()),
+            "Home",
+            new ContentItemKey("home"),
+            new TemplateId(Guid.NewGuid()),
+            originalParentId);
+
+        var moved = item.MoveTo(newParentId);
+
+        Assert.Equal(item.Id, moved.Id);
+        Assert.Equal(item.Name, moved.Name);
+        Assert.Equal(item.Key, moved.Key);
+        Assert.Equal(item.TemplateId, moved.TemplateId);
+        Assert.Equal(newParentId, moved.ParentId);
+    }
+
+    [Fact]
     public void Constructor_Throws_WhenContentItemKeyIsEmpty()
     {
         Assert.Throws<ArgumentException>(

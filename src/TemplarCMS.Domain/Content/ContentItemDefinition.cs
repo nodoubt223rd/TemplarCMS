@@ -91,6 +91,47 @@ public sealed class ContentItemDefinition
     }
 
     /// <summary>
+    /// Returns a copy of the item with updated authored metadata.
+    /// </summary>
+    public ContentItemDefinition UpdateMetadata(string name)
+    {
+        return new ContentItemDefinition(
+            Id,
+            name,
+            Key,
+            TemplateId,
+            ParentId);
+    }
+
+    /// <summary>
+    /// Returns a copy of the item with a renamed content key and display name.
+    /// </summary>
+    public ContentItemDefinition Rename(
+        string name,
+        ContentItemKey key)
+    {
+        return new ContentItemDefinition(
+            Id,
+            name,
+            key,
+            TemplateId,
+            ParentId);
+    }
+
+    /// <summary>
+    /// Returns a copy of the item moved beneath a new parent.
+    /// </summary>
+    public ContentItemDefinition MoveTo(ContentItemId? parentId)
+    {
+        return new ContentItemDefinition(
+            Id,
+            Name,
+            Key,
+            TemplateId,
+            parentId);
+    }
+
+    /// <summary>
     /// Computes the canonical content path for the item.
     /// </summary>
     /// <param name="parentPath">

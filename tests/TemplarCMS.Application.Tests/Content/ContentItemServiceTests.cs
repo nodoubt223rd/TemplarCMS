@@ -422,6 +422,193 @@ public sealed class ContentItemServiceTests
     }
 
     [Fact]
+    public async Task RenameItemAsync_ShouldPersistRenamedItem()
+    {
+        var template = CreateTemplate("article-page");
+        var existingItem = CreateItem(template.Id, name: "Home", key: "home");
+
+        var (service, repository) =
+            CreateService(
+                new[] { template },
+                new[] { existingItem });
+
+        await service.RenameItemAsync(
+            existingItem.Id,
+            "Landing Page",
+            new ContentItemKey("landing page"),
+            TestContext.Current.CancellationToken);
+
+        var stored =
+            await repository.GetItemAsync(
+                existingItem.Id,
+                TestContext.Current.CancellationToken);
+
+        Assert.NotNull(stored);
+        Assert.Equal("Landing Page", stored.Name);
+        Assert.Equal(new ContentItemKey("landing-page"), stored.Key);
+        Assert.Equal(existingItem.ParentId, stored.ParentId);
+    }
+
+    [Fact]
+    public async Task RenameItemAsync_ShouldThrow_WhenSiblingKeyAlreadyExists()
+    {
+        var template = CreateTemplate("article-page");
+        var parent = CreateItem(template.Id, name: "Parent", key: "parent");
+        var existingItem = CreateItem(template.Id, parent.Id, "Child A", "child-a");
+        var sibling = CreateItem(template.Id, parent.Id, "Child B", "child-b");
+
+        var (service, _) =
+            CreateService(
+                new[] { template },
+                new[] { parent, existingItem, sibling });
+
+        var exception =
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                service.RenameItemAsync(
+                    existingItem.Id,
+                    "Child A Updated",
+                    new ContentItemKey("child-b"),
+                    TestContext.Current.CancellationToken));
+
+        Assert.Contains("already exists under parent", exception.Message);
+    }
+
+    [Fact]
+    public async Task RenameItemAsync_ShouldThrow_WhenItemMissing()
+    {
+        var (service, _) = CreateService();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.RenameItemAsync(
+                new ContentItemId(Guid.NewGuid()),
+                "Home",
+                new ContentItemKey("home"),
+                TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task MoveItemAsync_ShouldPersistMovedItem()
+    {
+        var template = CreateTemplate("article-page");
+        var root = CreateItem(template.Id, name: "Home", key: "home");
+        var oldParent = CreateItem(template.Id, root.Id, "Articles", "articles");
+        var newParent = CreateItem(template.Id, root.Id, "News", "news");
+        var existingItem = CreateItem(template.Id, oldParent.Id, "Hello World", "hello-world");
+
+        var (service, repository) =
+            CreateService(
+                new[] { template },
+                new[] { root, oldParent, newParent, existingItem });
+
+        await service.MoveItemAsync(
+            existingItem.Id,
+            newParent.Id,
+            TestContext.Current.CancellationToken);
+
+        var stored =
+            await repository.GetItemAsync(
+                existingItem.Id,
+                TestContext.Current.CancellationToken);
+
+        Assert.NotNull(stored);
+        Assert.Equal(newParent.Id, stored.ParentId);
+        Assert.Equal(existingItem.Key, stored.Key);
+        Assert.Equal(existingItem.Name, stored.Name);
+    }
+
+    [Fact]
+    public async Task MoveItemAsync_ShouldAllowMovingItemToRoot()
+    {
+        var template = CreateTemplate("article-page");
+        var root = CreateItem(template.Id, name: "Home", key: "home");
+        var existingItem = CreateItem(template.Id, root.Id, "Articles", "articles");
+
+        var (service, repository) =
+            CreateService(
+                new[] { template },
+                new[] { root, existingItem });
+
+        await service.MoveItemAsync(
+            existingItem.Id,
+            null,
+            TestContext.Current.CancellationToken);
+
+        var stored =
+            await repository.GetItemAsync(
+                existingItem.Id,
+                TestContext.Current.CancellationToken);
+
+        Assert.NotNull(stored);
+        Assert.Null(stored.ParentId);
+    }
+
+    [Fact]
+    public async Task MoveItemAsync_ShouldThrow_WhenNewParentMissing()
+    {
+        var template = CreateTemplate("article-page");
+        var existingItem = CreateItem(template.Id, name: "Home", key: "home");
+
+        var (service, _) =
+            CreateService(
+                new[] { template },
+                new[] { existingItem });
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.MoveItemAsync(
+                existingItem.Id,
+                new ContentItemId(Guid.NewGuid()),
+                TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task MoveItemAsync_ShouldThrow_WhenMoveCreatesCycle()
+    {
+        var template = CreateTemplate("article-page");
+        var root = CreateItem(template.Id, name: "Home", key: "home");
+        var parent = CreateItem(template.Id, root.Id, "Articles", "articles");
+        var child = CreateItem(template.Id, parent.Id, "Hello World", "hello-world");
+
+        var (service, _) =
+            CreateService(
+                new[] { template },
+                new[] { root, parent, child });
+
+        var exception =
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                service.MoveItemAsync(
+                    parent.Id,
+                    child.Id,
+                    TestContext.Current.CancellationToken));
+
+        Assert.Contains("descendants", exception.Message);
+    }
+
+    [Fact]
+    public async Task MoveItemAsync_ShouldThrow_WhenSiblingKeyAlreadyExistsUnderNewParent()
+    {
+        var template = CreateTemplate("article-page");
+        var root = CreateItem(template.Id, name: "Home", key: "home");
+        var oldParent = CreateItem(template.Id, root.Id, "Articles", "articles");
+        var newParent = CreateItem(template.Id, root.Id, "News", "news");
+        var existingItem = CreateItem(template.Id, oldParent.Id, "Hello World", "hello-world");
+        var conflictingSibling = CreateItem(template.Id, newParent.Id, "Hello Again", "hello-world");
+
+        var (service, _) =
+            CreateService(
+                new[] { template },
+                new[] { root, oldParent, newParent, existingItem, conflictingSibling });
+
+        var exception =
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                service.MoveItemAsync(
+                    existingItem.Id,
+                    newParent.Id,
+                    TestContext.Current.CancellationToken));
+
+        Assert.Contains("already exists under parent", exception.Message);
+    }
+
+    [Fact]
     public async Task SaveFieldValuesAsync_ShouldPersistValues_WhenItemAndTemplateFieldExist()
     {
         var template = CreateTemplate("article-page");

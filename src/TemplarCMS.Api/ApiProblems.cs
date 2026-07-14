@@ -85,6 +85,40 @@ internal static class ApiProblems
             detail: detail,
             statusCode: StatusCodes.Status400BadRequest);
 
+    public static ProblemHttpResult ContentItemCouldNotBeRenamed(string detail, int statusCode) =>
+        TypedResults.Problem(
+            title: statusCode switch
+            {
+                StatusCodes.Status404NotFound => "Content item was not found",
+                StatusCodes.Status409Conflict => "Content item could not be renamed",
+                _ => "Invalid content rename request"
+            },
+            detail: detail,
+            statusCode: statusCode);
+
+    public static ProblemHttpResult InvalidContentRenameRequest(string detail) =>
+        TypedResults.Problem(
+            title: "Invalid content rename request",
+            detail: detail,
+            statusCode: StatusCodes.Status400BadRequest);
+
+    public static ProblemHttpResult ContentItemCouldNotBeMoved(string detail, int statusCode) =>
+        TypedResults.Problem(
+            title: statusCode switch
+            {
+                StatusCodes.Status404NotFound => "Content item was not found",
+                StatusCodes.Status409Conflict => "Content item could not be moved",
+                _ => "Invalid content move request"
+            },
+            detail: detail,
+            statusCode: statusCode);
+
+    public static ProblemHttpResult InvalidContentMoveRequest(string detail) =>
+        TypedResults.Problem(
+            title: "Invalid content move request",
+            detail: detail,
+            statusCode: StatusCodes.Status400BadRequest);
+
     public static ProblemHttpResult ContentItemWasNotFound(string detail) =>
         TypedResults.Problem(
             title: "Content item was not found",
