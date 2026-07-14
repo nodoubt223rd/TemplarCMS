@@ -10,12 +10,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\templarcms.admin.client\templarcms.admin.client.esproj">
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.SpaProxy">
       <Version>8.*-*</Version>
     </PackageReference>

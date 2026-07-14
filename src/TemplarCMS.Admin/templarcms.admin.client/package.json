@@ -1,56 +1,30 @@
 {
-    "title": "SB Admin",
-    "name": "startbootstrap-sb-admin",
-    "version": "7.0.7",
-    "scripts": {
-        "build": "npm run clean && npm run build:pug && npm run build:scss && npm run build:scripts && npm run build:assets",
-        "build:assets": "node scripts/build-assets.js",
-        "build:pug": "node scripts/build-pug.js",
-        "build:scripts": "node scripts/build-scripts.js",
-        "build:scss": "node scripts/build-scss.js",
-        "clean": "node scripts/clean.js",
-        "start": "npm run build && node scripts/start.js",
-        "start:debug": "npm run build && node scripts/start-debug.js"
-    },
-    "description": "A free admin dashboard template based on Bootstrap 4, created by Start Bootstrap.",
-    "keywords": [
-        "css",
-        "sass",
-        "html",
-        "responsive",
-        "theme",
-        "template",
-        "admin",
-        "app",
-        "dashboard"
-    ],
-    "homepage": "https://startbootstrap.com/template/sb-admin",
-    "bugs": {
-        "url": "https://github.com/StartBootstrap/startbootstrap-sb-admin/issues",
-        "email": "feedback@startbootstrap.com"
-    },
-    "license": "MIT",
-    "author": "Start Bootstrap",
-    "contributors": [
-        "David Miller (https://davidmiller.io/)"
-    ],
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/StartBootstrap/startbootstrap-sb-admin.git"
-    },
-    "dependencies": {
-        "bootstrap": "5.2.3"
-    },
-    "devDependencies": {
-        "autoprefixer": "10.4.14",
-        "browser-sync": "2.29.1",
-        "chokidar": "3.5.3",
-        "concurrently": "6.3.0",
-        "postcss": "8.4.21",
-        "prettier": "2.8.6",
-        "pug": "3.0.2",
-        "sass": "1.60.0",
-        "shelljs": "0.8.5",
-        "upath": "2.0.1"
-    }
+  "name": "templarcms-admin-client",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Vue-based authoring shell for TemplarCMS.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc --build && vite build",
+    "preview": "vite preview",
+    "typecheck": "vue-tsc --build",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "vue": "^3.5.17"
+  },
+  "devDependencies": {
+    "@tsconfig/node24": "^24.0.1",
+    "@types/node": "^24.0.13",
+    "@vitejs/plugin-vue": "^6.0.0",
+    "@vue/eslint-config-typescript": "^14.6.0",
+    "@vue/tsconfig": "^0.8.1",
+    "eslint": "^9.31.0",
+    "eslint-plugin-oxlint": "^1.11.0",
+    "eslint-plugin-vue": "^10.4.0",
+    "typescript": "^5.8.3",
+    "vite": "^7.0.4",
+    "vue-tsc": "^3.0.4"
+  }
 }
