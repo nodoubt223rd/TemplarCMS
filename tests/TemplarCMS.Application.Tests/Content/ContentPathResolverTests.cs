@@ -75,6 +75,31 @@ public sealed class ContentPathResolverTests
                 TestContext.Current.CancellationToken));
     }
 
+    [Fact]
+    public async Task ResolveAsync_ShouldNormalizeParentChain_ThroughContentItemModel()
+    {
+        var home =
+            CreateItem(
+                parentId: null,
+                key: "HOME");
+        var articles =
+            CreateItem(
+                parentId: home.Id,
+                key: "Featured Articles");
+
+        var resolver =
+            CreateResolver(
+                home,
+                articles);
+
+        var result =
+            await resolver.ResolveAsync(
+                articles,
+                TestContext.Current.CancellationToken);
+
+        Assert.Equal("/home/featured-articles", result.ToString());
+    }
+
     private static ContentPathResolver CreateResolver(
         params ContentItemDefinition[] items)
     {

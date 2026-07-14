@@ -56,6 +56,119 @@ public sealed class ContentItemDefinitionTests
     }
 
     [Fact]
+    public void Constructor_Throws_WhenItemIsItsOwnParent()
+    {
+        var itemId = new ContentItemId(Guid.NewGuid());
+
+        Assert.Throws<ArgumentException>(
+            () => new ContentItemDefinition(
+                itemId,
+                "Home",
+                new ContentItemKey("home"),
+                new TemplateId(Guid.NewGuid()),
+                itemId));
+    }
+
+    [Fact]
+    public void IsRoot_ReturnsTrue_WhenParentIsMissing()
+    {
+        var item = new ContentItemDefinition(
+            new ContentItemId(Guid.NewGuid()),
+            "Home",
+            new ContentItemKey("home"),
+            new TemplateId(Guid.NewGuid()));
+
+        Assert.True(item.IsRoot);
+        Assert.False(item.HasParent);
+    }
+
+    [Fact]
+    public void IsRoot_ReturnsFalse_WhenParentExists()
+    {
+        var parentId = new ContentItemId(Guid.NewGuid());
+        var item = new ContentItemDefinition(
+            new ContentItemId(Guid.NewGuid()),
+            "Articles",
+            new ContentItemKey("articles"),
+            new TemplateId(Guid.NewGuid()),
+            parentId);
+
+        Assert.False(item.IsRoot);
+        Assert.True(item.HasParent);
+        Assert.True(item.IsDirectChildOf(parentId));
+    }
+
+    [Fact]
+    public void UsesTemplate_ReturnsTrue_WhenTemplateMatches()
+    {
+        var templateId = new TemplateId(Guid.NewGuid());
+        var item = new ContentItemDefinition(
+            new ContentItemId(Guid.NewGuid()),
+            "Home",
+            new ContentItemKey("home"),
+            templateId);
+
+        Assert.True(item.UsesTemplate(templateId));
+        Assert.False(item.UsesTemplate(new TemplateId(Guid.NewGuid())));
+    }
+
+    [Fact]
+    public void GetPath_ReturnsRootPath_ForRootItem()
+    {
+        var item = new ContentItemDefinition(
+            new ContentItemId(Guid.NewGuid()),
+            "Home",
+            new ContentItemKey("home"),
+            new TemplateId(Guid.NewGuid()));
+
+        var path = item.GetPath();
+
+        Assert.Equal("/home", path.ToString());
+    }
+
+    [Fact]
+    public void GetPath_AppendsKeyToParentPath_ForChildItem()
+    {
+        var item = new ContentItemDefinition(
+            new ContentItemId(Guid.NewGuid()),
+            "Articles",
+            new ContentItemKey("articles"),
+            new TemplateId(Guid.NewGuid()),
+            new ContentItemId(Guid.NewGuid()));
+
+        var path = item.GetPath(new ContentPath("/home"));
+
+        Assert.Equal("/home/articles", path.ToString());
+    }
+
+    [Fact]
+    public void GetPath_Throws_WhenRootItemReceivesParentPath()
+    {
+        var item = new ContentItemDefinition(
+            new ContentItemId(Guid.NewGuid()),
+            "Home",
+            new ContentItemKey("home"),
+            new TemplateId(Guid.NewGuid()));
+
+        Assert.Throws<InvalidOperationException>(
+            () => item.GetPath(new ContentPath("/root")));
+    }
+
+    [Fact]
+    public void GetPath_Throws_WhenChildItemHasNoParentPath()
+    {
+        var item = new ContentItemDefinition(
+            new ContentItemId(Guid.NewGuid()),
+            "Articles",
+            new ContentItemKey("articles"),
+            new TemplateId(Guid.NewGuid()),
+            new ContentItemId(Guid.NewGuid()));
+
+        Assert.Throws<InvalidOperationException>(
+            () => item.GetPath());
+    }
+
+    [Fact]
     public void Constructor_Throws_WhenContentItemKeyIsEmpty()
     {
         Assert.Throws<ArgumentException>(

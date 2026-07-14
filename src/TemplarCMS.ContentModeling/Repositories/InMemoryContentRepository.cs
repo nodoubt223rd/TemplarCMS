@@ -204,17 +204,21 @@ namespace TemplarCMS.ContentModeling.Repositories
 
             ContentPath path;
 
-            if (item.ParentId == null)
+            if (item.IsRoot)
             {
-                path =
-                    ContentPath.FromRoot(item.Key);
+                path = item.GetPath();
             }
             else
             {
-                if (!_items.TryGetValue(item.ParentId.Value, out var parent))
+                var parentId =
+                    item.ParentId ??
+                    throw new InvalidOperationException(
+                        $"Content item '{item.Id}' is missing a parent identifier.");
+
+                if (!_items.TryGetValue(parentId, out var parent))
                 {
                     throw new InvalidOperationException(
-                        $"Parent content item '{item.ParentId.Value}' was not found for content item '{item.Id}' while computing its path.");
+                        $"Parent content item '{parentId}' was not found for content item '{item.Id}' while computing its path.");
                 }
 
                 var parentPath =
@@ -222,10 +226,7 @@ namespace TemplarCMS.ContentModeling.Repositories
                         parent,
                         cache);
 
-                path =
-                    ContentPath.Append(
-                        parentPath,
-                        item.Key);
+                path = item.GetPath(parentPath);
             }
 
             cache[item.Id] = path;

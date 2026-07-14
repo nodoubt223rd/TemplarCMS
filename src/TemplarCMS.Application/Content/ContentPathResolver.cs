@@ -81,22 +81,26 @@ public sealed class ContentPathResolver : IContentPathResolver
 
         ContentPath path;
 
-        if (item.ParentId == null)
+        if (item.IsRoot)
         {
-            path =
-                ContentPath.FromRoot(item.Key);
+            path = item.GetPath();
         }
         else
         {
+            var parentId =
+                item.ParentId ??
+                throw new InvalidOperationException(
+                    $"Content item '{item.Id}' is missing a parent identifier.");
+
             var parent =
                 await _contentRepository.GetItemAsync(
-                    item.ParentId.Value,
+                    parentId,
                     cancellationToken);
 
             if (parent == null)
             {
                 throw new InvalidOperationException(
-                    $"Parent content item '{item.ParentId.Value}' was not found for content item '{item.Id}' while computing its path.");
+                    $"Parent content item '{parentId}' was not found for content item '{item.Id}' while computing its path.");
             }
 
             var parentPath =
@@ -105,10 +109,7 @@ public sealed class ContentPathResolver : IContentPathResolver
                     cache,
                     cancellationToken);
 
-            path =
-                ContentPath.Append(
-                    parentPath,
-                    item.Key);
+            path = item.GetPath(parentPath);
         }
 
         cache[item.Id] = path;
