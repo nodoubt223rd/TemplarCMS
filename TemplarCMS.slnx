@@ -1,9 +1,5 @@
 <Solution>
   <Project Path="src/TemplarCMS.Abstractions/TemplarCMS.Abstractions.csproj" />
-  <Project Path="src/TemplarCMS.Admin/templarcms.admin.client/templarcms.admin.client.esproj">
-    <Build />
-    <Deploy />
-  </Project>
   <Project Path="src/TemplarCMS.Admin/TemplarCMS.Admin.Server/TemplarCMS.Admin.Server.csproj" Id="4cab896d-d239-433b-b2c2-3f9b66211ac8" />
   <Project Path="src/TemplarCMS.Api/TemplarCMS.Api.csproj" />
   <Project Path="src/TemplarCMS.Application/TemplarCMS.Application.csproj" />
