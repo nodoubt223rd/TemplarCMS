@@ -25,6 +25,13 @@ public sealed class ContentItemDefinition
             throw new ArgumentException("Content item name is required.", nameof(name));
         }
 
+        if (parentId == id)
+        {
+            throw new ArgumentException(
+                "Content item cannot be its own parent.",
+                nameof(parentId));
+        }
+
         Id = id;
         Name = name.Trim();
         Key = key;
@@ -56,4 +63,60 @@ public sealed class ContentItemDefinition
     /// Gets the optional parent content item identifier.
     /// </summary>
     public ContentItemId? ParentId { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether the item is a root item.
+    /// </summary>
+    public bool IsRoot => ParentId == null;
+
+    /// <summary>
+    /// Gets a value indicating whether the item has a parent item.
+    /// </summary>
+    public bool HasParent => ParentId != null;
+
+    /// <summary>
+    /// Gets a value indicating whether the item uses the supplied template.
+    /// </summary>
+    public bool UsesTemplate(TemplateId templateId)
+    {
+        return TemplateId == templateId;
+    }
+
+    /// <summary>
+    /// Gets a value indicating whether the item is a direct child of the supplied parent.
+    /// </summary>
+    public bool IsDirectChildOf(ContentItemId parentId)
+    {
+        return ParentId == parentId;
+    }
+
+    /// <summary>
+    /// Computes the canonical content path for the item.
+    /// </summary>
+    /// <param name="parentPath">
+    /// The canonical parent path for child items. Omit for root items.
+    /// </param>
+    public ContentPath GetPath(ContentPath? parentPath = null)
+    {
+        if (IsRoot)
+        {
+            if (parentPath != null)
+            {
+                throw new InvalidOperationException(
+                    $"Root content item '{Id}' cannot be resolved from a parent path.");
+            }
+
+            return ContentPath.FromRoot(Key);
+        }
+
+        if (parentPath == null)
+        {
+            throw new InvalidOperationException(
+                $"Parent path is required to resolve content item '{Id}'.");
+        }
+
+        return ContentPath.Append(
+            parentPath.Value,
+            Key);
+    }
 }

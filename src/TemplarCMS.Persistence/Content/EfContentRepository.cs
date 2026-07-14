@@ -283,17 +283,21 @@ public sealed class EfContentRepository : IContentRepository
 
         ContentPath path;
 
-        if (item.ParentId == null)
+        if (item.IsRoot)
         {
-            path =
-                ContentPath.FromRoot(item.Key);
+            path = item.GetPath();
         }
         else
         {
-            if (!itemsById.TryGetValue(item.ParentId.Value, out var parent))
+            var parentId =
+                item.ParentId ??
+                throw new InvalidOperationException(
+                    $"Content item '{item.Id}' is missing a parent identifier.");
+
+            if (!itemsById.TryGetValue(parentId, out var parent))
             {
                 throw new InvalidOperationException(
-                    $"Parent content item '{item.ParentId.Value}' was not found for content item '{item.Id}' while computing its path.");
+                    $"Parent content item '{parentId}' was not found for content item '{item.Id}' while computing its path.");
             }
 
             var parentPath =
@@ -302,10 +306,7 @@ public sealed class EfContentRepository : IContentRepository
                     itemsById,
                     cache);
 
-            path =
-                ContentPath.Append(
-                    parentPath,
-                    item.Key);
+            path = item.GetPath(parentPath);
         }
 
         cache[item.Id] = path;

@@ -295,26 +295,21 @@ public sealed class ContentItemServiceTests
     }
 
     [Fact]
-    public async Task SaveItemAsync_ShouldThrow_WhenItemIsItsOwnParent()
+    public void SaveItemAsync_ShouldThrow_WhenItemIsItsOwnParent()
     {
         var template = CreateTemplate("article-page");
         var itemId = new ContentItemId(Guid.NewGuid());
-        var item =
-            new ContentItemDefinition(
-                itemId,
-                "Home",
-                new ContentItemKey("home"),
-                template.Id,
-                itemId);
 
-        var (service, _) =
-            CreateService(
-                new[] { template });
+        var exception =
+            Assert.Throws<ArgumentException>(() =>
+                new ContentItemDefinition(
+                    itemId,
+                    "Home",
+                    new ContentItemKey("home"),
+                    template.Id,
+                    itemId));
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            service.SaveItemAsync(
-                item,
-                TestContext.Current.CancellationToken));
+        Assert.Contains("own parent", exception.Message);
     }
 
     [Fact]
