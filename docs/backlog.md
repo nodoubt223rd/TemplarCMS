@@ -23,13 +23,12 @@ Goals:
 
 ### ProblemDetails Error Catalog
 
-Status: Future
+Status: In Progress
 
 Problem:
-The first API slice currently uses inline `ProblemDetails` titles and
-details directly in endpoint handlers. That is acceptable for the
-initial path lookup endpoint, but it risks inconsistent wording and
-duplicated literals as the public API grows.
+The API now has an initial centralized `ProblemDetails` catalog for the
+current content and template endpoints, but the broader error-contract
+story is not complete yet.
 
 Goals:
 - Centralize reusable `ProblemDetails` titles and detail messages

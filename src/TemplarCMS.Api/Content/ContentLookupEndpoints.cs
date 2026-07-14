@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Http.HttpResults;
+using TemplarCMS.Api;
 using TemplarCMS.Application.Content;
 using TemplarCMS.Domain.Content;
 
@@ -117,10 +118,7 @@ public static class ContentLookupEndpoints
 
             if (item == null)
             {
-                return TypedResults.Problem(
-                    title: "Content item was not found",
-                    detail: $"No content item exists with id '{id}'.",
-                    statusCode: StatusCodes.Status404NotFound);
+                return ApiProblems.ContentItemNotFound(id);
             }
 
             return TypedResults.Ok(
@@ -131,10 +129,7 @@ public static class ContentLookupEndpoints
         }
         catch (ArgumentException exception)
         {
-            return TypedResults.Problem(
-                title: "Invalid content lookup request",
-                detail: exception.Message,
-                statusCode: StatusCodes.Status400BadRequest);
+            return ApiProblems.InvalidContentLookupRequest(exception.Message);
         }
     }
 
@@ -149,10 +144,7 @@ public static class ContentLookupEndpoints
 
         if (string.IsNullOrWhiteSpace(path))
         {
-            return TypedResults.Problem(
-                title: "Content path is required",
-                detail: "Provide a slash-delimited content path after '/api/v1/content/by-path/'.",
-                statusCode: StatusCodes.Status400BadRequest);
+            return ApiProblems.ContentPathRequired();
         }
 
         try
@@ -171,10 +163,7 @@ public static class ContentLookupEndpoints
 
             if (item == null)
             {
-                return TypedResults.Problem(
-                    title: "Content item was not found",
-                    detail: $"No content item exists at path '{normalizedPath}'.",
-                    statusCode: StatusCodes.Status404NotFound);
+                return ApiProblems.ContentItemNotFound(normalizedPath);
             }
 
             return TypedResults.Ok(
@@ -185,10 +174,7 @@ public static class ContentLookupEndpoints
         }
         catch (ArgumentException exception)
         {
-            return TypedResults.Problem(
-                title: "Invalid path lookup request",
-                detail: exception.Message,
-                statusCode: StatusCodes.Status400BadRequest);
+            return ApiProblems.InvalidPathLookupRequest(exception.Message);
         }
     }
 
@@ -215,10 +201,7 @@ public static class ContentLookupEndpoints
 
             if (parent == null)
             {
-                return TypedResults.Problem(
-                    title: "Content item was not found",
-                    detail: $"No content item exists with id '{id}'.",
-                    statusCode: StatusCodes.Status404NotFound);
+                return ApiProblems.ContentItemNotFound(id);
             }
 
             var children =
@@ -235,10 +218,7 @@ public static class ContentLookupEndpoints
         }
         catch (ArgumentException exception)
         {
-            return TypedResults.Problem(
-                title: "Invalid content lookup request",
-                detail: exception.Message,
-                statusCode: StatusCodes.Status400BadRequest);
+            return ApiProblems.InvalidContentLookupRequest(exception.Message);
         }
     }
 
@@ -270,10 +250,7 @@ public static class ContentLookupEndpoints
         }
         catch (ArgumentException exception)
         {
-            return TypedResults.Problem(
-                title: "Invalid content lookup request",
-                detail: exception.Message,
-                statusCode: StatusCodes.Status400BadRequest);
+            return ApiProblems.InvalidContentLookupRequest(exception.Message);
         }
     }
 
@@ -286,10 +263,7 @@ public static class ContentLookupEndpoints
 
         if (request == null)
         {
-            return TypedResults.Problem(
-                title: "Content item request is required",
-                detail: "Provide a content item payload in the request body.",
-                statusCode: StatusCodes.Status400BadRequest);
+            return ApiProblems.ContentItemRequestRequired();
         }
 
         try
@@ -320,10 +294,7 @@ public static class ContentLookupEndpoints
 
             if (createdItem == null)
             {
-                return TypedResults.Problem(
-                    title: "Created content item could not be loaded",
-                    detail: $"Content item '{itemId}' was saved but could not be reloaded.",
-                    statusCode: StatusCodes.Status400BadRequest);
+                return ApiProblems.CreatedContentItemCouldNotBeLoaded(itemId);
             }
 
             var location =
@@ -345,19 +316,11 @@ public static class ContentLookupEndpoints
                     ? StatusCodes.Status409Conflict
                     : StatusCodes.Status400BadRequest;
 
-            return TypedResults.Problem(
-                title: statusCode == StatusCodes.Status409Conflict
-                    ? "Content item could not be created"
-                    : "Invalid content create request",
-                detail: exception.Message,
-                statusCode: statusCode);
+            return ApiProblems.ContentItemCouldNotBeCreated(exception.Message, statusCode);
         }
         catch (ArgumentException exception)
         {
-            return TypedResults.Problem(
-                title: "Invalid content create request",
-                detail: exception.Message,
-                statusCode: StatusCodes.Status400BadRequest);
+            return ApiProblems.InvalidContentCreateRequest(exception.Message);
         }
     }
 
@@ -373,10 +336,7 @@ public static class ContentLookupEndpoints
 
         if (request == null)
         {
-            return TypedResults.Problem(
-                title: "Content item request is required",
-                detail: "Provide a content item payload in the request body.",
-                statusCode: StatusCodes.Status400BadRequest);
+            return ApiProblems.ContentItemRequestRequired();
         }
 
         try
@@ -393,10 +353,7 @@ public static class ContentLookupEndpoints
 
             if (existingItem == null)
             {
-                return TypedResults.Problem(
-                    title: "Content item was not found",
-                    detail: $"No content item exists with id '{id}'.",
-                    statusCode: StatusCodes.Status404NotFound);
+                return ApiProblems.ContentItemNotFound(id);
             }
 
             var updatedItem =
@@ -423,10 +380,7 @@ public static class ContentLookupEndpoints
 
             if (refreshedItem == null)
             {
-                return TypedResults.Problem(
-                    title: "Updated content item could not be loaded",
-                    detail: $"Content item '{itemId}' was saved but could not be reloaded.",
-                    statusCode: StatusCodes.Status400BadRequest);
+                return ApiProblems.UpdatedContentItemCouldNotBeLoaded(itemId);
             }
 
             return TypedResults.Ok(
@@ -444,19 +398,13 @@ public static class ContentLookupEndpoints
                     ? StatusCodes.Status404NotFound
                     : StatusCodes.Status400BadRequest;
 
-            return TypedResults.Problem(
-                title: statusCode == StatusCodes.Status404NotFound
-                    ? "Content item was not found"
-                    : "Invalid content update request",
-                detail: exception.Message,
-                statusCode: statusCode);
+            return statusCode == StatusCodes.Status404NotFound
+                ? ApiProblems.ContentItemWasNotFound(exception.Message)
+                : ApiProblems.InvalidContentUpdateRequest(exception.Message);
         }
         catch (ArgumentException exception)
         {
-            return TypedResults.Problem(
-                title: "Invalid content update request",
-                detail: exception.Message,
-                statusCode: StatusCodes.Status400BadRequest);
+            return ApiProblems.InvalidContentUpdateRequest(exception.Message);
         }
     }
 
@@ -470,18 +418,12 @@ public static class ContentLookupEndpoints
 
         if (request == null)
         {
-            return TypedResults.Problem(
-                title: "Content field value request is required",
-                detail: "Provide a field value payload in the request body.",
-                statusCode: StatusCodes.Status400BadRequest);
+            return ApiProblems.ContentFieldValueRequestRequired();
         }
 
         if (request.Values == null)
         {
-            return TypedResults.Problem(
-                title: "Content field values are required",
-                detail: "Provide one or more field values keyed by field key.",
-                statusCode: StatusCodes.Status400BadRequest);
+            return ApiProblems.ContentFieldValuesRequired();
         }
 
         try
@@ -507,10 +449,7 @@ public static class ContentLookupEndpoints
 
             if (item == null)
             {
-                return TypedResults.Problem(
-                    title: "Content item was not found",
-                    detail: $"No content item exists with id '{id}'.",
-                    statusCode: StatusCodes.Status404NotFound);
+                return ApiProblems.ContentItemNotFound(id);
             }
 
             return TypedResults.Ok(
@@ -528,19 +467,11 @@ public static class ContentLookupEndpoints
                     ? StatusCodes.Status404NotFound
                     : StatusCodes.Status400BadRequest;
 
-            return TypedResults.Problem(
-                title: statusCode == StatusCodes.Status404NotFound
-                    ? "Content item was not found"
-                    : "Content field values could not be saved",
-                detail: exception.Message,
-                statusCode: statusCode);
+            return ApiProblems.ContentFieldValuesCouldNotBeSaved(exception.Message, statusCode);
         }
         catch (ArgumentException exception)
         {
-            return TypedResults.Problem(
-                title: "Invalid content field value request",
-                detail: exception.Message,
-                statusCode: StatusCodes.Status400BadRequest);
+            return ApiProblems.InvalidContentFieldValueRequest(exception.Message);
         }
     }
 
@@ -565,10 +496,7 @@ public static class ContentLookupEndpoints
 
             if (existingItem == null)
             {
-                return TypedResults.Problem(
-                    title: "Content item was not found",
-                    detail: $"No content item exists with id '{id}'.",
-                    statusCode: StatusCodes.Status404NotFound);
+                return ApiProblems.ContentItemNotFound(id);
             }
 
             await contentItemService.DeleteItemAsync(
@@ -579,17 +507,11 @@ public static class ContentLookupEndpoints
         }
         catch (InvalidOperationException exception)
         {
-            return TypedResults.Problem(
-                title: "Content item could not be deleted",
-                detail: exception.Message,
-                statusCode: StatusCodes.Status400BadRequest);
+            return ApiProblems.ContentItemCouldNotBeDeleted(exception.Message);
         }
         catch (ArgumentException exception)
         {
-            return TypedResults.Problem(
-                title: "Invalid content delete request",
-                detail: exception.Message,
-                statusCode: StatusCodes.Status400BadRequest);
+            return ApiProblems.InvalidContentDeleteRequest(exception.Message);
         }
     }
 
@@ -618,10 +540,7 @@ public static class ContentLookupEndpoints
 
             if (item == null)
             {
-                return TypedResults.Problem(
-                    title: "Content item was not found",
-                    detail: $"No content item exists with id '{id}'.",
-                    statusCode: StatusCodes.Status404NotFound);
+                return ApiProblems.ContentItemNotFound(id);
             }
 
             var children =
@@ -662,10 +581,7 @@ public static class ContentLookupEndpoints
         }
         catch (ArgumentException exception)
         {
-            return TypedResults.Problem(
-                title: "Invalid content lookup request",
-                detail: exception.Message,
-                statusCode: StatusCodes.Status400BadRequest);
+            return ApiProblems.InvalidContentLookupRequest(exception.Message);
         }
     }
 

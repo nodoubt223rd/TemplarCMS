@@ -738,6 +738,25 @@ this update contract so it does not blur into rename, move, or template
 reassignment semantics.
 ```
 
+## ProblemDetails Catalog
+
+Implemented as an initial API baseline.
+
+Current behavior:
+
+```text
+Content and template endpoints now use a shared API ProblemDetails
+catalog rather than scattering inline titles and detail messages across
+handlers.
+```
+
+Current note:
+
+```text
+This centralizes wording consistency now while leaving room for future
+error codes or more strongly typed error factories later.
+```
+
 Dictionary key:
 
 ```text
