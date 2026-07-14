@@ -8,5 +8,6 @@
     <ProjectReference Include="..\TemplarCMS.Application\TemplarCMS.Application.csproj" />
     <ProjectReference Include="..\TemplarCMS.ContentModeling\TemplarCMS.ContentModeling.csproj" />
     <ProjectReference Include="..\TemplarCMS.Domain\TemplarCMS.Domain.csproj" />
+    <ProjectReference Include="..\TemplarCMS.Persistence\TemplarCMS.Persistence.csproj" />
   </ItemGroup>
 </Project>
