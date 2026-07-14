@@ -27,6 +27,7 @@ public sealed class TemplarCmsDbContext : DbContext
         item.HasKey(value => value.Id);
         item.Property(value => value.Name).IsRequired();
         item.Property(value => value.Key).IsRequired();
+        item.HasIndex(value => value.TemplateId);
         item.HasIndex(value => new { value.ParentId, value.Key }).IsUnique();
 
         item.HasMany(value => value.FieldValues)
@@ -48,6 +49,7 @@ public sealed class TemplarCmsDbContext : DbContext
                 value.FieldId,
                 value.Language,
                 value.Version
-            });
+            })
+            .IsUnique();
     }
 }

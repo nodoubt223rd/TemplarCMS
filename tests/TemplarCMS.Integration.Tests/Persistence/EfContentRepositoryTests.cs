@@ -93,6 +93,29 @@ public sealed class EfContentRepositoryTests : IDisposable
     }
 
     [Fact]
+    public async Task GetItemsByTemplateAsync_ShouldReturnItemsAssignedToTemplate()
+    {
+        var repository = CreateRepository();
+        var templateId = new TemplateId(Guid.NewGuid());
+        var matchingA = CreateItem(templateId: templateId, key: "home");
+        var matchingB = CreateItem(templateId: templateId, key: "articles");
+        var other = CreateItem(key: "other");
+
+        await repository.SaveItemAsync(matchingA, TestContext.Current.CancellationToken);
+        await repository.SaveItemAsync(matchingB, TestContext.Current.CancellationToken);
+        await repository.SaveItemAsync(other, TestContext.Current.CancellationToken);
+
+        var items =
+            await repository.GetItemsByTemplateAsync(
+                templateId,
+                TestContext.Current.CancellationToken);
+
+        Assert.Equal(
+            new[] { matchingB.Id, matchingA.Id },
+            items.Select(item => item.Id));
+    }
+
+    [Fact]
     public async Task SaveFieldValuesAsync_ShouldMergeIntoExistingStoredSet()
     {
         var repository = CreateRepository();
@@ -151,6 +174,51 @@ public sealed class EfContentRepositoryTests : IDisposable
     }
 
     [Fact]
+    public async Task Database_ShouldRejectDuplicateFieldValueIdentity()
+    {
+        using var dbContext = CreateDbContext();
+        var item = CreateItem();
+        var fieldId = Guid.NewGuid();
+
+        dbContext.ContentItems.Add(
+            new PersistenceContentItem
+            {
+                Id = item.Id.Value,
+                Name = item.Name,
+                Key = item.Key.Value,
+                TemplateId = item.TemplateId.Value,
+                ParentId = item.ParentId?.Value
+            });
+
+        dbContext.ContentFieldValues.Add(
+            new PersistenceContentFieldValue
+            {
+                Id = Guid.NewGuid(),
+                ItemId = item.Id.Value,
+                FieldId = fieldId,
+                FieldKey = "title",
+                Language = "en",
+                Version = 1,
+                Value = "Home"
+            });
+
+        dbContext.ContentFieldValues.Add(
+            new PersistenceContentFieldValue
+            {
+                Id = Guid.NewGuid(),
+                ItemId = item.Id.Value,
+                FieldId = fieldId,
+                FieldKey = "title",
+                Language = "en",
+                Version = 1,
+                Value = "Duplicate"
+            });
+
+        await Assert.ThrowsAsync<DbUpdateException>(() =>
+            dbContext.SaveChangesAsync(TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
     public async Task DeleteItemAsync_ShouldDeleteItemAndCascadeFieldValues()
     {
         var repository = CreateRepository();
@@ -198,13 +266,14 @@ public sealed class EfContentRepositoryTests : IDisposable
     private static ContentItemDefinition CreateItem(
         ContentItemId? parentId = null,
         string name = "Home",
-        string key = "home")
+        string key = "home",
+        TemplateId? templateId = null)
     {
         return new ContentItemDefinition(
             new ContentItemId(Guid.NewGuid()),
             name,
             new ContentItemKey(key),
-            new TemplateId(Guid.NewGuid()),
+            templateId ?? new TemplateId(Guid.NewGuid()),
             parentId);
     }
 
