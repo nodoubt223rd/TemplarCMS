@@ -66,6 +66,26 @@ public static class ContentLookupEndpoints
             .ProducesProblem(StatusCodes.Status404NotFound);
 
         endpoints.MapPost(
+                "/api/v1/content/{id:guid}/rename",
+                RenameAsync)
+            .WithName("RenameContent")
+            .WithTags("Content")
+            .Produces<ContentItemResponse>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict);
+
+        endpoints.MapPost(
+                "/api/v1/content/{id:guid}/move",
+                MoveAsync)
+            .WithName("MoveContent")
+            .WithTags("Content")
+            .Produces<ContentItemResponse>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict);
+
+        endpoints.MapPost(
                 "/api/v1/content/{id:guid}/values",
                 SetValuesAsync)
             .WithName("SetContentValues")
@@ -475,6 +495,125 @@ public static class ContentLookupEndpoints
         }
     }
 
+    public static async Task<Results<Ok<ContentItemResponse>, ProblemHttpResult>> RenameAsync(
+        Guid id,
+        RenameContentItemRequest? request,
+        string? lang,
+        int? version,
+        IContentItemService contentItemService,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(contentItemService);
+
+        if (request == null)
+        {
+            return ApiProblems.ContentItemRequestRequired();
+        }
+
+        try
+        {
+            var itemId = new ContentItemId(id);
+
+            await contentItemService.RenameItemAsync(
+                itemId,
+                request.Name,
+                new ContentItemKey(request.Key),
+                cancellationToken);
+
+            var context = CreateContext(lang, version);
+            var refreshedItem =
+                await contentItemService.GetItemAsync(
+                    itemId,
+                    context,
+                    cancellationToken);
+
+            if (refreshedItem == null)
+            {
+                return ApiProblems.UpdatedContentItemCouldNotBeLoaded(itemId);
+            }
+
+            return TypedResults.Ok(
+                MapResponse(
+                    refreshedItem,
+                    context,
+                    $"/api/v1/content/{refreshedItem.Item.Id.Value}?lang={context.Language}&version={context.Version.Value}"));
+        }
+        catch (InvalidOperationException exception)
+        {
+            var statusCode =
+                exception.Message.Contains("was not found", StringComparison.OrdinalIgnoreCase)
+                    ? StatusCodes.Status404NotFound
+                    : exception.Message.Contains("already exists under parent", StringComparison.OrdinalIgnoreCase)
+                        ? StatusCodes.Status409Conflict
+                        : StatusCodes.Status400BadRequest;
+
+            return ApiProblems.ContentItemCouldNotBeRenamed(exception.Message, statusCode);
+        }
+        catch (ArgumentException exception)
+        {
+            return ApiProblems.InvalidContentRenameRequest(exception.Message);
+        }
+    }
+
+    public static async Task<Results<Ok<ContentItemResponse>, ProblemHttpResult>> MoveAsync(
+        Guid id,
+        MoveContentItemRequest? request,
+        string? lang,
+        int? version,
+        IContentItemService contentItemService,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(contentItemService);
+
+        if (request == null)
+        {
+            return ApiProblems.ContentItemRequestRequired();
+        }
+
+        try
+        {
+            var itemId = new ContentItemId(id);
+
+            await contentItemService.MoveItemAsync(
+                itemId,
+                request.ParentId == null ? null : new ContentItemId(request.ParentId.Value),
+                cancellationToken);
+
+            var context = CreateContext(lang, version);
+            var refreshedItem =
+                await contentItemService.GetItemAsync(
+                    itemId,
+                    context,
+                    cancellationToken);
+
+            if (refreshedItem == null)
+            {
+                return ApiProblems.UpdatedContentItemCouldNotBeLoaded(itemId);
+            }
+
+            return TypedResults.Ok(
+                MapResponse(
+                    refreshedItem,
+                    context,
+                    $"/api/v1/content/{refreshedItem.Item.Id.Value}?lang={context.Language}&version={context.Version.Value}"));
+        }
+        catch (InvalidOperationException exception)
+        {
+            var statusCode =
+                exception.Message.Contains("was not found", StringComparison.OrdinalIgnoreCase)
+                    ? StatusCodes.Status404NotFound
+                    : exception.Message.Contains("already exists under parent", StringComparison.OrdinalIgnoreCase)
+                        ? StatusCodes.Status409Conflict
+                        : StatusCodes.Status400BadRequest;
+
+            return ApiProblems.ContentItemCouldNotBeMoved(exception.Message, statusCode);
+        }
+        catch (ArgumentException exception)
+        {
+            return ApiProblems.InvalidContentMoveRequest(exception.Message);
+        }
+    }
+
     public static async Task<Results<NoContent, ProblemHttpResult>> DeleteAsync(
         Guid id,
         IContentItemService contentItemService,
@@ -628,6 +767,14 @@ public static class ContentLookupEndpoints
                 SetValues = new LinkResponse
                 {
                     Href = $"/api/v1/content/{item.Item.Id.Value}/values"
+                },
+                Rename = new LinkResponse
+                {
+                    Href = $"/api/v1/content/{item.Item.Id.Value}/rename"
+                },
+                Move = new LinkResponse
+                {
+                    Href = $"/api/v1/content/{item.Item.Id.Value}/move"
                 },
                 Parent = item.Item.ParentId == null
                     ? null

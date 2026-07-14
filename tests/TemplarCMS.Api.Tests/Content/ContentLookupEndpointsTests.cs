@@ -41,6 +41,12 @@ public sealed class ContentLookupEndpointsTests
         Assert.Equal(
             $"/api/v1/content/{itemId.Value}/dependencies?lang=en&version=1",
             ok.Value.Links.Dependencies.Href);
+        Assert.Equal(
+            $"/api/v1/content/{itemId.Value}/rename",
+            ok.Value.Links.Rename.Href);
+        Assert.Equal(
+            $"/api/v1/content/{itemId.Value}/move",
+            ok.Value.Links.Move.Href);
         Assert.Equal(itemId, service.LastRequestedItemId);
         Assert.Equal(new ContentLanguage("en"), service.LastContext.Language);
         Assert.Equal(ContentVersion.First, service.LastContext.Version);
@@ -600,6 +606,190 @@ public sealed class ContentLookupEndpointsTests
     }
 
     [Fact]
+    public async Task RenameAsync_ShouldReturnOk_WhenRequestIsValid()
+    {
+        var itemId = new ContentItemId(Guid.NewGuid());
+        var existingItem =
+            CreateResolvedItem(
+                itemId: itemId,
+                parentId: null,
+                path: "/home",
+                name: "Home",
+                key: "home");
+        var service =
+            new FakeContentItemService(
+                existingItem,
+                []);
+        service.StoredItem = existingItem;
+        service.OnRenameItemAsync = (savedItemId, name, key) =>
+        {
+            service.StoredItem =
+                CreateResolvedItem(
+                    itemId: savedItemId,
+                    parentId: null,
+                    path: "/landing-page",
+                    name: name,
+                    key: key.ToString(),
+                    title: name,
+                    templateId: existingItem.Item.TemplateId);
+
+            return Task.CompletedTask;
+        };
+
+        var result =
+            await ContentLookupEndpoints.RenameAsync(
+                itemId.Value,
+                new RenameContentItemRequest
+                {
+                    Name = "Landing Page",
+                    Key = "landing page"
+                },
+                "EN",
+                1,
+                service,
+                TestContext.Current.CancellationToken);
+
+        var ok = Assert.IsType<Ok<ContentItemResponse>>(result.Result);
+        Assert.NotNull(ok.Value);
+
+        Assert.Equal(itemId, service.LastRenamedItemId);
+        Assert.Equal("Landing Page", service.LastRenameName);
+        Assert.Equal(new ContentItemKey("landing-page"), service.LastRenameKey);
+        Assert.Equal("/landing-page", ok.Value.Path);
+        Assert.Equal("Landing Page", ok.Value.Name);
+    }
+
+    [Fact]
+    public async Task RenameAsync_ShouldReturnConflict_WhenSiblingKeyAlreadyExists()
+    {
+        var itemId = new ContentItemId(Guid.NewGuid());
+        var service = new FakeContentItemService(null, []);
+        service.OnRenameItemAsync = (_, _, _) =>
+            throw new InvalidOperationException(
+                "Content item key 'landing-page' already exists under parent '<root>'.");
+
+        var result =
+            await ContentLookupEndpoints.RenameAsync(
+                itemId.Value,
+                new RenameContentItemRequest
+                {
+                    Name = "Landing Page",
+                    Key = "landing-page"
+                },
+                "en",
+                1,
+                service,
+                TestContext.Current.CancellationToken);
+
+        var problem = Assert.IsType<ProblemHttpResult>(result.Result);
+
+        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task MoveAsync_ShouldReturnOk_WhenRequestIsValid()
+    {
+        var itemId = new ContentItemId(Guid.NewGuid());
+        var newParentId = new ContentItemId(Guid.NewGuid());
+        var existingItem =
+            CreateResolvedItem(
+                itemId: itemId,
+                parentId: null,
+                path: "/home",
+                name: "Home",
+                key: "home");
+        var service =
+            new FakeContentItemService(
+                existingItem,
+                []);
+        service.StoredItem = existingItem;
+        service.OnMoveItemAsync = (savedItemId, parentId) =>
+        {
+            service.StoredItem =
+                CreateResolvedItem(
+                    itemId: savedItemId,
+                    parentId: parentId,
+                    path: "/site/home",
+                    name: existingItem.Item.Name,
+                    key: existingItem.Item.Key.ToString(),
+                    title: existingItem.Item.Name,
+                    templateId: existingItem.Item.TemplateId);
+
+            return Task.CompletedTask;
+        };
+
+        var result =
+            await ContentLookupEndpoints.MoveAsync(
+                itemId.Value,
+                new MoveContentItemRequest
+                {
+                    ParentId = newParentId.Value
+                },
+                "EN",
+                1,
+                service,
+                TestContext.Current.CancellationToken);
+
+        var ok = Assert.IsType<Ok<ContentItemResponse>>(result.Result);
+        Assert.NotNull(ok.Value);
+
+        Assert.Equal(itemId, service.LastMovedItemId);
+        Assert.Equal(newParentId, service.LastMoveParentId);
+        Assert.Equal("/site/home", ok.Value.Path);
+    }
+
+    [Fact]
+    public async Task MoveAsync_ShouldReturnProblem_WhenMoveCreatesCycle()
+    {
+        var itemId = new ContentItemId(Guid.NewGuid());
+        var service = new FakeContentItemService(null, []);
+        service.OnMoveItemAsync = (_, _) =>
+            throw new InvalidOperationException(
+                $"Content item '{itemId}' cannot be moved beneath itself or one of its descendants.");
+
+        var result =
+            await ContentLookupEndpoints.MoveAsync(
+                itemId.Value,
+                new MoveContentItemRequest
+                {
+                    ParentId = Guid.NewGuid()
+                },
+                "en",
+                1,
+                service,
+                TestContext.Current.CancellationToken);
+
+        var problem = Assert.IsType<ProblemHttpResult>(result.Result);
+
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task MoveAsync_ShouldReturnConflict_WhenSiblingKeyAlreadyExistsUnderNewParent()
+    {
+        var service = new FakeContentItemService(null, []);
+        service.OnMoveItemAsync = (_, _) =>
+            throw new InvalidOperationException(
+                "Content item key 'home' already exists under parent 'abc'.");
+
+        var result =
+            await ContentLookupEndpoints.MoveAsync(
+                Guid.NewGuid(),
+                new MoveContentItemRequest
+                {
+                    ParentId = Guid.NewGuid()
+                },
+                "en",
+                1,
+                service,
+                TestContext.Current.CancellationToken);
+
+        var problem = Assert.IsType<ProblemHttpResult>(result.Result);
+
+        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+    }
+
+    [Fact]
     public async Task CreateAsync_ShouldReturnProblem_WhenRequestIsInvalid()
     {
         var result =
@@ -973,6 +1163,10 @@ public sealed class ContentLookupEndpointsTests
 
         public Func<ContentItemDefinition, Task>? OnSaveItemAsync { get; set; }
 
+        public Func<ContentItemId, string, ContentItemKey, Task>? OnRenameItemAsync { get; set; }
+
+        public Func<ContentItemId, ContentItemId?, Task>? OnMoveItemAsync { get; set; }
+
         public Func<ContentItemId, FieldValueResolutionContext, IReadOnlyDictionary<string, string?>, Task>? OnSaveFieldValuesByKeyAsync { get; set; }
 
         public Func<ContentItemId, Task>? OnDeleteItemAsync { get; set; }
@@ -982,6 +1176,16 @@ public sealed class ContentLookupEndpointsTests
         public ContentItemId? LastRequestedChildParentId { get; private set; }
 
         public ContentItemDefinition? LastSavedItem { get; private set; }
+
+        public ContentItemId? LastRenamedItemId { get; private set; }
+
+        public string? LastRenameName { get; private set; }
+
+        public ContentItemKey? LastRenameKey { get; private set; }
+
+        public ContentItemId? LastMovedItemId { get; private set; }
+
+        public ContentItemId? LastMoveParentId { get; private set; }
 
         public ContentItemId? LastSavedValuesItemId { get; private set; }
 
@@ -1036,6 +1240,34 @@ public sealed class ContentLookupEndpointsTests
             return OnSaveItemAsync == null
                 ? Task.CompletedTask
                 : OnSaveItemAsync(item);
+        }
+
+        public Task RenameItemAsync(
+            ContentItemId itemId,
+            string name,
+            ContentItemKey key,
+            CancellationToken cancellationToken = default)
+        {
+            LastRenamedItemId = itemId;
+            LastRenameName = name;
+            LastRenameKey = key;
+
+            return OnRenameItemAsync == null
+                ? Task.CompletedTask
+                : OnRenameItemAsync(itemId, name, key);
+        }
+
+        public Task MoveItemAsync(
+            ContentItemId itemId,
+            ContentItemId? parentId,
+            CancellationToken cancellationToken = default)
+        {
+            LastMovedItemId = itemId;
+            LastMoveParentId = parentId;
+
+            return OnMoveItemAsync == null
+                ? Task.CompletedTask
+                : OnMoveItemAsync(itemId, parentId);
         }
 
         public Task SaveFieldValuesAsync(

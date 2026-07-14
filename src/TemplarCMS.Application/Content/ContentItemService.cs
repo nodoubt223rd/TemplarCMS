@@ -160,6 +160,80 @@ public sealed class ContentItemService : IContentItemService
     }
 
     /// <inheritdoc />
+    public async Task RenameItemAsync(
+        ContentItemId itemId,
+        string name,
+        ContentItemKey key,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var existingItem =
+            await _contentRepository.GetItemAsync(
+                itemId,
+                cancellationToken);
+
+        if (existingItem == null)
+        {
+            throw new InvalidOperationException(
+                $"Content item '{itemId}' was not found.");
+        }
+
+        var renamedItem =
+            existingItem.Rename(
+                name,
+                key);
+
+        await EnsureSiblingKeyIsAvailableAsync(
+            renamedItem,
+            cancellationToken);
+
+        await _contentRepository.SaveItemAsync(
+            renamedItem,
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task MoveItemAsync(
+        ContentItemId itemId,
+        ContentItemId? parentId,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var existingItem =
+            await _contentRepository.GetItemAsync(
+                itemId,
+                cancellationToken);
+
+        if (existingItem == null)
+        {
+            throw new InvalidOperationException(
+                $"Content item '{itemId}' was not found.");
+        }
+
+        var movedItem =
+            existingItem.MoveTo(parentId);
+
+        await EnsureParentIsValidAsync(
+            movedItem,
+            cancellationToken);
+
+        await EnsureMoveDoesNotCreateCycleAsync(
+            existingItem.Id,
+            movedItem.ParentId,
+            cancellationToken);
+
+        await EnsureSiblingKeyIsAvailableAsync(
+            movedItem,
+            cancellationToken);
+
+        await _contentRepository.SaveItemAsync(
+            movedItem,
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
     public async Task SaveFieldValuesAsync(
         ContentItemId itemId,
         IReadOnlyCollection<ContentFieldValue> values,
@@ -425,6 +499,36 @@ public sealed class ContentItemService : IContentItemService
         {
             throw new InvalidOperationException(
                 $"Content item '{item.Id}' cannot change key until explicit rename semantics are implemented.");
+        }
+    }
+
+    private async Task EnsureMoveDoesNotCreateCycleAsync(
+        ContentItemId itemId,
+        ContentItemId? parentId,
+        CancellationToken cancellationToken)
+    {
+        var currentParentId = parentId;
+
+        while (currentParentId != null)
+        {
+            if (currentParentId == itemId)
+            {
+                throw new InvalidOperationException(
+                    $"Content item '{itemId}' cannot be moved beneath itself or one of its descendants.");
+            }
+
+            var parent =
+                await _contentRepository.GetItemAsync(
+                    currentParentId.Value,
+                    cancellationToken);
+
+            if (parent == null)
+            {
+                throw new InvalidOperationException(
+                    $"Parent content item '{currentParentId.Value}' was not found for content item '{itemId}'.");
+            }
+
+            currentParentId = parent.ParentId;
         }
     }
 
