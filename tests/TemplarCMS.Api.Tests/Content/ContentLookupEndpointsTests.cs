@@ -47,6 +47,9 @@ public sealed class ContentLookupEndpointsTests
         Assert.Equal(
             $"/api/v1/content/{itemId.Value}/move",
             ok.Value.Links.Move.Href);
+        Assert.Equal(
+            $"/api/v1/content/{itemId.Value}/branch?lang=en&version=1",
+            ok.Value.Links.Branch.Href);
         Assert.Equal(itemId, service.LastRequestedItemId);
         Assert.Equal(new ContentLanguage("en"), service.LastContext.Language);
         Assert.Equal(ContentVersion.First, service.LastContext.Version);
@@ -379,6 +382,122 @@ public sealed class ContentLookupEndpointsTests
         var problem = Assert.IsType<ProblemHttpResult>(result.Result);
 
         Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetBranchAsync_ShouldReturnParentAndDirectChildren()
+    {
+        var parentId = new ContentItemId(Guid.NewGuid());
+        var parent =
+            CreateResolvedItem(
+                itemId: parentId,
+                parentId: null,
+                path: "/home");
+        var childA =
+            CreateResolvedItem(
+                itemId: new ContentItemId(Guid.NewGuid()),
+                parentId: parentId,
+                path: "/home/child-a",
+                name: "Child A",
+                key: "child-a",
+                title: "A");
+        var childB =
+            CreateResolvedItem(
+                itemId: new ContentItemId(Guid.NewGuid()),
+                parentId: parentId,
+                path: "/home/child-b",
+                name: "Child B",
+                key: "child-b",
+                title: "B");
+        var service =
+            new FakeContentItemService(
+                parent,
+                [childA, childB]);
+
+        var result =
+            await ContentLookupEndpoints.GetBranchAsync(
+                parentId.Value,
+                "EN",
+                1,
+                service,
+                TestContext.Current.CancellationToken);
+
+        var ok = Assert.IsType<Ok<ContentBranchResponse>>(result.Result);
+        Assert.NotNull(ok.Value);
+        Assert.NotNull(ok.Value.Item);
+        Assert.NotNull(ok.Value.Links.Item);
+
+        Assert.Equal(parentId.Value.ToString(), ok.Value.Item.Id);
+        Assert.Equal("/home", ok.Value.Item.Path);
+        Assert.Equal(
+            $"/api/v1/content/{parentId.Value}/branch?lang=en&version=1",
+            ok.Value.Links.Self.Href);
+        Assert.Equal(
+            $"/api/v1/content/{parentId.Value}?lang=en&version=1",
+            ok.Value.Links.Item.Href);
+        Assert.Equal(
+            new[] { "/home/child-a", "/home/child-b" },
+            ok.Value.Embedded.Children.Select(child => child.Path).ToArray());
+    }
+
+    [Fact]
+    public async Task GetBranchAsync_ShouldReturnProblem_WhenParentIsMissing()
+    {
+        var result =
+            await ContentLookupEndpoints.GetBranchAsync(
+                Guid.NewGuid(),
+                "en",
+                1,
+                new FakeContentItemService(null, []),
+                TestContext.Current.CancellationToken);
+
+        var problem = Assert.IsType<ProblemHttpResult>(result.Result);
+
+        Assert.Equal(StatusCodes.Status404NotFound, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetRootBranchAsync_ShouldReturnRootChildren()
+    {
+        var rootA =
+            CreateResolvedItem(
+                itemId: new ContentItemId(Guid.NewGuid()),
+                parentId: null,
+                path: "/home",
+                name: "Home",
+                key: "home",
+                title: "Home");
+        var rootB =
+            CreateResolvedItem(
+                itemId: new ContentItemId(Guid.NewGuid()),
+                parentId: null,
+                path: "/articles",
+                name: "Articles",
+                key: "articles",
+                title: "Articles");
+        var service =
+            new FakeContentItemService(
+                null,
+                [rootA, rootB]);
+
+        var result =
+            await ContentLookupEndpoints.GetRootBranchAsync(
+                "EN",
+                1,
+                service,
+                TestContext.Current.CancellationToken);
+
+        var ok = Assert.IsType<Ok<ContentBranchResponse>>(result.Result);
+        Assert.NotNull(ok.Value);
+
+        Assert.Null(ok.Value.Item);
+        Assert.Null(ok.Value.Links.Item);
+        Assert.Equal(
+            "/api/v1/content/root/branch?lang=en&version=1",
+            ok.Value.Links.Self.Href);
+        Assert.Equal(
+            new[] { "/home", "/articles" },
+            ok.Value.Embedded.Children.Select(child => child.Path).ToArray());
     }
 
     [Fact]

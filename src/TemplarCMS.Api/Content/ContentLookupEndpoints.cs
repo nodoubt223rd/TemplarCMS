@@ -47,6 +47,23 @@ public static class ContentLookupEndpoints
             .Produces<ContentItemCollectionResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest);
 
+        endpoints.MapGet(
+                "/api/v1/content/{id:guid}/branch",
+                GetBranchAsync)
+            .WithName("GetContentBranch")
+            .WithTags("Content")
+            .Produces<ContentBranchResponse>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        endpoints.MapGet(
+                "/api/v1/content/root/branch",
+                GetRootBranchAsync)
+            .WithName("GetRootContentBranch")
+            .WithTags("Content")
+            .Produces<ContentBranchResponse>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest);
+
         endpoints.MapPost(
                 "/api/v1/content",
                 CreateAsync)
@@ -265,6 +282,83 @@ public static class ContentLookupEndpoints
             return TypedResults.Ok(
                 MapCollectionResponse(
                     null,
+                    children,
+                    context));
+        }
+        catch (ArgumentException exception)
+        {
+            return ApiProblems.InvalidContentLookupRequest(exception.Message);
+        }
+    }
+
+    public static async Task<Results<Ok<ContentBranchResponse>, ProblemHttpResult>> GetBranchAsync(
+        Guid id,
+        string? lang,
+        int? version,
+        IContentItemService contentItemService,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(contentItemService);
+
+        try
+        {
+            var context =
+                CreateContext(
+                    lang,
+                    version);
+            var itemId =
+                new ContentItemId(id);
+            var item =
+                await contentItemService.GetItemAsync(
+                    itemId,
+                    context,
+                    cancellationToken);
+
+            if (item == null)
+            {
+                return ApiProblems.ContentItemNotFound(id);
+            }
+
+            var children =
+                await contentItemService.GetChildItemsAsync(
+                    itemId,
+                    context,
+                    cancellationToken);
+
+            return TypedResults.Ok(
+                MapBranchResponse(
+                    item,
+                    children,
+                    context));
+        }
+        catch (ArgumentException exception)
+        {
+            return ApiProblems.InvalidContentLookupRequest(exception.Message);
+        }
+    }
+
+    public static async Task<Results<Ok<ContentBranchResponse>, ProblemHttpResult>> GetRootBranchAsync(
+        string? lang,
+        int? version,
+        IContentItemService contentItemService,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(contentItemService);
+
+        try
+        {
+            var context =
+                CreateContext(
+                    lang,
+                    version);
+            var children =
+                await contentItemService.GetChildItemsAsync(
+                    null,
+                    context,
+                    cancellationToken);
+
+            return TypedResults.Ok(
+                MapRootBranchResponse(
                     children,
                     context));
         }
@@ -776,6 +870,10 @@ public static class ContentLookupEndpoints
                 {
                     Href = $"/api/v1/content/{item.Item.Id.Value}/move"
                 },
+                Branch = new LinkResponse
+                {
+                    Href = $"/api/v1/content/{item.Item.Id.Value}/branch?lang={context.Language}&version={context.Version.Value}"
+                },
                 Parent = item.Item.ParentId == null
                     ? null
                     : new LinkResponse
@@ -820,6 +918,71 @@ public static class ContentLookupEndpoints
                     {
                         Href = $"/api/v1/content/{parentId.Value.Value}?lang={context.Language}&version={context.Version.Value}"
                     }
+            }
+        };
+    }
+
+    private static ContentBranchResponse MapBranchResponse(
+        ResolvedContentItem item,
+        IReadOnlyCollection<ResolvedContentItem> children,
+        FieldValueResolutionContext context)
+    {
+        return new ContentBranchResponse
+        {
+            Item = MapResponse(
+                item,
+                context,
+                $"/api/v1/content/{item.Item.Id.Value}?lang={context.Language}&version={context.Version.Value}"),
+            Embedded = new ContentItemBranchEmbeddedResponse
+            {
+                Children = children
+                    .Select(
+                        child =>
+                            MapResponse(
+                                child,
+                                context,
+                                $"/api/v1/content/{child.Item.Id.Value}?lang={context.Language}&version={context.Version.Value}"))
+                    .ToArray()
+            },
+            Links = new ContentItemBranchLinksResponse
+            {
+                Self = new LinkResponse
+                {
+                    Href = $"/api/v1/content/{item.Item.Id.Value}/branch?lang={context.Language}&version={context.Version.Value}"
+                },
+                Item = new LinkResponse
+                {
+                    Href = $"/api/v1/content/{item.Item.Id.Value}?lang={context.Language}&version={context.Version.Value}"
+                }
+            }
+        };
+    }
+
+    private static ContentBranchResponse MapRootBranchResponse(
+        IReadOnlyCollection<ResolvedContentItem> children,
+        FieldValueResolutionContext context)
+    {
+        return new ContentBranchResponse
+        {
+            Item = null,
+            Embedded = new ContentItemBranchEmbeddedResponse
+            {
+                Children = children
+                    .Select(
+                        child =>
+                            MapResponse(
+                                child,
+                                context,
+                                $"/api/v1/content/{child.Item.Id.Value}?lang={context.Language}&version={context.Version.Value}"))
+                    .ToArray()
+            },
+            Links = new ContentItemBranchLinksResponse
+            {
+                Self = new LinkResponse
+                {
+                    Href = $"/api/v1/content/root/branch?lang={context.Language}&version={context.Version.Value}"
+                },
+                Item = null
             }
         };
     }

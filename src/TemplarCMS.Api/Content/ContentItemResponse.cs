@@ -79,6 +79,28 @@ public sealed class ContentItemCollectionLinksResponse
     public LinkResponse? Parent { get; init; }
 }
 
+public sealed class ContentBranchResponse
+{
+    public ContentItemResponse? Item { get; init; }
+
+    public required ContentItemBranchEmbeddedResponse Embedded { get; init; }
+
+    [JsonPropertyName("_links")]
+    public required ContentItemBranchLinksResponse Links { get; init; }
+}
+
+public sealed class ContentItemBranchEmbeddedResponse
+{
+    public required IReadOnlyCollection<ContentItemResponse> Children { get; init; }
+}
+
+public sealed class ContentItemBranchLinksResponse
+{
+    public required LinkResponse Self { get; init; }
+
+    public LinkResponse? Item { get; init; }
+}
+
 public sealed class ContentItemLinksResponse
 {
     public required LinkResponse Self { get; init; }
@@ -95,6 +117,8 @@ public sealed class ContentItemLinksResponse
     public required LinkResponse Rename { get; init; }
 
     public required LinkResponse Move { get; init; }
+
+    public required LinkResponse Branch { get; init; }
 
     public LinkResponse? Parent { get; init; }
 }
