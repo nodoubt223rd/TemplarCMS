@@ -101,6 +101,20 @@ public sealed class ContentItemBranchLinksResponse
     public LinkResponse? Item { get; init; }
 }
 
+public sealed class ContentMutationResponse
+{
+    public required ContentItemResponse Item { get; init; }
+
+    public required IReadOnlyCollection<ContentMutationAffectedBranchResponse> AffectedBranches { get; init; }
+}
+
+public sealed class ContentMutationAffectedBranchResponse
+{
+    public required string Scope { get; init; }
+
+    public required ContentBranchResponse Branch { get; init; }
+}
+
 public sealed class ContentItemLinksResponse
 {
     public required LinkResponse Self { get; init; }

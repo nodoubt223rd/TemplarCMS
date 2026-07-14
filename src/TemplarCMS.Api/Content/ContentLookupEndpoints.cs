@@ -69,7 +69,7 @@ public static class ContentLookupEndpoints
                 CreateAsync)
             .WithName("CreateContent")
             .WithTags("Content")
-            .Produces<ContentItemResponse>(StatusCodes.Status201Created)
+            .Produces<ContentMutationResponse>(StatusCodes.Status201Created)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status409Conflict);
 
@@ -87,7 +87,7 @@ public static class ContentLookupEndpoints
                 RenameAsync)
             .WithName("RenameContent")
             .WithTags("Content")
-            .Produces<ContentItemResponse>(StatusCodes.Status200OK)
+            .Produces<ContentMutationResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict);
@@ -97,7 +97,7 @@ public static class ContentLookupEndpoints
                 MoveAsync)
             .WithName("MoveContent")
             .WithTags("Content")
-            .Produces<ContentItemResponse>(StatusCodes.Status200OK)
+            .Produces<ContentMutationResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict);
@@ -368,7 +368,7 @@ public static class ContentLookupEndpoints
         }
     }
 
-    public static async Task<Results<Created<ContentItemResponse>, ProblemHttpResult>> CreateAsync(
+    public static async Task<Results<Created<ContentMutationResponse>, ProblemHttpResult>> CreateAsync(
         CreateContentItemRequest? request,
         IContentItemService contentItemService,
         CancellationToken cancellationToken)
@@ -413,11 +413,18 @@ public static class ContentLookupEndpoints
 
             var location =
                 $"/api/v1/content/{createdItem.Item.Id.Value}?lang={context.Language}&version={context.Version.Value}";
+            var affectedBranches =
+                await LoadAffectedBranchesAsync(
+                    contentItemService,
+                    context,
+                    [("created-under", createdItem.Item.ParentId)],
+                    cancellationToken);
 
             return TypedResults.Created(
                 location,
-                MapResponse(
+                MapMutationResponse(
                     createdItem,
+                    affectedBranches,
                     context,
                     location));
         }
@@ -589,7 +596,7 @@ public static class ContentLookupEndpoints
         }
     }
 
-    public static async Task<Results<Ok<ContentItemResponse>, ProblemHttpResult>> RenameAsync(
+    public static async Task<Results<Ok<ContentMutationResponse>, ProblemHttpResult>> RenameAsync(
         Guid id,
         RenameContentItemRequest? request,
         string? lang,
@@ -626,9 +633,17 @@ public static class ContentLookupEndpoints
                 return ApiProblems.UpdatedContentItemCouldNotBeLoaded(itemId);
             }
 
+            var affectedBranches =
+                await LoadAffectedBranchesAsync(
+                    contentItemService,
+                    context,
+                    [("renamed-under", refreshedItem.Item.ParentId)],
+                    cancellationToken);
+
             return TypedResults.Ok(
-                MapResponse(
+                MapMutationResponse(
                     refreshedItem,
+                    affectedBranches,
                     context,
                     $"/api/v1/content/{refreshedItem.Item.Id.Value}?lang={context.Language}&version={context.Version.Value}"));
         }
@@ -649,7 +664,7 @@ public static class ContentLookupEndpoints
         }
     }
 
-    public static async Task<Results<Ok<ContentItemResponse>, ProblemHttpResult>> MoveAsync(
+    public static async Task<Results<Ok<ContentMutationResponse>, ProblemHttpResult>> MoveAsync(
         Guid id,
         MoveContentItemRequest? request,
         string? lang,
@@ -667,13 +682,26 @@ public static class ContentLookupEndpoints
         try
         {
             var itemId = new ContentItemId(id);
+            var context = CreateContext(lang, version);
+            var existingItem =
+                await contentItemService.GetItemAsync(
+                    itemId,
+                    context,
+                    cancellationToken);
+
+            if (existingItem == null)
+            {
+                return ApiProblems.ContentItemNotFound(id);
+            }
+
+            var previousParentId =
+                existingItem.Item.ParentId;
 
             await contentItemService.MoveItemAsync(
                 itemId,
                 request.ParentId == null ? null : new ContentItemId(request.ParentId.Value),
                 cancellationToken);
 
-            var context = CreateContext(lang, version);
             var refreshedItem =
                 await contentItemService.GetItemAsync(
                     itemId,
@@ -685,9 +713,20 @@ public static class ContentLookupEndpoints
                 return ApiProblems.UpdatedContentItemCouldNotBeLoaded(itemId);
             }
 
+            var affectedBranches =
+                await LoadAffectedBranchesAsync(
+                    contentItemService,
+                    context,
+                    [
+                        ("moved-from", previousParentId),
+                        ("moved-to", refreshedItem.Item.ParentId)
+                    ],
+                    cancellationToken);
+
             return TypedResults.Ok(
-                MapResponse(
+                MapMutationResponse(
                     refreshedItem,
+                    affectedBranches,
                     context,
                     $"/api/v1/content/{refreshedItem.Item.Id.Value}?lang={context.Language}&version={context.Version.Value}"));
         }
@@ -1004,6 +1043,90 @@ public static class ContentLookupEndpoints
                 }
             }
         };
+    }
+
+    private static ContentMutationResponse MapMutationResponse(
+        ResolvedContentItem item,
+        IReadOnlyCollection<ContentMutationAffectedBranchResponse> affectedBranches,
+        FieldValueResolutionContext context,
+        string selfHref)
+    {
+        return new ContentMutationResponse
+        {
+            Item = MapResponse(
+                item,
+                context,
+                selfHref),
+            AffectedBranches = affectedBranches
+        };
+    }
+
+    private static async Task<IReadOnlyCollection<ContentMutationAffectedBranchResponse>> LoadAffectedBranchesAsync(
+        IContentItemService contentItemService,
+        FieldValueResolutionContext context,
+        IReadOnlyCollection<(string Scope, ContentItemId? ParentId)> branchRequests,
+        CancellationToken cancellationToken)
+    {
+        var uniqueRequests =
+            branchRequests
+                .DistinctBy(
+                    request => request.Scope + "|" + (request.ParentId?.ToString() ?? "<root>"))
+                .ToArray();
+        var branches =
+            new List<ContentMutationAffectedBranchResponse>(uniqueRequests.Length);
+
+        foreach (var request in uniqueRequests)
+        {
+            if (request.ParentId == null)
+            {
+                var rootChildren =
+                    await contentItemService.GetChildItemsAsync(
+                        null,
+                        context,
+                        cancellationToken);
+
+                branches.Add(
+                    new ContentMutationAffectedBranchResponse
+                    {
+                        Scope = request.Scope,
+                        Branch = MapRootBranchResponse(
+                            rootChildren,
+                            context)
+                    });
+
+                continue;
+            }
+
+            var parent =
+                await contentItemService.GetItemAsync(
+                    request.ParentId.Value,
+                    context,
+                    cancellationToken);
+
+            if (parent == null)
+            {
+                throw new InvalidOperationException(
+                    $"Content item '{request.ParentId.Value}' was saved but its affected branch could not be reloaded.");
+            }
+
+            var children =
+                await contentItemService.GetChildItemsAsync(
+                    request.ParentId.Value,
+                    context,
+                    cancellationToken);
+
+            branches.Add(
+                new ContentMutationAffectedBranchResponse
+                {
+                    Scope = request.Scope,
+                    Branch = MapBranchResponse(
+                        parent,
+                        children,
+                        context)
+                });
+        }
+
+        return branches;
     }
 
     private static FieldValueResolutionContext CreateContext(
