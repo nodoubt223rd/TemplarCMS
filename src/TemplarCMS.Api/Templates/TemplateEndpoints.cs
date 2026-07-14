@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 using TemplarCMS.Application.Content;
 using TemplarCMS.Abstractions.Content;
+using TemplarCMS.Api;
 using TemplarCMS.Api.Content;
 using TemplarCMS.ContentModeling.Abstractions;
 using TemplarCMS.ContentModeling.Catalog;
@@ -127,10 +128,7 @@ public static class TemplateEndpoints
 
             if (template == null)
             {
-                return TypedResults.Problem(
-                    title: "Template was not found",
-                    detail: $"No template exists with id '{id}'.",
-                    statusCode: StatusCodes.Status404NotFound);
+                return ApiProblems.TemplateNotFound(id);
             }
 
             return TypedResults.Ok(
@@ -138,10 +136,7 @@ public static class TemplateEndpoints
         }
         catch (ArgumentException exception)
         {
-            return TypedResults.Problem(
-                title: "Invalid template lookup request",
-                detail: exception.Message,
-                statusCode: StatusCodes.Status400BadRequest);
+            return ApiProblems.InvalidTemplateLookupRequest(exception.Message);
         }
     }
 
@@ -156,10 +151,7 @@ public static class TemplateEndpoints
 
         if (request == null)
         {
-            return TypedResults.Problem(
-                title: "Template request is required",
-                detail: "Provide a template payload in the request body.",
-                statusCode: StatusCodes.Status400BadRequest);
+            return ApiProblems.TemplateRequestRequired();
         }
 
         TemplateDefinition? template = null;
@@ -199,10 +191,7 @@ public static class TemplateEndpoints
 
             if (createdTemplate == null)
             {
-                return TypedResults.Problem(
-                    title: "Created template could not be loaded",
-                    detail: $"Template '{template.Id}' was saved but could not be reloaded.",
-                    statusCode: StatusCodes.Status400BadRequest);
+                return ApiProblems.CreatedTemplateCouldNotBeLoaded(template.Id);
             }
 
             var location =
@@ -221,10 +210,7 @@ public static class TemplateEndpoints
                         " ",
                         exception.Errors.Select(error => error.Message));
 
-            return TypedResults.Problem(
-                title: "Template could not be created",
-                detail: detail,
-                statusCode: StatusCodes.Status400BadRequest);
+            return ApiProblems.TemplateCouldNotBeCreated(detail, StatusCodes.Status400BadRequest);
         }
         catch (InvalidOperationException exception)
         {
@@ -235,19 +221,11 @@ public static class TemplateEndpoints
                     ? StatusCodes.Status409Conflict
                     : StatusCodes.Status400BadRequest;
 
-            return TypedResults.Problem(
-                title: statusCode == StatusCodes.Status409Conflict
-                    ? "Template could not be created"
-                    : "Invalid template create request",
-                detail: exception.Message,
-                statusCode: statusCode);
+            return ApiProblems.TemplateCouldNotBeCreated(exception.Message, statusCode);
         }
         catch (ArgumentException exception)
         {
-            return TypedResults.Problem(
-                title: "Invalid template create request",
-                detail: exception.Message,
-                statusCode: StatusCodes.Status400BadRequest);
+            return ApiProblems.InvalidTemplateCreateRequest(exception.Message);
         }
     }
 
@@ -263,10 +241,7 @@ public static class TemplateEndpoints
 
         if (request == null)
         {
-            return TypedResults.Problem(
-                title: "Template request is required",
-                detail: "Provide a template payload in the request body.",
-                statusCode: StatusCodes.Status400BadRequest);
+            return ApiProblems.TemplateRequestRequired();
         }
 
         TemplateDefinition? existingTemplate = null;
@@ -281,10 +256,7 @@ public static class TemplateEndpoints
 
             if (existingTemplate == null)
             {
-                return TypedResults.Problem(
-                    title: "Template was not found",
-                    detail: $"No template exists with id '{id}'.",
-                    statusCode: StatusCodes.Status404NotFound);
+                return ApiProblems.TemplateNotFound(id);
             }
 
             updatedTemplate =
@@ -323,10 +295,7 @@ public static class TemplateEndpoints
 
             if (refreshedTemplate == null)
             {
-                return TypedResults.Problem(
-                    title: "Updated template could not be loaded",
-                    detail: $"Template '{existingTemplate.Id}' was saved but could not be reloaded.",
-                    statusCode: StatusCodes.Status400BadRequest);
+                return ApiProblems.UpdatedTemplateCouldNotBeLoaded(existingTemplate.Id);
             }
 
             return TypedResults.Ok(
@@ -341,10 +310,7 @@ public static class TemplateEndpoints
                         " ",
                         exception.Errors.Select(error => error.Message));
 
-            return TypedResults.Problem(
-                title: "Template could not be updated",
-                detail: detail,
-                statusCode: StatusCodes.Status400BadRequest);
+            return ApiProblems.TemplateCouldNotBeUpdated(detail, StatusCodes.Status400BadRequest);
         }
         catch (InvalidOperationException exception)
         {
@@ -359,22 +325,11 @@ public static class TemplateEndpoints
                         ? StatusCodes.Status404NotFound
                         : StatusCodes.Status400BadRequest;
 
-            return TypedResults.Problem(
-                title: statusCode switch
-                {
-                    StatusCodes.Status404NotFound => "Template was not found",
-                    StatusCodes.Status409Conflict => "Template could not be updated",
-                    _ => "Invalid template update request"
-                },
-                detail: exception.Message,
-                statusCode: statusCode);
+            return ApiProblems.TemplateCouldNotBeUpdated(exception.Message, statusCode);
         }
         catch (ArgumentException exception)
         {
-            return TypedResults.Problem(
-                title: "Invalid template update request",
-                detail: exception.Message,
-                statusCode: StatusCodes.Status400BadRequest);
+            return ApiProblems.InvalidTemplateUpdateRequest(exception.Message);
         }
     }
 
@@ -394,10 +349,7 @@ public static class TemplateEndpoints
 
             if (template == null)
             {
-                return TypedResults.Problem(
-                    title: "Template was not found",
-                    detail: $"No template exists with id '{id}'.",
-                    statusCode: StatusCodes.Status404NotFound);
+                return ApiProblems.TemplateNotFound(id);
             }
 
             return TypedResults.Ok(
@@ -405,10 +357,7 @@ public static class TemplateEndpoints
         }
         catch (ArgumentException exception)
         {
-            return TypedResults.Problem(
-                title: "Invalid template lookup request",
-                detail: exception.Message,
-                statusCode: StatusCodes.Status400BadRequest);
+            return ApiProblems.InvalidTemplateLookupRequest(exception.Message);
         }
     }
 
@@ -434,10 +383,7 @@ public static class TemplateEndpoints
 
             if (template == null)
             {
-                return TypedResults.Problem(
-                    title: "Template was not found",
-                    detail: $"No template exists with id '{id}'.",
-                    statusCode: StatusCodes.Status404NotFound);
+                return ApiProblems.TemplateNotFound(id);
             }
 
             var templates =
@@ -495,10 +441,7 @@ public static class TemplateEndpoints
         }
         catch (ArgumentException exception)
         {
-            return TypedResults.Problem(
-                title: "Invalid template lookup request",
-                detail: exception.Message,
-                statusCode: StatusCodes.Status400BadRequest);
+            return ApiProblems.InvalidTemplateLookupRequest(exception.Message);
         }
     }
 
@@ -524,10 +467,7 @@ public static class TemplateEndpoints
 
             if (template == null)
             {
-                return TypedResults.Problem(
-                    title: "Template was not found",
-                    detail: $"No template exists with id '{id}'.",
-                    statusCode: StatusCodes.Status404NotFound);
+                return ApiProblems.TemplateNotFound(id);
             }
 
             var templates =
@@ -539,10 +479,8 @@ public static class TemplateEndpoints
 
             if (dependentTemplate != null)
             {
-                return TypedResults.Problem(
-                    title: "Template could not be deleted",
-                    detail: $"Template '{template.Key}' is used as a base template by '{dependentTemplate.Key}'.",
-                    statusCode: StatusCodes.Status400BadRequest);
+                return ApiProblems.TemplateCouldNotBeDeleted(
+                    $"Template '{template.Key}' is used as a base template by '{dependentTemplate.Key}'.");
             }
 
             var dependentItems =
@@ -552,10 +490,8 @@ public static class TemplateEndpoints
 
             if (dependentItems.Count > 0)
             {
-                return TypedResults.Problem(
-                    title: "Template could not be deleted",
-                    detail: $"Template '{template.Key}' is still assigned to one or more content items.",
-                    statusCode: StatusCodes.Status400BadRequest);
+                return ApiProblems.TemplateCouldNotBeDeleted(
+                    $"Template '{template.Key}' is still assigned to one or more content items.");
             }
 
             await templateRepository.DeleteTemplateAsync(
@@ -589,10 +525,7 @@ public static class TemplateEndpoints
                         " ",
                         exception.Errors.Select(error => error.Message));
 
-            return TypedResults.Problem(
-                title: "Template could not be deleted",
-                detail: detail,
-                statusCode: StatusCodes.Status400BadRequest);
+            return ApiProblems.TemplateCouldNotBeDeleted(detail);
         }
         catch (InvalidOperationException exception)
         {
@@ -603,19 +536,11 @@ public static class TemplateEndpoints
                     ? StatusCodes.Status404NotFound
                     : StatusCodes.Status400BadRequest;
 
-            return TypedResults.Problem(
-                title: statusCode == StatusCodes.Status404NotFound
-                    ? "Template was not found"
-                    : "Template could not be deleted",
-                detail: exception.Message,
-                statusCode: statusCode);
+            return ApiProblems.TemplateCouldNotBeDeleted(exception.Message, statusCode);
         }
         catch (ArgumentException exception)
         {
-            return TypedResults.Problem(
-                title: "Invalid template delete request",
-                detail: exception.Message,
-                statusCode: StatusCodes.Status400BadRequest);
+            return ApiProblems.InvalidTemplateDeleteRequest(exception.Message);
         }
     }
 
