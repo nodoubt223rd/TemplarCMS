@@ -26,13 +26,49 @@ public sealed class TypedFieldValueConverterTests
     public void Convert_ReturnsStringValue_ForGeneralLink()
     {
         var field = CreateField(FieldType.GeneralLink, "help-link");
+        var value = CreateValue(
+            "{\"kind\":\"external\",\"url\":\"https://templarcms.dev/help\",\"text\":\"Help\"}",
+            "help-link");
+
+        var result = _converter.Convert(field, value);
+
+        Assert.True(result.Succeeded);
+        var converted = Assert.IsType<GeneralLinkTypedFieldValue>(result.Value!.Value);
+        Assert.Equal(GeneralLinkKind.External, converted.Value.Kind);
+        Assert.Equal("https://templarcms.dev/help", converted.Value.Url?.ToString());
+        Assert.Equal("Help", converted.Value.Text);
+    }
+
+    [Fact]
+    public void Convert_ReturnsStructuredInternalValue_ForGeneralLink()
+    {
+        var itemId = Guid.NewGuid();
+        var field = CreateField(FieldType.GeneralLink, "help-link");
+        var value = CreateValue(
+            $"{{\"kind\":\"internal\",\"itemId\":\"{itemId}\",\"text\":\"Contact us\"}}",
+            "help-link");
+
+        var result = _converter.Convert(field, value);
+
+        Assert.True(result.Succeeded);
+        var converted = Assert.IsType<GeneralLinkTypedFieldValue>(result.Value!.Value);
+        Assert.Equal(GeneralLinkKind.Internal, converted.Value.Kind);
+        Assert.Equal(new ContentItemId(itemId), converted.Value.ItemId);
+        Assert.Equal("Contact us", converted.Value.Text);
+    }
+
+    [Fact]
+    public void Convert_ReturnsStructuredLegacyUrlValue_ForGeneralLink()
+    {
+        var field = CreateField(FieldType.GeneralLink, "help-link");
         var value = CreateValue("https://templarcms.dev/help", "help-link");
 
         var result = _converter.Convert(field, value);
 
         Assert.True(result.Succeeded);
-        var converted = Assert.IsType<StringTypedFieldValue>(result.Value!.Value);
-        Assert.Equal("https://templarcms.dev/help", converted.Value);
+        var converted = Assert.IsType<GeneralLinkTypedFieldValue>(result.Value!.Value);
+        Assert.Equal(GeneralLinkKind.External, converted.Value.Kind);
+        Assert.Equal("https://templarcms.dev/help", converted.Value.Url?.ToString());
     }
 
     [Fact]
@@ -173,6 +209,22 @@ public sealed class TypedFieldValueConverterTests
         var error = Assert.Single(result.Errors);
         Assert.Equal("InvalidDateTimeFieldValue", error.Code);
         Assert.Equal("publish-on", error.Target);
+    }
+
+    [Fact]
+    public void Convert_ReturnsValidationError_WhenGeneralLinkValueIsInvalid()
+    {
+        var field = CreateField(FieldType.GeneralLink, "help-link");
+        var value = CreateValue(
+            "{\"kind\":\"external\",\"url\":\"not-a-url\"}",
+            "help-link");
+
+        var result = _converter.Convert(field, value);
+
+        Assert.False(result.IsValid);
+        var error = Assert.Single(result.Errors);
+        Assert.Equal("InvalidGeneralLinkFieldValue", error.Code);
+        Assert.Equal("help-link", error.Target);
     }
 
     [Fact]

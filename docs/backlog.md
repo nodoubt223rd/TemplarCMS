@@ -135,3 +135,21 @@ public interface ICookieService
     bool Exists(...);
     void Delete(...);
 }
+
+## Admin UI
+
+### Frontend Unit Test Coverage
+
+Status: Future
+
+Problem:
+The Vue admin experience now contains meaningful field-editor logic and
+template-authoring behavior, but it still relies mostly on manual
+verification and build-time type checks.
+
+Goals:
+- Add frontend unit tests around the admin field editor registry
+- Cover structured `General Link` internal/external editing behavior
+- Cover legacy value upgrade behavior in the `General Link` editor
+- Add confidence around template designer field-type selection and
+  editor rendering decisions
