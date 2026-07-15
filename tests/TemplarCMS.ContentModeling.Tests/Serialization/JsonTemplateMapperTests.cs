@@ -117,9 +117,14 @@ public sealed class JsonTemplateMapperTests
     [InlineData("integer", FieldType.Integer)]
     [InlineData("decimal", FieldType.Decimal)]
     [InlineData("droplink", FieldType.Droplink)]
+    [InlineData("DropTree", FieldType.Droplink)]
     [InlineData("multilist", FieldType.Multilist)]
+    [InlineData("TreeListEx", FieldType.Multilist)]
+    [InlineData("Checklist", FieldType.Multilist)]
+    [InlineData("Multilist with Search", FieldType.Multilist)]
     [InlineData("image", FieldType.Image)]
     [InlineData("file", FieldType.File)]
+    [InlineData("server file", FieldType.File)]
     [InlineData("json", FieldType.Json)]
     public void Map_ShouldMapFieldType(
         string jsonFieldType,
@@ -205,6 +210,24 @@ public sealed class JsonTemplateMapperTests
 
         Assert.Throws<InvalidOperationException>(() =>
             _mapper.Map(jsonTemplate));
+    }
+
+    [Fact]
+    public void Map_ShouldIncludeHint_WhenFieldTypeRequiresDedicatedSupport()
+    {
+        var jsonTemplate = CreateTemplateWithField(new JsonFieldDefinition
+        {
+            Id = Guid.NewGuid(),
+            Name = "Link",
+            Key = "link",
+            FieldType = "General Link"
+        });
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            _mapper.Map(jsonTemplate));
+
+        Assert.Contains("dedicated link field type", exception.Message);
+        Assert.Contains("Supported logical field types", exception.Message);
     }
 
     private static JsonTemplateDefinition CreateTemplate()

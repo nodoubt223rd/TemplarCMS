@@ -775,29 +775,7 @@ public static class TemplateEndpoints
     private static FieldType ParseFieldType(
         string? fieldType)
     {
-        if (string.IsNullOrWhiteSpace(fieldType))
-        {
-            throw new InvalidOperationException(
-                "Field type is required.");
-        }
-
-        return fieldType.Trim().ToLowerInvariant() switch
-        {
-            "singlelinetext" => FieldType.SingleLineText,
-            "multilinetext" => FieldType.MultiLineText,
-            "richtext" => FieldType.RichText,
-            "checkbox" => FieldType.Checkbox,
-            "datetime" => FieldType.DateTime,
-            "integer" => FieldType.Integer,
-            "decimal" => FieldType.Decimal,
-            "droplink" => FieldType.Droplink,
-            "multilist" => FieldType.Multilist,
-            "image" => FieldType.Image,
-            "file" => FieldType.File,
-            "json" => FieldType.Json,
-            _ => throw new InvalidOperationException(
-                $"Unsupported field type '{fieldType}'.")
-        };
+        return FieldTypeParser.Parse(fieldType);
     }
 
     private static IReadOnlyCollection<TemplateDefinition> GetDependentTemplates(

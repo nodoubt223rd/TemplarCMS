@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
 using TemplarCMS.Application.Content;
 using TemplarCMS.Abstractions.Content;
 using TemplarCMS.Api.Templates;
@@ -225,6 +226,70 @@ public sealed class TemplateEndpointsTests
     }
 
     [Fact]
+    public async Task CreateAsync_ShouldMapSupportedAliasFieldTypes()
+    {
+        var catalog =
+            new FakeContentModelCatalog();
+        var repository =
+            new FakeTemplateRepository();
+        repository.OnCreateTemplateAsync = template =>
+        {
+            catalog.AddAuthoredTemplate(template);
+            catalog.AddTemplate(
+                new EffectiveTemplateDefinition(
+                    template.Id,
+                    template.Name,
+                    template.Key,
+                    template.Sections.ToArray()));
+
+            return Task.CompletedTask;
+        };
+
+        var result =
+            await TemplateEndpoints.CreateAsync(
+                new CreateTemplateRequest
+                {
+                    Name = "Search Page",
+                    Key = "search-page",
+                    Sections =
+                    [
+                        new CreateTemplateSectionRequest
+                        {
+                            Name = "Settings",
+                            Key = "settings",
+                            Fields =
+                            [
+                                new CreateTemplateFieldRequest
+                                {
+                                    Name = "Tags",
+                                    Key = "tags",
+                                    Type = "TreelistEx"
+                                },
+                                new CreateTemplateFieldRequest
+                                {
+                                    Name = "Source",
+                                    Key = "source",
+                                    Type = "DropTree"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                repository,
+                catalog,
+                TestContext.Current.CancellationToken);
+
+        var created = Assert.IsType<Created<TemplateResponse>>(result.Result);
+        Assert.NotNull(created.Value);
+        Assert.NotNull(repository.LastCreatedTemplate);
+
+        var createdSection = Assert.Single(repository.LastCreatedTemplate.Sections);
+        var createdFields = createdSection.Fields.ToArray();
+        Assert.Equal(FieldType.Multilist, createdFields[0].FieldType);
+        Assert.Equal(FieldType.Droplink, createdFields[1].FieldType);
+    }
+
+    [Fact]
     public async Task CreateAsync_ShouldAssignBaseTemplate_WhenBaseTemplateKeyIsProvided()
     {
         var baseTemplate =
@@ -340,6 +405,44 @@ public sealed class TemplateEndpointsTests
         var problem = Assert.IsType<ProblemHttpResult>(result.Result);
 
         Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateAsync_ShouldReturnProblemWithHint_WhenFieldTypeNeedsDedicatedSupport()
+    {
+        var result =
+            await TemplateEndpoints.CreateAsync(
+                new CreateTemplateRequest
+                {
+                    Name = "Article Page",
+                    Key = "article-page",
+                    Sections =
+                    [
+                        new CreateTemplateSectionRequest
+                        {
+                            Name = "Content",
+                            Key = "content",
+                            Fields =
+                            [
+                                new CreateTemplateFieldRequest
+                                {
+                                    Name = "Help Link",
+                                    Key = "help-link",
+                                    Type = "General Link"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                new FakeTemplateRepository(),
+                new FakeContentModelCatalog(),
+                TestContext.Current.CancellationToken);
+
+        var problem = Assert.IsType<ProblemHttpResult>(result.Result);
+        var value = Assert.IsType<ProblemDetails>(problem.ProblemDetails);
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        Assert.NotNull(value.Detail);
+        Assert.Contains("dedicated link field type", value.Detail, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

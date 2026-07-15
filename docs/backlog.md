@@ -57,6 +57,58 @@ Goals:
 - Keep current delete contracts compatible with a future recycle-bin or
   restore workflow
 
+## Content Modeling
+
+### Standard Template Parity
+
+Status: Future
+
+Problem:
+The seeded `standard` template is intentionally lightweight today, but
+business has now provided a much fuller Sitecore-style target shape for
+the long-term standard template and its system sections.
+
+Goals:
+- Evolve the default `standard` template toward a richer authored
+  baseline rather than keeping it as a minimal placeholder
+- Preserve the requested section layout under
+  `templar/templates/systemTemplates/Sections`
+- Treat the request as both a template-shape backlog item and a field
+  type demand signal for future editor/runtime work
+- Keep the current bootstrap-friendly default content structure until
+  the richer standard template can be introduced intentionally
+
+Requested standard-template sections:
+- `Advanced`
+- `Appearance`
+- `Help`
+- `Layout`
+- `Lifetime`
+- `Indexing`
+- `Publishing`
+- `Security`
+- `Statistics`
+- `Tagging`
+- `Tasks`
+- `Validators`
+- `Workflow`
+- `Version`
+
+Field-type signal from this request:
+- Already represented in the request: `Checkbox`, `Single-Line Text`,
+  `Multi-Line Text`, `Droplink`, `Droptree`, `Treelist`, `TreelistEx`,
+  `Checklist`, `DateTime`, `Layout`, `Datasource`, `Page Preview`,
+  `General Link`, `Version Link`, `Icon`, `Thumbnail`, `Tracking`,
+  `Security`, `Multilist with Search`, `Server File`, and plain `Text`
+- Notably absent from this business-provided standard-template target:
+  `Integer` and a decimal-oriented field type
+
+Notes:
+- This input is valuable because it reveals which field editors business
+  expects to see in a realistic CMS authoring baseline.
+- The current typed-value/runtime work should stay compatible with these
+  future field types even if the admin editor support arrives later.
+
 ## Runtime
 
 ### Cookie Management
