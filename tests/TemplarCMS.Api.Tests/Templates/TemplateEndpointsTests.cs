@@ -52,10 +52,36 @@ public sealed class TemplateEndpointsTests
     [Fact]
     public async Task GetByIdAsync_ShouldReturnOk_WhenTemplateExists()
     {
+        var field =
+            new FieldDefinition(
+                new FieldId(Guid.NewGuid()),
+                "Title",
+                "title",
+                FieldType.SingleLineText,
+                isUnversioned: true);
+        var section =
+            new TemplateSectionDefinition(
+                Guid.NewGuid(),
+                "Content",
+                "content",
+                100,
+                [field]);
+        var authoredTemplate =
+            new TemplateDefinition(
+                new TemplateId(Guid.NewGuid()),
+                "Article Page",
+                new TemplateKey("article-page"),
+                null,
+                [section]);
         var template =
-            CreateTemplate();
+            new EffectiveTemplateDefinition(
+                authoredTemplate.Id,
+                authoredTemplate.Name,
+                authoredTemplate.Key,
+                authoredTemplate.Sections.ToArray());
         var catalog =
             new FakeContentModelCatalog(
+                [authoredTemplate],
                 template);
 
         var result =
@@ -65,17 +91,49 @@ public sealed class TemplateEndpointsTests
                 TestContext.Current.CancellationToken);
 
         var ok = Assert.IsType<Ok<TemplateResponse>>(result.Result);
-        Assert.NotNull(ok.Value);
+        var response = Assert.IsType<TemplateResponse>(ok.Value);
 
-        Assert.Equal(template.Id.Value.ToString(), ok.Value.Id);
-        Assert.Equal(template.Name, ok.Value.Name);
-        Assert.Equal(template.Key.ToString(), ok.Value.Key);
-        Assert.Single(ok.Value.Sections);
-        Assert.Equal($"/api/v1/templates/{template.Id.Value}", ok.Value.Links.Self.Href);
-        Assert.Equal($"/api/v1/templates/{template.Id.Value}/fields", ok.Value.Links.Fields.Href);
-        Assert.Equal($"/api/v1/templates/{template.Id.Value}/dependencies", ok.Value.Links.Dependencies.Href);
-        Assert.Equal("/api/v1/content", ok.Value.Links.CreateItem.Href);
-        Assert.Equal(new TemplateId(template.Id.Value), catalog.LastRequestedTemplateId);
+        Assert.Equal(template.Id.Value.ToString(), response.Id);
+        Assert.Equal(template.Name, response.Name);
+        Assert.Equal(template.Key.ToString(), response.Key);
+        Assert.Single(response.Sections);
+        Assert.Equal($"/api/v1/templates/{template.Id.Value}", response.Links.Self.Href);
+        Assert.Equal($"/api/v1/templates/{template.Id.Value}/fields", response.Links.Fields.Href);
+        Assert.Equal($"/api/v1/templates/{template.Id.Value}/dependencies", response.Links.Dependencies.Href);
+        Assert.Equal("/api/v1/content", response.Links.CreateItem.Href);
+        Assert.Null(response.BaseTemplate);
+        Assert.Null(catalog.LastRequestedTemplateId);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_ShouldReturnBaseTemplate_WhenTemplateInheritsFromAnotherTemplate()
+    {
+        var baseTemplate =
+            CreateAuthoredTemplate(
+                "Base Page",
+                "base-page");
+        var childTemplate =
+            CreateAuthoredTemplate(
+                "Article Page",
+                "article-page",
+                baseTemplate);
+        var catalog =
+            new FakeContentModelCatalog(
+                [baseTemplate, childTemplate]);
+
+        var result =
+            await TemplateEndpoints.GetByIdAsync(
+                childTemplate.Id.Value,
+                catalog,
+                TestContext.Current.CancellationToken);
+
+        var ok = Assert.IsType<Ok<TemplateResponse>>(result.Result);
+        var response = Assert.IsType<TemplateResponse>(ok.Value);
+        var responseBaseTemplate = Assert.IsType<TemplateBaseTemplateResponse>(response.BaseTemplate);
+        Assert.Equal(baseTemplate.Id.Value.ToString(), responseBaseTemplate.Id);
+        Assert.Equal(baseTemplate.Name, responseBaseTemplate.Name);
+        Assert.Equal(baseTemplate.Key.ToString(), responseBaseTemplate.Key);
+        Assert.Equal($"/api/v1/templates/{baseTemplate.Id.Value}", responseBaseTemplate.Links.Self.Href);
     }
 
     [Fact]
@@ -115,6 +173,7 @@ public sealed class TemplateEndpointsTests
             new FakeTemplateRepository();
         repository.OnCreateTemplateAsync = template =>
         {
+            catalog.AddAuthoredTemplate(template);
             catalog.AddTemplate(
                 new EffectiveTemplateDefinition(
                     template.Id,
@@ -179,6 +238,7 @@ public sealed class TemplateEndpointsTests
             new FakeTemplateRepository();
         repository.OnCreateTemplateAsync = template =>
         {
+            catalog.AddAuthoredTemplate(template);
             catalog.AddTemplate(
                 new EffectiveTemplateDefinition(
                     template.Id,
@@ -422,6 +482,7 @@ public sealed class TemplateEndpointsTests
             new FakeTemplateRepository();
         repository.OnUpdateTemplateAsync = (_, template) =>
         {
+            catalog.AddAuthoredTemplate(template);
             catalog.AddTemplate(
                 new EffectiveTemplateDefinition(
                     template.Id,

@@ -6,11 +6,48 @@ import type {
   ContentItemResponse,
   ContentMutationResponse,
   TemplateCollectionResponse,
+  TemplateDependencyResponse,
+  TemplateResponse,
+  TemplateSectionResponse,
   TemplateFieldCollectionResponse,
   TemplateFieldItemResponse,
   TemplateSummaryResponse
 } from './types/admin-api'
-import type { EditorFieldModel, TreeNode } from './types/admin-ui'
+import type { EditorFieldModel, TemplateSectionViewModel, TreeNode } from './types/admin-ui'
+
+type TemplateDesignerMode = 'create' | 'edit'
+
+type TemplateDraftField = {
+  id: string
+  name: string
+  key: string
+  type: string
+  isShared: boolean
+  isUnversioned: boolean
+}
+
+type TemplateDraftSection = {
+  id: string
+  name: string
+  key: string
+  sortOrder: number
+  fields: TemplateDraftField[]
+}
+
+const fieldTypeOptions = [
+  'SingleLineText',
+  'MultiLineText',
+  'RichText',
+  'Checkbox',
+  'DateTime',
+  'Integer',
+  'Decimal',
+  'Droplink',
+  'Multilist',
+  'Image',
+  'File',
+  'Json'
+] as const
 
 const language = ref('en')
 const version = ref(1)
@@ -45,10 +82,52 @@ const availableTemplates = ref<TemplateSummaryResponse[]>([])
 const isLoadingTemplates = ref(false)
 const templateFields = ref<TemplateFieldItemResponse[]>([])
 const isLoadingTemplateFields = ref(false)
+const selectedTemplateId = ref<string | null>(null)
+const selectedTemplateDetail = ref<TemplateResponse | null>(null)
+const selectedTemplateDependencies = ref<TemplateDependencyResponse | null>(null)
+const isLoadingTemplateDetail = ref(false)
+const isLoadingTemplateDependencies = ref(false)
+const templateDesignerForm = reactive({
+  mode: 'create' as TemplateDesignerMode,
+  templateId: '',
+  name: '',
+  key: '',
+  baseTemplateId: ''
+})
+const templateDraftSections = ref<TemplateDraftSection[]>([])
 
 const treeCount = computed(() => countNodes(rootNodes.value))
 const selectedCreateTemplate = computed(() =>
   availableTemplates.value.find(template => template.id === createForm.templateId) ?? null)
+const selectedTemplateSummary = computed(() =>
+  selectedTemplateId.value == null
+    ? null
+    : availableTemplates.value.find(template => template.id === selectedTemplateId.value) ?? null)
+const templateSections = computed<TemplateSectionViewModel[]>(() =>
+  (selectedTemplateDetail.value?.sections ?? [])
+    .slice()
+    .sort((left, right) =>
+      left.sortOrder - right.sortOrder ||
+      left.name.localeCompare(right.name) ||
+      left.key.localeCompare(right.key))
+    .map(mapTemplateSectionViewModel))
+const selectedTemplateFieldCount = computed(() =>
+  templateSections.value.reduce((total, section) => total + section.fields.length, 0))
+const availableBaseTemplates = computed(() =>
+  availableTemplates.value.filter(template => template.id !== templateDesignerForm.templateId))
+const templateDesignerHeading = computed(() =>
+  templateDesignerForm.mode === 'create'
+    ? 'Draft a new template'
+    : `Editing ${templateDesignerForm.name || 'template'}`)
+const selectedItemTemplateName = computed(() => {
+  const item = selectedItem.value
+
+  if (item == null) {
+    return null
+  }
+
+  return availableTemplates.value.find(template => template.id === item.templateId)?.name ?? null
+})
 const editorFields = computed<EditorFieldModel[]>(() =>
   Object.keys(fieldForm)
     .sort((left, right) => left.localeCompare(right))
@@ -141,8 +220,13 @@ const TreeBranch = defineComponent({
 })
 
 onMounted(async () => {
+  startNewTemplateDraft()
   await loadTemplates()
   await refreshRootBranch()
+
+  if (selectedTemplateId.value != null) {
+    await loadTemplateWorkspace(selectedTemplateId.value)
+  }
 })
 
 async function refreshRootBranch() {
@@ -549,8 +633,13 @@ async function loadTemplates() {
     if (createForm.templateId.length === 0) {
       createForm.templateId = getSuggestedTemplateId()
     }
+
+    if (selectedTemplateId.value == null) {
+      selectedTemplateId.value = availableTemplates.value[0]?.id ?? null
+    }
   } catch {
     availableTemplates.value = []
+    selectedTemplateId.value = null
   } finally {
     isLoadingTemplates.value = false
   }
@@ -584,6 +673,273 @@ async function loadTemplateFields(item: ContentItemResponse) {
   }
 }
 
+async function selectTemplate(templateId: string) {
+  if (selectedTemplateId.value === templateId && selectedTemplateDetail.value != null) {
+    return
+  }
+
+  selectedTemplateId.value = templateId
+  await loadTemplateWorkspace(templateId)
+}
+
+async function inspectSelectedItemTemplate() {
+  if (selectedItem.value == null) {
+    return
+  }
+
+  await selectTemplate(selectedItem.value.templateId)
+}
+
+async function loadTemplateWorkspace(templateId: string) {
+  pageError.value = null
+
+  await Promise.all([
+    loadTemplateDetail(templateId),
+    loadTemplateDependencies(templateId)
+  ])
+}
+
+async function loadTemplateDetail(templateId: string) {
+  isLoadingTemplateDetail.value = true
+
+  try {
+    selectedTemplateDetail.value =
+      await fetchJson<TemplateResponse>(`/api/v1/templates/${templateId}`)
+  } catch (error) {
+    selectedTemplateDetail.value = null
+    pageError.value = getErrorMessage(error)
+  } finally {
+    isLoadingTemplateDetail.value = false
+  }
+}
+
+async function loadTemplateDependencies(templateId: string) {
+  isLoadingTemplateDependencies.value = true
+
+  try {
+    selectedTemplateDependencies.value =
+      await fetchJson<TemplateDependencyResponse>(`/api/v1/templates/${templateId}/dependencies`)
+  } catch (error) {
+    selectedTemplateDependencies.value = null
+    pageError.value = getErrorMessage(error)
+  } finally {
+    isLoadingTemplateDependencies.value = false
+  }
+}
+
+async function applyTemplateToCreate() {
+  if (selectedTemplateSummary.value == null) {
+    return
+  }
+
+  createForm.templateId = selectedTemplateSummary.value.id
+  successMessage.value = `Create form now targets the ${selectedTemplateSummary.value.name} template.`
+}
+
+function startNewTemplateDraft() {
+  templateDesignerForm.mode = 'create'
+  templateDesignerForm.templateId = ''
+  templateDesignerForm.name = ''
+  templateDesignerForm.key = ''
+  templateDesignerForm.baseTemplateId = ''
+  templateDraftSections.value = [createDraftSection()]
+}
+
+function loadSelectedTemplateIntoDesigner() {
+  if (selectedTemplateDetail.value == null) {
+    return
+  }
+
+  templateDesignerForm.mode = 'edit'
+  templateDesignerForm.templateId = selectedTemplateDetail.value.id
+  templateDesignerForm.name = selectedTemplateDetail.value.name
+  templateDesignerForm.key = selectedTemplateDetail.value.key
+  templateDesignerForm.baseTemplateId = selectedTemplateDetail.value.baseTemplate?.id ?? ''
+  templateDraftSections.value = selectedTemplateDetail.value.sections.map(section => ({
+    id: section.id,
+    name: section.name,
+    key: section.key,
+    sortOrder: section.sortOrder,
+    fields: section.fields.map(field => ({
+      id: field.id,
+      name: field.name,
+      key: field.key,
+      type: field.type,
+      isShared: field.isShared,
+      isUnversioned: field.isUnversioned
+    }))
+  }))
+
+  if (templateDraftSections.value.length === 0) {
+    templateDraftSections.value = [createDraftSection()]
+  }
+}
+
+function addDraftSection() {
+  templateDraftSections.value = [...templateDraftSections.value, createDraftSection()]
+}
+
+function removeDraftSection(sectionId: string) {
+  templateDraftSections.value =
+    templateDraftSections.value.filter(section => section.id !== sectionId)
+
+  if (templateDraftSections.value.length === 0) {
+    templateDraftSections.value = [createDraftSection()]
+  }
+}
+
+function addDraftField(sectionId: string) {
+  templateDraftSections.value = templateDraftSections.value.map(section =>
+    section.id !== sectionId
+      ? section
+      : {
+          ...section,
+          fields: [...section.fields, createDraftField()]
+        })
+}
+
+function removeDraftField(sectionId: string, fieldId: string) {
+  templateDraftSections.value = templateDraftSections.value.map(section => {
+    if (section.id !== sectionId) {
+      return section
+    }
+
+    const remainingFields = section.fields.filter(field => field.id !== fieldId)
+
+    return {
+      ...section,
+      fields: remainingFields.length === 0 ? [createDraftField()] : remainingFields
+    }
+  })
+}
+
+async function submitTemplateDesigner() {
+  if (isSubmitting.value) {
+    return
+  }
+
+  const baseTemplateKey = getTemplateKeyById(templateDesignerForm.baseTemplateId)
+
+  if (templateDesignerForm.baseTemplateId.length > 0 && baseTemplateKey == null) {
+    pageError.value = 'The selected base template could not be resolved.'
+    return
+  }
+
+  pageError.value = null
+  successMessage.value = null
+  isSubmitting.value = true
+
+  try {
+    const payload = {
+      name: templateDesignerForm.name,
+      key: templateDesignerForm.key,
+      baseTemplateKeys: baseTemplateKey == null ? [] : [baseTemplateKey],
+      sections: templateDraftSections.value.map(section => ({
+        name: section.name,
+        key: section.key,
+        sortOrder: Number(section.sortOrder),
+        fields: section.fields.map(field => ({
+          name: field.name,
+          key: field.key,
+          type: field.type,
+          isShared: field.isShared,
+          isUnversioned: field.isShared ? false : field.isUnversioned
+        }))
+      }))
+    }
+
+    const isEditing = templateDesignerForm.mode === 'edit' && templateDesignerForm.templateId.length > 0
+    const response = await fetchJson<TemplateResponse>(
+      isEditing
+        ? `/api/v1/templates/${templateDesignerForm.templateId}`
+        : '/api/v1/templates',
+      withJsonDefaults({
+        method: isEditing ? 'PUT' : 'POST',
+        body: JSON.stringify(payload)
+      })
+    )
+
+    await loadTemplates()
+    selectedTemplateId.value = response.id
+    await loadTemplateWorkspace(response.id)
+    loadSelectedTemplateIntoDesigner()
+
+    if (selectedItem.value?.templateId === response.id) {
+      await loadTemplateFields(selectedItem.value)
+    }
+
+    successMessage.value = isEditing
+      ? `Updated template ${response.name}.`
+      : `Created template ${response.name}.`
+  } catch (error) {
+    pageError.value = getErrorMessage(error)
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
+async function refreshTemplateWorkspace() {
+  if (selectedTemplateId.value == null) {
+    return
+  }
+
+  await loadTemplateWorkspace(selectedTemplateId.value)
+}
+
+async function submitTemplateDelete() {
+  if (isSubmitting.value || selectedTemplateSummary.value == null) {
+    return
+  }
+
+  if (selectedTemplateDependencies.value?.canDelete === false) {
+    pageError.value = `Template ${selectedTemplateSummary.value.name} still has dependent templates or content items.`
+    return
+  }
+
+  if (!window.confirm(`Delete template ${selectedTemplateSummary.value.name}? This only works when nothing depends on it.`)) {
+    return
+  }
+
+  pageError.value = null
+  successMessage.value = null
+  isSubmitting.value = true
+
+  try {
+    await fetchWithNoContent(selectedTemplateSummary.value._links.self.href, {
+      method: 'DELETE'
+    })
+
+    const deletedTemplateId = selectedTemplateSummary.value.id
+    const deletedTemplateName = selectedTemplateSummary.value.name
+
+    availableTemplates.value = availableTemplates.value
+      .filter(template => template.id !== deletedTemplateId)
+      .sort((left, right) => left.name.localeCompare(right.name) || left.key.localeCompare(right.key))
+
+    if (createForm.templateId === deletedTemplateId) {
+      createForm.templateId = getSuggestedTemplateId()
+    }
+
+    if (templateDesignerForm.templateId === deletedTemplateId) {
+      startNewTemplateDraft()
+    }
+
+    selectedTemplateId.value = availableTemplates.value[0]?.id ?? null
+    selectedTemplateDetail.value = null
+    selectedTemplateDependencies.value = null
+
+    if (selectedTemplateId.value != null) {
+      await loadTemplateWorkspace(selectedTemplateId.value)
+    }
+
+    successMessage.value = `Deleted template ${deletedTemplateName}.`
+  } catch (error) {
+    pageError.value = getErrorMessage(error)
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
 async function sendMutation(url: string, init: RequestInit) {
   return await fetchJson<ContentMutationResponse>(url, withJsonDefaults(init))
 }
@@ -597,6 +953,15 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   }
 
   return await response.json() as T
+}
+
+async function fetchWithNoContent(url: string, init?: RequestInit) {
+  const response = await fetch(url, init)
+
+  if (!response.ok) {
+    const problem = await response.json().catch(() => null) as { detail?: string; title?: string } | null
+    throw new Error(problem?.detail ?? problem?.title ?? `Request failed with ${response.status}.`)
+  }
 }
 
 function withContext(url: string) {
@@ -657,6 +1022,54 @@ function getSuggestedTemplateId() {
 
 function getTemplateIdByKey(key: string) {
   return availableTemplates.value.find(template => template.key === key)?.id ?? null
+}
+
+function getTemplateKeyById(id: string) {
+  return availableTemplates.value.find(template => template.id === id)?.key ?? null
+}
+
+function mapTemplateSectionViewModel(section: TemplateSectionResponse): TemplateSectionViewModel {
+  return {
+    id: section.id,
+    name: section.name,
+    key: section.key,
+    sortOrder: section.sortOrder,
+    fields: section.fields
+      .slice()
+      .sort((left, right) => left.name.localeCompare(right.name) || left.key.localeCompare(right.key))
+      .map(field => ({
+        id: field.id,
+        name: field.name,
+        key: field.key,
+        type: field.type,
+        scopeLabel: field.isShared
+          ? 'Shared'
+          : field.isUnversioned
+            ? 'Unversioned'
+            : 'Versioned'
+      }))
+  }
+}
+
+function createDraftSection(): TemplateDraftSection {
+  return {
+    id: crypto.randomUUID(),
+    name: '',
+    key: '',
+    sortOrder: 100,
+    fields: [createDraftField()]
+  }
+}
+
+function createDraftField(): TemplateDraftField {
+  return {
+    id: crypto.randomUUID(),
+    name: '',
+    key: '',
+    type: 'SingleLineText',
+    isShared: false,
+    isUnversioned: false
+  }
 }
 
 function getErrorMessage(error: unknown) {
@@ -791,7 +1204,7 @@ function countNodes(nodes: TreeNode[]): number {
                 </div>
                 <div>
                   <dt>Template</dt>
-                  <dd>{{ selectedItem.templateId }}</dd>
+                  <dd>{{ selectedItemTemplateName == null ? selectedItem.templateId : `${selectedItemTemplateName} (${selectedItem.templateId})` }}</dd>
                 </div>
                 <div>
                   <dt>Path</dt>
@@ -969,6 +1382,387 @@ function countNodes(nodes: TreeNode[]): number {
             </button>
           </div>
         </form>
+      </section>
+
+      <section class="template-grid">
+        <article class="panel template-panel">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Templates</p>
+              <h3>Catalog</h3>
+            </div>
+            <span class="panel-pill">{{ availableTemplates.length }} templates</span>
+          </div>
+
+          <div class="template-actions">
+            <button
+              class="button"
+              type="button"
+              @click="startNewTemplateDraft"
+            >
+              New Template Draft
+            </button>
+            <button
+              class="button button--secondary"
+              type="button"
+              :disabled="selectedItem == null"
+              @click="inspectSelectedItemTemplate"
+            >
+              Inspect Selected Item Template
+            </button>
+            <button
+              class="button button--secondary"
+              type="button"
+              :disabled="selectedTemplateId == null"
+              @click="refreshTemplateWorkspace"
+            >
+              Refresh Template Detail
+            </button>
+          </div>
+
+          <div v-if="isLoadingTemplates" class="empty-state">
+            Loading templates from `/api/v1/templates`...
+          </div>
+
+          <div v-else-if="availableTemplates.length === 0" class="empty-state">
+            No templates are currently available to inspect.
+          </div>
+
+          <ul v-else class="template-list">
+            <li v-for="template in availableTemplates" :key="template.id">
+              <button
+                type="button"
+                :class="['template-entry', { 'template-entry--selected': selectedTemplateId === template.id }]"
+                @click="selectTemplate(template.id)"
+              >
+                <span class="template-entry__name">{{ template.name }}</span>
+                <span class="template-entry__meta">{{ template.key }}</span>
+              </button>
+            </li>
+          </ul>
+        </article>
+
+        <article class="panel inspector-panel">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Template Inspector</p>
+              <h3>{{ selectedTemplateDetail == null ? 'Select a template' : selectedTemplateDetail.name }}</h3>
+            </div>
+            <span class="panel-pill">
+              {{ selectedTemplateDetail == null ? 'Idle' : `${templateSections.length} sections · ${selectedTemplateFieldCount} fields` }}
+            </span>
+          </div>
+
+          <div
+            v-if="isLoadingTemplateDetail || isLoadingTemplateDependencies"
+            class="empty-state"
+          >
+            Loading template detail and dependency state...
+          </div>
+
+          <div
+            v-else-if="selectedTemplateDetail == null || selectedTemplateDependencies == null"
+            class="empty-state"
+          >
+            Pick a template to inspect its structure, field inventory, and delete blockers.
+          </div>
+
+          <template v-else>
+            <section class="summary-card">
+              <dl class="summary-grid">
+                <div>
+                  <dt>Id</dt>
+                  <dd>{{ selectedTemplateDetail.id }}</dd>
+                </div>
+                <div>
+                  <dt>Key</dt>
+                  <dd>{{ selectedTemplateDetail.key }}</dd>
+                </div>
+                <div>
+                  <dt>Sections</dt>
+                  <dd>{{ templateSections.length }}</dd>
+                </div>
+                <div>
+                  <dt>Fields</dt>
+                  <dd>{{ selectedTemplateFieldCount }}</dd>
+                </div>
+              </dl>
+            </section>
+
+            <section class="form-stack">
+              <div class="editor-card">
+                <div class="editor-card__header">
+                  <div>
+                    <p class="eyebrow">Schema</p>
+                    <h4>Template sections and fields</h4>
+                  </div>
+                  <span class="callout">
+                    {{ selectedItem?.templateId === selectedTemplateDetail.id ? 'Matches current item' : 'Available for create flow' }}
+                  </span>
+                </div>
+
+                <div class="template-action-row">
+                  <button class="button" type="button" @click="applyTemplateToCreate">
+                    Use Template In Create Form
+                  </button>
+                </div>
+
+                <div v-if="templateSections.length === 0" class="empty-state empty-state--compact">
+                  This template does not currently expose any sections or fields.
+                </div>
+
+                <div v-else class="template-section-stack">
+                  <section
+                    v-for="section in templateSections"
+                    :key="section.id"
+                    class="template-section-card"
+                  >
+                    <div class="template-section-card__header">
+                      <div>
+                        <h5>{{ section.name }}</h5>
+                        <p>{{ section.key }}</p>
+                      </div>
+                      <span class="callout">{{ section.fields.length }} fields</span>
+                    </div>
+
+                    <ul class="template-field-list">
+                      <li
+                        v-for="field in section.fields"
+                        :key="field.id"
+                        class="template-field-item"
+                      >
+                        <div>
+                          <strong>{{ field.name }}</strong>
+                          <p>{{ field.key }}</p>
+                        </div>
+                        <span class="template-field-item__meta">{{ field.type }} · {{ field.scopeLabel }}</span>
+                      </li>
+                    </ul>
+                  </section>
+                </div>
+              </div>
+
+              <div class="editor-card">
+                <div class="editor-card__header">
+                  <div>
+                    <p class="eyebrow">Dependencies</p>
+                    <h4>Safe delete preflight</h4>
+                  </div>
+                  <span :class="['callout', selectedTemplateDependencies.canDelete ? 'callout--success' : 'callout--danger']">
+                    {{ selectedTemplateDependencies.canDelete ? 'Delete ready' : 'Delete blocked' }}
+                  </span>
+                </div>
+
+                <div class="dependency-summary">
+                  <div class="dependency-stat">
+                    <strong>{{ selectedTemplateDependencies.summary.dependentTemplateCount }}</strong>
+                    <span>dependent templates</span>
+                  </div>
+                  <div class="dependency-stat">
+                    <strong>{{ selectedTemplateDependencies.summary.dependentContentItemCount }}</strong>
+                    <span>content items</span>
+                  </div>
+                </div>
+
+                <div class="template-dependency-grid">
+                  <section class="dependency-card">
+                    <h5>Dependent templates</h5>
+                    <ul v-if="selectedTemplateDependencies.embedded.templates.length > 0" class="dependency-list">
+                      <li
+                        v-for="dependency in selectedTemplateDependencies.embedded.templates"
+                        :key="dependency.id"
+                      >
+                        {{ dependency.name }} ({{ dependency.key }})
+                      </li>
+                    </ul>
+                    <p v-else class="dependency-empty">No authored templates inherit from this one.</p>
+                  </section>
+
+                  <section class="dependency-card">
+                    <h5>Assigned content items</h5>
+                    <ul v-if="selectedTemplateDependencies.embedded.contentItems.length > 0" class="dependency-list">
+                      <li
+                        v-for="item in selectedTemplateDependencies.embedded.contentItems"
+                        :key="item.id"
+                      >
+                        {{ item.name }} · {{ item.path }}
+                      </li>
+                    </ul>
+                    <p v-else class="dependency-empty">No content items currently use this template.</p>
+                  </section>
+                </div>
+
+                <button
+                  class="button button--danger"
+                  type="button"
+                  :disabled="isSubmitting || !selectedTemplateDependencies.canDelete"
+                  @click="submitTemplateDelete"
+                >
+                  Delete Template
+                </button>
+              </div>
+
+              <form class="editor-card" @submit.prevent="submitTemplateDesigner">
+                <div class="editor-card__header">
+                  <div>
+                    <p class="eyebrow">Designer</p>
+                    <h4>{{ templateDesignerHeading }}</h4>
+                  </div>
+                  <span class="callout">
+                    {{ templateDesignerForm.mode === 'create' ? 'POST /api/v1/templates' : 'PUT selected template' }}
+                  </span>
+                </div>
+
+                <div class="template-actions">
+                  <button class="button button--secondary" type="button" @click="startNewTemplateDraft">
+                    Reset To New Draft
+                  </button>
+                  <button
+                    class="button button--secondary"
+                    type="button"
+                    :disabled="selectedTemplateDetail == null"
+                    @click="loadSelectedTemplateIntoDesigner"
+                  >
+                    Load Selected Template
+                  </button>
+                </div>
+
+                <div class="create-grid">
+                  <label class="field">
+                    <span>Name</span>
+                    <input v-model="templateDesignerForm.name" type="text" required />
+                  </label>
+
+                  <label class="field">
+                    <span>Key</span>
+                    <input v-model="templateDesignerForm.key" type="text" required />
+                  </label>
+
+                  <label class="field">
+                    <span>Base Template</span>
+                    <select v-model="templateDesignerForm.baseTemplateId">
+                      <option value="">No base template</option>
+                      <option
+                        v-for="template in availableBaseTemplates"
+                        :key="template.id"
+                        :value="template.id"
+                      >
+                        {{ template.name }} ({{ template.key }})
+                      </option>
+                    </select>
+                    <small class="field-meta">
+                      {{ templateDesignerForm.baseTemplateId.length === 0 ? 'Local fields only.' : `Inherits from ${getTemplateKeyById(templateDesignerForm.baseTemplateId)}` }}
+                    </small>
+                  </label>
+                </div>
+
+                <div class="template-designer-stack">
+                  <section
+                    v-for="(section, sectionIndex) in templateDraftSections"
+                    :key="section.id"
+                    class="template-section-card"
+                  >
+                    <div class="template-section-card__header">
+                      <div>
+                        <h5>Section {{ sectionIndex + 1 }}</h5>
+                        <p>Local authored section</p>
+                      </div>
+                      <div class="template-inline-actions">
+                        <button class="button button--secondary" type="button" @click="addDraftField(section.id)">
+                          Add Field
+                        </button>
+                        <button class="button button--secondary" type="button" @click="removeDraftSection(section.id)">
+                          Remove Section
+                        </button>
+                      </div>
+                    </div>
+
+                    <div class="template-section-form">
+                      <label class="field">
+                        <span>Section Name</span>
+                        <input v-model="section.name" type="text" required />
+                      </label>
+
+                      <label class="field">
+                        <span>Section Key</span>
+                        <input v-model="section.key" type="text" required />
+                      </label>
+
+                      <label class="field">
+                        <span>Sort Order</span>
+                        <input v-model.number="section.sortOrder" type="number" required />
+                      </label>
+                    </div>
+
+                    <div class="template-field-stack">
+                      <article
+                        v-for="(field, fieldIndex) in section.fields"
+                        :key="field.id"
+                        class="template-field-editor"
+                      >
+                        <div class="template-section-card__header">
+                          <div>
+                            <h5>Field {{ fieldIndex + 1 }}</h5>
+                            <p>Author-facing field definition</p>
+                          </div>
+                          <button class="button button--secondary" type="button" @click="removeDraftField(section.id, field.id)">
+                            Remove Field
+                          </button>
+                        </div>
+
+                        <div class="template-field-form">
+                          <label class="field">
+                            <span>Field Name</span>
+                            <input v-model="field.name" type="text" required />
+                          </label>
+
+                          <label class="field">
+                            <span>Field Key</span>
+                            <input v-model="field.key" type="text" required />
+                          </label>
+
+                          <label class="field">
+                            <span>Field Type</span>
+                            <select v-model="field.type">
+                              <option
+                                v-for="fieldType in fieldTypeOptions"
+                                :key="fieldType"
+                                :value="fieldType"
+                              >
+                                {{ fieldType }}
+                              </option>
+                            </select>
+                          </label>
+                        </div>
+
+                        <div class="template-field-toggles">
+                          <label class="checkbox-field">
+                            <input v-model="field.isShared" type="checkbox" />
+                            <span>Shared across languages and versions</span>
+                          </label>
+
+                          <label class="checkbox-field">
+                            <input v-model="field.isUnversioned" :disabled="field.isShared" type="checkbox" />
+                            <span>Language-specific but not version-specific</span>
+                          </label>
+                        </div>
+                      </article>
+                    </div>
+                  </section>
+                </div>
+
+                <div class="template-actions">
+                  <button class="button button--secondary" type="button" @click="addDraftSection">
+                    Add Section
+                  </button>
+                  <button class="button" type="submit" :disabled="isSubmitting">
+                    {{ templateDesignerForm.mode === 'create' ? 'Create Template' : 'Save Template' }}
+                  </button>
+                </div>
+              </form>
+            </section>
+          </template>
+        </article>
       </section>
     </main>
   </div>

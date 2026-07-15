@@ -122,7 +122,7 @@ public static class TemplateEndpoints
         try
         {
             var template =
-                await contentModelCatalog.GetEffectiveTemplateAsync(
+                await contentModelCatalog.GetTemplateAsync(
                     new TemplateId(id),
                     cancellationToken);
 
@@ -185,7 +185,7 @@ public static class TemplateEndpoints
             }
 
             var createdTemplate =
-                await contentModelCatalog.GetEffectiveTemplateAsync(
+                await contentModelCatalog.GetTemplateAsync(
                     template.Id,
                     cancellationToken);
 
@@ -289,7 +289,7 @@ public static class TemplateEndpoints
             }
 
             var refreshedTemplate =
-                await contentModelCatalog.GetEffectiveTemplateAsync(
+                await contentModelCatalog.GetTemplateAsync(
                     existingTemplate.Id,
                     cancellationToken);
 
@@ -545,13 +545,28 @@ public static class TemplateEndpoints
     }
 
     private static TemplateResponse MapResponse(
-        EffectiveTemplateDefinition template)
+        TemplateDefinition template)
     {
         return new TemplateResponse
         {
             Id = template.Id.Value.ToString(),
             Name = template.Name,
             Key = template.Key.ToString(),
+            BaseTemplate = template.BaseTemplate == null
+                ? null
+                : new TemplateBaseTemplateResponse
+                {
+                    Id = template.BaseTemplate.Id.Value.ToString(),
+                    Name = template.BaseTemplate.Name,
+                    Key = template.BaseTemplate.Key.ToString(),
+                    Links = new TemplateBaseTemplateLinksResponse
+                    {
+                        Self = new LinkResponse
+                        {
+                            Href = $"/api/v1/templates/{template.BaseTemplate.Id.Value}"
+                        }
+                    }
+                },
             Sections = template.Sections
                 .Select(
                     section => new TemplateSectionResponse

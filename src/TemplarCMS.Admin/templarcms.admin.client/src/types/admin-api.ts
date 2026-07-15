@@ -57,6 +57,44 @@ export type TemplateSummaryResponse = {
   }
 }
 
+export type TemplateFieldResponse = {
+  id: string
+  name: string
+  key: string
+  type: string
+  isShared: boolean
+  isUnversioned: boolean
+}
+
+export type TemplateSectionResponse = {
+  id: string
+  name: string
+  key: string
+  sortOrder: number
+  fields: TemplateFieldResponse[]
+}
+
+export type TemplateResponse = {
+  id: string
+  name: string
+  key: string
+  baseTemplate?: {
+    id: string
+    name: string
+    key: string
+    _links: {
+      self: LinkResponse
+    }
+  } | null
+  sections: TemplateSectionResponse[]
+  _links: {
+    self: LinkResponse
+    fields: LinkResponse
+    dependencies: LinkResponse
+    'create-item': LinkResponse
+  }
+}
+
 export type TemplateCollectionResponse = {
   embedded: {
     templates: TemplateSummaryResponse[]
@@ -79,5 +117,41 @@ export type TemplateFieldItemResponse = {
 export type TemplateFieldCollectionResponse = {
   embedded: {
     fields: TemplateFieldItemResponse[]
+  }
+}
+
+export type TemplateDependencyTemplateItemResponse = {
+  id: string
+  name: string
+  key: string
+  _links: {
+    self: LinkResponse
+  }
+}
+
+export type TemplateDependencyContentItemResponse = {
+  id: string
+  name: string
+  path: string
+  _links: {
+    self: LinkResponse
+  }
+}
+
+export type TemplateDependencyResponse = {
+  templateId: string
+  templateKey: string
+  canDelete: boolean
+  summary: {
+    dependentTemplateCount: number
+    dependentContentItemCount: number
+  }
+  embedded: {
+    templates: TemplateDependencyTemplateItemResponse[]
+    contentItems: TemplateDependencyContentItemResponse[]
+  }
+  _links: {
+    self: LinkResponse
+    template: LinkResponse
   }
 }
