@@ -290,6 +290,63 @@ public sealed class TemplateEndpointsTests
     }
 
     [Fact]
+    public async Task CreateAsync_ShouldSupportGeneralLinkFieldType()
+    {
+        var catalog =
+            new FakeContentModelCatalog();
+        var repository =
+            new FakeTemplateRepository();
+        repository.OnCreateTemplateAsync = template =>
+        {
+            catalog.AddAuthoredTemplate(template);
+            catalog.AddTemplate(
+                new EffectiveTemplateDefinition(
+                    template.Id,
+                    template.Name,
+                    template.Key,
+                    template.Sections.ToArray()));
+
+            return Task.CompletedTask;
+        };
+
+        var result =
+            await TemplateEndpoints.CreateAsync(
+                new CreateTemplateRequest
+                {
+                    Name = "Article Page",
+                    Key = "article-page",
+                    Sections =
+                    [
+                        new CreateTemplateSectionRequest
+                        {
+                            Name = "Help",
+                            Key = "help",
+                            Fields =
+                            [
+                                new CreateTemplateFieldRequest
+                                {
+                                    Name = "Help Link",
+                                    Key = "help-link",
+                                    Type = "General Link"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                repository,
+                catalog,
+                TestContext.Current.CancellationToken);
+
+        var created = Assert.IsType<Created<TemplateResponse>>(result.Result);
+        Assert.NotNull(created.Value);
+        Assert.NotNull(repository.LastCreatedTemplate);
+
+        var createdSection = Assert.Single(repository.LastCreatedTemplate.Sections);
+        var createdField = Assert.Single(createdSection.Fields);
+        Assert.Equal(FieldType.GeneralLink, createdField.FieldType);
+    }
+
+    [Fact]
     public async Task CreateAsync_ShouldAssignBaseTemplate_WhenBaseTemplateKeyIsProvided()
     {
         var baseTemplate =
@@ -428,7 +485,7 @@ public sealed class TemplateEndpointsTests
                                 {
                                     Name = "Help Link",
                                     Key = "help-link",
-                                    Type = "General Link"
+                                    Type = "Version Link"
                                 }
                             ]
                         }
@@ -442,7 +499,7 @@ public sealed class TemplateEndpointsTests
         var value = Assert.IsType<ProblemDetails>(problem.ProblemDetails);
         Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
         Assert.NotNull(value.Detail);
-        Assert.Contains("dedicated link field type", value.Detail, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("version-aware link field type", value.Detail, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

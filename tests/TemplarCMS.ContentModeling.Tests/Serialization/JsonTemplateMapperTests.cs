@@ -122,6 +122,7 @@ public sealed class JsonTemplateMapperTests
     [InlineData("TreeListEx", FieldType.Multilist)]
     [InlineData("Checklist", FieldType.Multilist)]
     [InlineData("Multilist with Search", FieldType.Multilist)]
+    [InlineData("General Link", FieldType.GeneralLink)]
     [InlineData("image", FieldType.Image)]
     [InlineData("file", FieldType.File)]
     [InlineData("server file", FieldType.File)]
@@ -220,13 +221,13 @@ public sealed class JsonTemplateMapperTests
             Id = Guid.NewGuid(),
             Name = "Link",
             Key = "link",
-            FieldType = "General Link"
+            FieldType = "Version Link"
         });
 
         var exception = Assert.Throws<InvalidOperationException>(() =>
             _mapper.Map(jsonTemplate));
 
-        Assert.Contains("dedicated link field type", exception.Message);
+        Assert.Contains("version-aware link field type", exception.Message);
         Assert.Contains("Supported logical field types", exception.Message);
     }
 

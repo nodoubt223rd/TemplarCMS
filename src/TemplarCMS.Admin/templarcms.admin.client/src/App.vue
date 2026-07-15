@@ -35,18 +35,19 @@ type TemplateDraftSection = {
 }
 
 const fieldTypeOptions = [
-  'SingleLineText',
-  'MultiLineText',
-  'RichText',
-  'Checkbox',
-  'DateTime',
-  'Integer',
-  'Decimal',
-  'Droplink',
-  'Multilist',
-  'Image',
-  'File',
-  'Json'
+  { value: 'SingleLineText', label: 'Single-Line Text' },
+  { value: 'MultiLineText', label: 'Multi-Line Text' },
+  { value: 'RichText', label: 'Rich Text' },
+  { value: 'Checkbox', label: 'Checkbox' },
+  { value: 'DateTime', label: 'Date/Time' },
+  { value: 'Integer', label: 'Integer' },
+  { value: 'Decimal', label: 'Decimal' },
+  { value: 'Droplink', label: 'Droplink' },
+  { value: 'Multilist', label: 'Multilist' },
+  { value: 'GeneralLink', label: 'General Link' },
+  { value: 'Image', label: 'Image' },
+  { value: 'File', label: 'File' },
+  { value: 'Json', label: 'JSON' }
 ] as const
 
 const editorRegistry = {
@@ -121,6 +122,14 @@ const editorRegistry = {
     rows: 3,
     step: null,
     helpText: 'Multiple references are still authored as string content for now.'
+  },
+  GeneralLink: {
+    editorKind: 'text',
+    inputType: 'text',
+    placeholder: 'Enter a URL, item link, or serialized link value',
+    rows: null,
+    step: null,
+    helpText: 'General links are first-class now, but still persist as string content until richer link semantics land.'
   },
   Image: {
     editorKind: 'text',
@@ -239,7 +248,7 @@ const editorFields = computed<EditorFieldModel[]>(() =>
         key,
         label: templateField?.name ?? key,
         value: fieldForm[key] ?? '',
-        type,
+        type: getFieldTypeLabel(type),
         sectionName: templateField?.sectionName ?? 'Fields',
         scopeLabel: templateField == null
           ? 'Unknown scope'
@@ -1159,6 +1168,10 @@ function getEditorDefinition(fieldType: string) {
   return editorRegistry[fieldType as keyof typeof editorRegistry] ?? editorRegistry.SingleLineText
 }
 
+function getFieldTypeLabel(fieldType: string) {
+  return fieldTypeOptions.find(option => option.value === fieldType)?.label ?? fieldType
+}
+
 function mapTemplateSectionViewModel(section: TemplateSectionResponse): TemplateSectionViewModel {
   return {
     id: section.id,
@@ -1172,7 +1185,7 @@ function mapTemplateSectionViewModel(section: TemplateSectionResponse): Template
         id: field.id,
         name: field.name,
         key: field.key,
-        type: field.type,
+        type: getFieldTypeLabel(field.type),
         scopeLabel: field.isShared
           ? 'Shared'
           : field.isUnversioned
@@ -1872,10 +1885,10 @@ function countNodes(nodes: TreeNode[]): number {
                             <select v-model="field.type">
                               <option
                                 v-for="fieldType in fieldTypeOptions"
-                                :key="fieldType"
-                                :value="fieldType"
+                                :key="fieldType.value"
+                                :value="fieldType.value"
                               >
-                                {{ fieldType }}
+                                {{ fieldType.label }}
                               </option>
                             </select>
                           </label>

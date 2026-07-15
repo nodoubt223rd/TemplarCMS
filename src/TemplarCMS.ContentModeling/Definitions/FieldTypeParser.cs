@@ -28,13 +28,13 @@ public static class FieldTypeParser
             ["image"] = FieldType.Image,
             ["file"] = FieldType.File,
             ["serverfile"] = FieldType.File,
-            ["json"] = FieldType.Json
+            ["json"] = FieldType.Json,
+            ["generallink"] = FieldType.GeneralLink
         };
 
     private static readonly IReadOnlyDictionary<string, string> UnsupportedFieldTypeHints =
         new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            ["generallink"] = "General Link needs a dedicated link field type.",
             ["versionlink"] = "Version Link needs a dedicated version-aware link field type.",
             ["layout"] = "Layout needs a dedicated layout/rendering field type.",
             ["datasource"] = "Datasource needs a dedicated datasource field type.",

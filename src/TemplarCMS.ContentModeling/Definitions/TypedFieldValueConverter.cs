@@ -32,6 +32,7 @@ public sealed class TypedFieldValueConverter : ITypedFieldValueConverter
             FieldType.SingleLineText => ConvertAsString(fieldDefinition, value),
             FieldType.MultiLineText => ConvertAsString(fieldDefinition, value),
             FieldType.RichText => ConvertAsString(fieldDefinition, value),
+            FieldType.GeneralLink => ConvertAsString(fieldDefinition, value),
             FieldType.DateTime => ConvertAsDateTime(fieldDefinition, value),
             FieldType.Integer => ConvertAsInteger(fieldDefinition, value),
             FieldType.Decimal => ConvertAsDecimal(fieldDefinition, value),
