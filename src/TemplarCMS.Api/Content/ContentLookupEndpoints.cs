@@ -116,7 +116,7 @@ public static class ContentLookupEndpoints
                 DeleteAsync)
             .WithName("DeleteContent")
             .WithTags("Content")
-            .Produces(StatusCodes.Status204NoContent)
+            .Produces<ContentMutationResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound);
 
@@ -747,7 +747,7 @@ public static class ContentLookupEndpoints
         }
     }
 
-    public static async Task<Results<NoContent, ProblemHttpResult>> DeleteAsync(
+    public static async Task<Results<Ok<ContentMutationResponse>, ProblemHttpResult>> DeleteAsync(
         Guid id,
         IContentItemService contentItemService,
         CancellationToken cancellationToken)
@@ -771,11 +771,28 @@ public static class ContentLookupEndpoints
                 return ApiProblems.ContentItemNotFound(id);
             }
 
+            var context =
+                CreateContext(
+                    null,
+                    null);
+
             await contentItemService.DeleteItemAsync(
                 itemId,
                 cancellationToken);
 
-            return TypedResults.NoContent();
+            var affectedBranches =
+                await LoadAffectedBranchesAsync(
+                    contentItemService,
+                    context,
+                    [("deleted-from", existingItem.Item.ParentId)],
+                    cancellationToken);
+
+            return TypedResults.Ok(
+                MapMutationResponse(
+                    existingItem,
+                    affectedBranches,
+                    context,
+                    $"/api/v1/content/{existingItem.Item.Id.Value}?lang={context.Language}&version={context.Version.Value}"));
         }
         catch (InvalidOperationException exception)
         {
@@ -908,6 +925,10 @@ public static class ContentLookupEndpoints
                 Move = new LinkResponse
                 {
                     Href = $"/api/v1/content/{item.Item.Id.Value}/move"
+                },
+                Delete = new LinkResponse
+                {
+                    Href = $"/api/v1/content/{item.Item.Id.Value}"
                 },
                 Branch = new LinkResponse
                 {

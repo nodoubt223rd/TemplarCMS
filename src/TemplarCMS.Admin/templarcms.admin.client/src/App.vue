@@ -22,6 +22,7 @@ type ContentItemResponse = {
     'set-values': LinkResponse
     rename: LinkResponse
     move: LinkResponse
+    delete: LinkResponse
     branch: LinkResponse
     parent?: LinkResponse | null
   }
@@ -299,6 +300,35 @@ async function submitMove() {
   }
 }
 
+async function submitDelete() {
+  if (isSubmitting.value || selectedItem.value == null) {
+    return
+  }
+
+  const itemToDelete = selectedItem.value
+
+  if (!window.confirm(`Delete ${itemToDelete.name}? This only works when the item has no direct children.`)) {
+    return
+  }
+
+  pageError.value = null
+  successMessage.value = null
+  isSubmitting.value = true
+
+  try {
+    const response = await sendMutation(itemToDelete._links.delete.href, {
+      method: 'DELETE'
+    })
+
+    applyDeletedMutationResponse(response)
+    successMessage.value = `Deleted ${response.item.name} and refreshed the affected branch.`
+  } catch (error) {
+    pageError.value = getErrorMessage(error)
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
 async function applyMutationResponse(response: ContentMutationResponse) {
   for (const affected of response.affectedBranches) {
     applyBranchToTree(affected.branch)
@@ -308,6 +338,31 @@ async function applyMutationResponse(response: ContentMutationResponse) {
   upsertNode(extractParentIdFromHref(refreshedItem._links.parent?.href), refreshedItem)
   selectedItemId.value = response.item.id
   syncFormsFromItem(refreshedItem)
+}
+
+function applyDeletedMutationResponse(response: ContentMutationResponse) {
+  for (const affected of response.affectedBranches) {
+    applyBranchToTree(affected.branch)
+  }
+
+  const parentId = extractParentIdFromHref(response.item._links.parent?.href)
+
+  if (parentId == null) {
+    selectedItemId.value = null
+    resetInspectorForms()
+    return
+  }
+
+  const parentNode = findNodeById(rootNodes.value, parentId)
+
+  if (parentNode == null) {
+    selectedItemId.value = null
+    resetInspectorForms()
+    return
+  }
+
+  selectedItemId.value = parentNode.item.id
+  syncFormsFromItem(parentNode.item)
 }
 
 function applyBranchToTree(branch: ContentBranchResponse) {
@@ -424,6 +479,13 @@ function resetCreateForm() {
   createForm.name = ''
   createForm.key = ''
   createForm.templateId = ''
+}
+
+function resetInspectorForms() {
+  renameForm.name = ''
+  renameForm.key = ''
+  moveForm.parentId = ''
+  createForm.parentId = ''
 }
 
 async function getRootBranch() {
@@ -549,7 +611,7 @@ function countNodes(nodes: TreeNode[]): number {
           <h2>Branch refreshes driven by the API we just designed.</h2>
         </div>
         <p class="top-panel__copy">
-          Expand a node to load its branch, select an item to rename or move it,
+          Expand a node to load its branch, select an item to rename, move, or delete it,
           and create new items beneath the current selection or root.
         </p>
       </header>
@@ -668,6 +730,20 @@ function countNodes(nodes: TreeNode[]): number {
 
                 <button class="button" type="submit" :disabled="isSubmitting">
                   Move Item
+                </button>
+              </form>
+
+              <form class="editor-card" @submit.prevent="submitDelete">
+                <div class="editor-card__header">
+                  <div>
+                    <p class="eyebrow">Delete</p>
+                    <h4>Remove the current leaf item</h4>
+                  </div>
+                  <span class="callout">Blocked when direct children exist</span>
+                </div>
+
+                <button class="button button--danger" type="submit" :disabled="isSubmitting">
+                  Delete Item
                 </button>
               </form>
             </section>

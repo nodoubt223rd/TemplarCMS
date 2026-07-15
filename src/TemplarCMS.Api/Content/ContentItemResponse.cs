@@ -132,6 +132,8 @@ public sealed class ContentItemLinksResponse
 
     public required LinkResponse Move { get; init; }
 
+    public required LinkResponse Delete { get; init; }
+
     public required LinkResponse Branch { get; init; }
 
     public LinkResponse? Parent { get; init; }
