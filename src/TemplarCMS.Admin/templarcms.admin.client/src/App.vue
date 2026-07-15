@@ -26,6 +26,17 @@ type TemplateDraftField = {
   isUnversioned: boolean
 }
 
+type GeneralLinkKind = 'internal' | 'external'
+
+type GeneralLinkDraft = {
+  kind: GeneralLinkKind
+  itemId: string
+  url: string
+  text: string
+  target: string
+  parseWarning: string | null
+}
+
 type TemplateDraftSection = {
   id: string
   name: string
@@ -124,12 +135,12 @@ const editorRegistry = {
     helpText: 'Multiple references are still authored as string content for now.'
   },
   GeneralLink: {
-    editorKind: 'text',
+    editorKind: 'general-link',
     inputType: 'text',
-    placeholder: 'Enter a URL, item link, or serialized link value',
+    placeholder: null,
     rows: null,
     step: null,
-    helpText: 'General links are first-class now, but still persist as string content until richer link semantics land.'
+    helpText: 'General links can point to an internal content item or an external URL.'
   },
   Image: {
     editorKind: 'text',
@@ -1133,6 +1144,152 @@ function onFieldInput(key: string, event: Event) {
   setFieldValue(key, target?.value ?? '')
 }
 
+function getGeneralLinkDraft(key: string): GeneralLinkDraft {
+  const rawValue = fieldForm[key]?.trim() ?? ''
+
+  if (rawValue.length === 0) {
+    return createEmptyGeneralLinkDraft()
+  }
+
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(rawValue)) {
+    return {
+      kind: 'internal',
+      itemId: rawValue,
+      url: '',
+      text: '',
+      target: '',
+      parseWarning: 'Legacy internal link value detected. Saving will convert it to structured JSON.'
+    }
+  }
+
+  try {
+    const asUrl = new URL(rawValue)
+
+    return {
+      kind: 'external',
+      itemId: '',
+      url: asUrl.toString(),
+      text: '',
+      target: '',
+      parseWarning: 'Legacy external link value detected. Saving will convert it to structured JSON.'
+    }
+  } catch {
+    // Fall through to JSON parsing.
+  }
+
+  try {
+    const parsed = JSON.parse(rawValue) as {
+      kind?: string
+      itemId?: string
+      url?: string
+      text?: string
+      target?: string
+    }
+
+    return {
+      kind: parsed.kind === 'internal' ? 'internal' : 'external',
+      itemId: parsed.itemId ?? '',
+      url: parsed.url ?? '',
+      text: parsed.text ?? '',
+      target: parsed.target ?? '',
+      parseWarning: parsed.kind === 'internal' || parsed.kind === 'external'
+        ? null
+        : 'Stored General Link value is missing a valid kind. Saving will normalize it.'
+    }
+  } catch {
+    return {
+      kind: 'external',
+      itemId: '',
+      url: '',
+      text: '',
+      target: '',
+      parseWarning: 'Stored General Link value could not be parsed. Saving will replace it with the structured editor value.'
+    }
+  }
+}
+
+function createEmptyGeneralLinkDraft(): GeneralLinkDraft {
+  return {
+    kind: 'external',
+    itemId: '',
+    url: '',
+    text: '',
+    target: '',
+    parseWarning: null
+  }
+}
+
+function updateGeneralLinkDraft(
+  key: string,
+  update: Partial<GeneralLinkDraft>)
+{
+  const nextDraft = {
+    ...getGeneralLinkDraft(key),
+    ...update,
+    parseWarning: null
+  }
+
+  fieldForm[key] = serializeGeneralLinkDraft(nextDraft)
+}
+
+function serializeGeneralLinkDraft(draft: GeneralLinkDraft) {
+  const isEmpty =
+    draft.itemId.trim().length === 0
+    && draft.url.trim().length === 0
+    && draft.text.trim().length === 0
+    && draft.target.trim().length === 0
+
+  if (isEmpty) {
+    return ''
+  }
+
+  const payload: Record<string, string> = {
+    kind: draft.kind
+  }
+
+  if (draft.kind === 'internal') {
+    payload.itemId = draft.itemId.trim()
+  } else {
+    payload.url = draft.url.trim()
+  }
+
+  if (draft.text.trim().length > 0) {
+    payload.text = draft.text.trim()
+  }
+
+  if (draft.target.trim().length > 0) {
+    payload.target = draft.target.trim()
+  }
+
+  return JSON.stringify(payload)
+}
+
+function onGeneralLinkKindInput(key: string, event: Event) {
+  const target = event.target as HTMLSelectElement | null
+  const kind = target?.value === 'internal' ? 'internal' : 'external'
+  updateGeneralLinkDraft(key, { kind })
+}
+
+function onGeneralLinkItemIdInput(key: string, event: Event) {
+  const target = event.target as HTMLInputElement | null
+  updateGeneralLinkDraft(key, { itemId: target?.value ?? '' })
+}
+
+function onGeneralLinkUrlInput(key: string, event: Event) {
+  const target = event.target as HTMLInputElement | null
+  updateGeneralLinkDraft(key, { url: target?.value ?? '' })
+}
+
+function onGeneralLinkTextInput(key: string, event: Event) {
+  const target = event.target as HTMLInputElement | null
+  updateGeneralLinkDraft(key, { text: target?.value ?? '' })
+}
+
+function onGeneralLinkTargetInput(key: string, event: Event) {
+  const target = event.target as HTMLInputElement | null
+  updateGeneralLinkDraft(key, { target: target?.value ?? '' })
+}
+
 function ensureCreateTemplateSelection(item: ContentItemResponse) {
   if (availableTemplates.value.length === 0) {
     return
@@ -1393,6 +1550,65 @@ function countNodes(nodes: TreeNode[]): number {
                       <small v-if="field.helpText != null" class="field-help">
                         {{ field.helpText }}
                       </small>
+                      <div v-if="field.editorKind === 'general-link'" class="general-link-editor">
+                        <label class="field">
+                          <span>Link Kind</span>
+                          <select
+                            :value="getGeneralLinkDraft(field.key).kind"
+                            @change="onGeneralLinkKindInput(field.key, $event)"
+                          >
+                            <option value="external">External URL</option>
+                            <option value="internal">Internal Content Item</option>
+                          </select>
+                        </label>
+
+                        <label v-if="getGeneralLinkDraft(field.key).kind === 'internal'" class="field">
+                          <span>Content Item Id</span>
+                          <input
+                            :value="getGeneralLinkDraft(field.key).itemId"
+                            type="text"
+                            placeholder="Enter content item GUID"
+                            @input="onGeneralLinkItemIdInput(field.key, $event)"
+                          />
+                        </label>
+
+                        <label v-else class="field">
+                          <span>External URL</span>
+                          <input
+                            :value="getGeneralLinkDraft(field.key).url"
+                            type="url"
+                            placeholder="https://example.com"
+                            @input="onGeneralLinkUrlInput(field.key, $event)"
+                          />
+                        </label>
+
+                        <label class="field">
+                          <span>Link Text</span>
+                          <input
+                            :value="getGeneralLinkDraft(field.key).text"
+                            type="text"
+                            placeholder="Optional label"
+                            @input="onGeneralLinkTextInput(field.key, $event)"
+                          />
+                        </label>
+
+                        <label class="field">
+                          <span>Target</span>
+                          <input
+                            :value="getGeneralLinkDraft(field.key).target"
+                            type="text"
+                            placeholder="_self or _blank"
+                            @input="onGeneralLinkTargetInput(field.key, $event)"
+                          />
+                        </label>
+
+                        <small
+                          v-if="getGeneralLinkDraft(field.key).parseWarning != null"
+                          class="field-help"
+                        >
+                          {{ getGeneralLinkDraft(field.key).parseWarning }}
+                        </small>
+                      </div>
                       <label v-if="field.editorKind === 'checkbox'" class="checkbox-field checkbox-field--editor">
                         <input
                           :checked="getCheckboxValue(field.key)"
@@ -1409,7 +1625,7 @@ function countNodes(nodes: TreeNode[]): number {
                         :rows="field.rows ?? 3"
                       />
                       <input
-                        v-else
+                        v-else-if="field.editorKind !== 'general-link'"
                         :value="fieldForm[field.key]"
                         :type="field.inputType"
                         :placeholder="field.placeholder ?? undefined"

@@ -115,3 +115,25 @@ public sealed class BooleanTypedFieldValue : TypedFieldValue
     /// </summary>
     public bool Value { get; }
 }
+
+/// <summary>
+/// Represents a converted structured general link field value.
+/// </summary>
+public sealed class GeneralLinkTypedFieldValue : TypedFieldValue
+{
+    /// <summary>
+    /// Initializes a new instance of the <see cref="GeneralLinkTypedFieldValue" /> class.
+    /// </summary>
+    /// <param name="value">The converted general link value.</param>
+    public GeneralLinkTypedFieldValue(GeneralLinkValue value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+
+        Value = value;
+    }
+
+    /// <summary>
+    /// Gets the converted structured general link value.
+    /// </summary>
+    public GeneralLinkValue Value { get; }
+}

@@ -32,7 +32,7 @@ public sealed class TypedFieldValueConverter : ITypedFieldValueConverter
             FieldType.SingleLineText => ConvertAsString(fieldDefinition, value),
             FieldType.MultiLineText => ConvertAsString(fieldDefinition, value),
             FieldType.RichText => ConvertAsString(fieldDefinition, value),
-            FieldType.GeneralLink => ConvertAsString(fieldDefinition, value),
+            FieldType.GeneralLink => ConvertAsGeneralLink(fieldDefinition, value),
             FieldType.DateTime => ConvertAsDateTime(fieldDefinition, value),
             FieldType.Integer => ConvertAsInteger(fieldDefinition, value),
             FieldType.Decimal => ConvertAsDecimal(fieldDefinition, value),
@@ -155,6 +155,33 @@ public sealed class TypedFieldValueConverter : ITypedFieldValueConverter
                 "InvalidCheckboxFieldValue",
                 $"Field '{fieldDefinition.Key}' value '{value.Value}' is not a valid checkbox value.")
         };
+    }
+
+    private static ValidationResult<ConvertedFieldValue> ConvertAsGeneralLink(
+        FieldDefinition fieldDefinition,
+        ContentFieldValue value)
+    {
+        try
+        {
+            var converted =
+                GeneralLinkValueParser.Parse(
+                    value.Value!,
+                    fieldDefinition.Key);
+
+            return new ValidationResult<ConvertedFieldValue>(
+                new ConvertedFieldValue(
+                    fieldDefinition,
+                    value,
+                    new GeneralLinkTypedFieldValue(converted)));
+        }
+        catch (InvalidOperationException exception)
+        {
+            return InvalidValue(
+                fieldDefinition,
+                value,
+                "InvalidGeneralLinkFieldValue",
+                exception.Message);
+        }
     }
 
     private static ValidationResult<ConvertedFieldValue> Unsupported(
