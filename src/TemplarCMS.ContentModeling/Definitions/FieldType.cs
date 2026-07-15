@@ -63,5 +63,10 @@ public enum FieldType
     /// <summary>
     /// Raw JSON content.
     /// </summary>
-    Json = 11
+    Json = 11,
+
+    /// <summary>
+    /// A general-purpose link value.
+    /// </summary>
+    GeneralLink = 12
 }

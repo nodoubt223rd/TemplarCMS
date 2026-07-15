@@ -23,6 +23,19 @@ public sealed class TypedFieldValueConverterTests
     }
 
     [Fact]
+    public void Convert_ReturnsStringValue_ForGeneralLink()
+    {
+        var field = CreateField(FieldType.GeneralLink, "help-link");
+        var value = CreateValue("https://templarcms.dev/help", "help-link");
+
+        var result = _converter.Convert(field, value);
+
+        Assert.True(result.Succeeded);
+        var converted = Assert.IsType<StringTypedFieldValue>(result.Value!.Value);
+        Assert.Equal("https://templarcms.dev/help", converted.Value);
+    }
+
+    [Fact]
     public void Convert_ReturnsIntegerValue_ForIntegerField()
     {
         var field = CreateField(FieldType.Integer, "sort-order");
