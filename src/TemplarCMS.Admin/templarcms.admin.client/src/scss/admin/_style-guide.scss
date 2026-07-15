@@ -1,0 +1,61 @@
+$admin-font-stack: "Segoe UI Variable", "Aptos", "Trebuchet MS", sans-serif;
+$admin-shadow: 0 22px 52px rgba(58, 70, 41, 0.12);
+$admin-radius-panel: 1.4rem;
+$admin-radius-control: 0.85rem;
+$admin-radius-pill: 999px;
+$admin-focus-color: rgba(109, 127, 56, 0.28);
+
+@mixin admin-focus-ring {
+  outline: 2px solid $admin-focus-color;
+  outline-offset: 1px;
+}
+
+@mixin admin-panel-surface($background) {
+  border: 1px solid var(--surface-border);
+  border-radius: $admin-radius-panel;
+  background: $background;
+  box-shadow: $admin-shadow;
+}
+
+@mixin admin-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.4rem 0.7rem;
+  border-radius: $admin-radius-pill;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-size: 0.83rem;
+  font-weight: 700;
+}
+
+:root {
+  color-scheme: light;
+  font-family: $admin-font-stack;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #1f2a33;
+  background:
+    radial-gradient(circle at top left, rgba(195, 218, 165, 0.52), transparent 24%),
+    radial-gradient(circle at bottom right, rgba(255, 205, 150, 0.22), transparent 26%),
+    linear-gradient(180deg, #f5efdf 0%, #fffdf7 100%);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  --surface: rgba(255, 255, 255, 0.8);
+  --surface-strong: rgba(255, 255, 255, 0.94);
+  --surface-muted: rgba(249, 245, 236, 0.95);
+  --surface-border: rgba(85, 108, 68, 0.16);
+  --accent: #6d7f38;
+  --accent-strong: #435523;
+  --accent-soft: rgba(109, 127, 56, 0.12);
+  --ink-soft: #55616f;
+  --ink-faint: #738190;
+  --danger: #8f4738;
+  --danger-soft: rgba(143, 71, 56, 0.12);
+  --success: #2f6a49;
+  --success-soft: rgba(47, 106, 73, 0.12);
+  --shadow: #{$admin-shadow};
+  --text-muted: #6f7a86;
+}

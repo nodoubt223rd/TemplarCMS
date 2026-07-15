@@ -354,7 +354,8 @@ button {
   background: rgba(109, 127, 56, 0.04);
 }
 
-.field input {
+.field input,
+.field select {
   width: 100%;
   padding: 0.72rem 0.82rem;
   border: 1px solid var(--surface-border);
@@ -375,7 +376,8 @@ button {
   font: inherit;
 }
 
-.field input:focus {
+.field input:focus,
+.field select:focus {
   outline: 2px solid rgba(109, 127, 56, 0.28);
   outline-offset: 1px;
 }

@@ -1,90 +1,16 @@
 <script setup lang="ts">
 import { computed, defineComponent, onMounted, reactive, ref } from 'vue'
 import type { PropType } from 'vue'
-
-type LinkResponse = {
-  href: string
-}
-
-type ContentItemResponse = {
-  id: string
-  name: string
-  templateId: string
-  path: string
-  language: string
-  version: number
-  fields: Record<string, string | null>
-  _links: {
-    self: LinkResponse
-    template: LinkResponse
-    children: LinkResponse
-    dependencies: LinkResponse
-    'set-values': LinkResponse
-    rename: LinkResponse
-    move: LinkResponse
-    delete: LinkResponse
-    branch: LinkResponse
-    parent?: LinkResponse | null
-  }
-}
-
-type ContentBranchResponse = {
-  item: ContentItemResponse | null
-  _links: {
-    self: LinkResponse
-    item?: LinkResponse | null
-  }
-  embedded: {
-    children: ContentItemResponse[]
-  }
-}
-
-type ContentMutationAffectedBranchResponse = {
-  scope: string
-  branch: ContentBranchResponse
-}
-
-type ContentMutationResponse = {
-  item: ContentItemResponse
-  affectedBranches: ContentMutationAffectedBranchResponse[]
-}
-
-type TemplateFieldItemResponse = {
-  id: string
-  name: string
-  key: string
-  type: string
-  isShared: boolean
-  isUnversioned: boolean
-  sectionId: string
-  sectionName: string
-  sectionKey: string
-  sectionSortOrder: number
-}
-
-type TemplateFieldCollectionResponse = {
-  embedded: {
-    fields: TemplateFieldItemResponse[]
-  }
-}
-
-type TreeNode = {
-  item: ContentItemResponse
-  children: TreeNode[]
-  isExpanded: boolean
-  isBranchLoaded: boolean
-  isBranchLoading: boolean
-}
-
-type EditorFieldModel = {
-  key: string
-  label: string
-  value: string
-  type: string
-  sectionName: string
-  scopeLabel: string
-  usesTextarea: boolean
-}
+import type {
+  ContentBranchResponse,
+  ContentItemResponse,
+  ContentMutationResponse,
+  TemplateCollectionResponse,
+  TemplateFieldCollectionResponse,
+  TemplateFieldItemResponse,
+  TemplateSummaryResponse
+} from './types/admin-api'
+import type { EditorFieldModel, TreeNode } from './types/admin-ui'
 
 const language = ref('en')
 const version = ref(1)
@@ -115,10 +41,14 @@ const moveForm = reactive({
 })
 
 const fieldForm = reactive<Record<string, string>>({})
+const availableTemplates = ref<TemplateSummaryResponse[]>([])
+const isLoadingTemplates = ref(false)
 const templateFields = ref<TemplateFieldItemResponse[]>([])
 const isLoadingTemplateFields = ref(false)
 
 const treeCount = computed(() => countNodes(rootNodes.value))
+const selectedCreateTemplate = computed(() =>
+  availableTemplates.value.find(template => template.id === createForm.templateId) ?? null)
 const editorFields = computed<EditorFieldModel[]>(() =>
   Object.keys(fieldForm)
     .sort((left, right) => left.localeCompare(right))
@@ -211,6 +141,7 @@ const TreeBranch = defineComponent({
 })
 
 onMounted(async () => {
+  await loadTemplates()
   await refreshRootBranch()
 })
 
@@ -564,6 +495,7 @@ function syncFormsFromItem(item: ContentItemResponse) {
   renameForm.key = pathSegments[pathSegments.length - 1] ?? ''
   moveForm.parentId = extractParentIdFromHref(item._links.parent?.href) ?? ''
   createForm.parentId = item.id
+  ensureCreateTemplateSelection(item)
   syncFieldForm(item)
 }
 
@@ -575,7 +507,7 @@ async function syncInspectorFromItem(item: ContentItemResponse) {
 function resetCreateForm() {
   createForm.name = ''
   createForm.key = ''
-  createForm.templateId = ''
+  createForm.templateId = getSuggestedTemplateId()
 }
 
 function resetInspectorForms() {
@@ -603,6 +535,25 @@ function clearFieldForm() {
 
 async function getRootBranch() {
   return await fetchJson<ContentBranchResponse>(withContext('/api/v1/content/root/branch'))
+}
+
+async function loadTemplates() {
+  isLoadingTemplates.value = true
+
+  try {
+    const response = await fetchJson<TemplateCollectionResponse>('/api/v1/templates')
+    availableTemplates.value = response.embedded.templates
+      .slice()
+      .sort((left, right) => left.name.localeCompare(right.name) || left.key.localeCompare(right.key))
+
+    if (createForm.templateId.length === 0) {
+      createForm.templateId = getSuggestedTemplateId()
+    }
+  } catch {
+    availableTemplates.value = []
+  } finally {
+    isLoadingTemplates.value = false
+  }
 }
 
 async function getBranch(itemId: string) {
@@ -679,6 +630,33 @@ function normalizeOptionalValue(value: string) {
 
 function normalizeFieldValue(value: string) {
   return value.length === 0 ? null : value
+}
+
+function ensureCreateTemplateSelection(item: ContentItemResponse) {
+  if (availableTemplates.value.length === 0) {
+    return
+  }
+
+  const itemTemplate =
+    availableTemplates.value.find(template => template.id === item.templateId)
+
+  if (itemTemplate?.key === 'folder') {
+    createForm.templateId = getTemplateIdByKey('item') ?? itemTemplate.id
+    return
+  }
+
+  createForm.templateId = itemTemplate?.id ?? getSuggestedTemplateId()
+}
+
+function getSuggestedTemplateId() {
+  return getTemplateIdByKey('item')
+    ?? getTemplateIdByKey('folder')
+    ?? availableTemplates.value[0]?.id
+    ?? ''
+}
+
+function getTemplateIdByKey(key: string) {
+  return availableTemplates.value.find(template => template.key === key)?.id ?? null
 }
 
 function getErrorMessage(error: unknown) {
@@ -959,8 +937,22 @@ function countNodes(nodes: TreeNode[]): number {
           </label>
 
           <label class="field">
-            <span>Template Id</span>
-            <input v-model="createForm.templateId" type="text" required />
+            <span>Template</span>
+            <select v-model="createForm.templateId" :disabled="isLoadingTemplates || availableTemplates.length === 0" required>
+              <option disabled value="">
+                {{ isLoadingTemplates ? 'Loading templates...' : 'Select a template' }}
+              </option>
+              <option
+                v-for="template in availableTemplates"
+                :key="template.id"
+                :value="template.id"
+              >
+                {{ template.name }} ({{ template.key }})
+              </option>
+            </select>
+            <small class="field-meta">
+              {{ selectedCreateTemplate == null ? 'Template ids are loaded from /api/v1/templates.' : `Selected id: ${selectedCreateTemplate.id}` }}
+            </small>
           </label>
 
           <label class="field">
