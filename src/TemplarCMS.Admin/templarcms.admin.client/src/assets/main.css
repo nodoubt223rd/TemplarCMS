@@ -342,6 +342,18 @@ button {
   font-weight: 600;
 }
 
+.field-meta {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.field-editor {
+  padding: 0.8rem 0.9rem;
+  border: 1px solid rgba(109, 127, 56, 0.12);
+  border-radius: 0.9rem;
+  background: rgba(109, 127, 56, 0.04);
+}
+
 .field input {
   width: 100%;
   padding: 0.72rem 0.82rem;
@@ -351,7 +363,24 @@ button {
   color: inherit;
 }
 
+.field-textarea {
+  width: 100%;
+  min-height: 6.5rem;
+  padding: 0.72rem 0.82rem;
+  border: 1px solid var(--surface-border);
+  border-radius: 0.85rem;
+  background: rgba(255, 255, 255, 0.96);
+  color: inherit;
+  resize: vertical;
+  font: inherit;
+}
+
 .field input:focus {
+  outline: 2px solid rgba(109, 127, 56, 0.28);
+  outline-offset: 1px;
+}
+
+.field-textarea:focus {
   outline: 2px solid rgba(109, 127, 56, 0.28);
   outline-offset: 1px;
 }
@@ -384,6 +413,10 @@ button {
 
 .composer-panel {
   background: rgba(255, 255, 255, 0.9);
+}
+
+.empty-state--compact {
+  padding: 0.9rem 0;
 }
 
 .create-actions {

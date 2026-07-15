@@ -49,12 +49,41 @@ type ContentMutationResponse = {
   affectedBranches: ContentMutationAffectedBranchResponse[]
 }
 
+type TemplateFieldItemResponse = {
+  id: string
+  name: string
+  key: string
+  type: string
+  isShared: boolean
+  isUnversioned: boolean
+  sectionId: string
+  sectionName: string
+  sectionKey: string
+  sectionSortOrder: number
+}
+
+type TemplateFieldCollectionResponse = {
+  embedded: {
+    fields: TemplateFieldItemResponse[]
+  }
+}
+
 type TreeNode = {
   item: ContentItemResponse
   children: TreeNode[]
   isExpanded: boolean
   isBranchLoaded: boolean
   isBranchLoading: boolean
+}
+
+type EditorFieldModel = {
+  key: string
+  label: string
+  value: string
+  type: string
+  sectionName: string
+  scopeLabel: string
+  usesTextarea: boolean
 }
 
 const language = ref('en')
@@ -85,7 +114,34 @@ const moveForm = reactive({
   parentId: ''
 })
 
+const fieldForm = reactive<Record<string, string>>({})
+const templateFields = ref<TemplateFieldItemResponse[]>([])
+const isLoadingTemplateFields = ref(false)
+
 const treeCount = computed(() => countNodes(rootNodes.value))
+const editorFields = computed<EditorFieldModel[]>(() =>
+  Object.keys(fieldForm)
+    .sort((left, right) => left.localeCompare(right))
+    .map(key => {
+      const templateField = templateFields.value.find(field => field.key === key)
+      const type = templateField?.type ?? 'SingleLineText'
+
+      return {
+        key,
+        label: templateField?.name ?? key,
+        value: fieldForm[key] ?? '',
+        type,
+        sectionName: templateField?.sectionName ?? 'Fields',
+        scopeLabel: templateField == null
+          ? 'Unknown scope'
+          : templateField.isShared
+            ? 'Shared'
+            : templateField.isUnversioned
+              ? 'Unversioned'
+              : 'Versioned',
+        usesTextarea: type === 'MultiLineText' || type === 'RichText' || type === 'Json'
+      }
+    }))
 
 const TreeBranch = defineComponent({
   name: 'TreeBranch',
@@ -169,7 +225,7 @@ async function refreshRootBranch() {
     if (selectedItemId.value != null) {
       const currentNode = findNodeById(rootNodes.value, selectedItemId.value)
       if (currentNode != null) {
-        syncFormsFromItem(currentNode.item)
+        await syncInspectorFromItem(currentNode.item)
       } else {
         selectedItemId.value = null
       }
@@ -183,7 +239,7 @@ async function refreshRootBranch() {
 
 async function selectNode(node: TreeNode) {
   selectedItemId.value = node.item.id
-  syncFormsFromItem(node.item)
+  await syncInspectorFromItem(node.item)
 
   if (!node.isBranchLoaded && !node.isBranchLoading) {
     await loadBranch(node)
@@ -329,6 +385,41 @@ async function submitDelete() {
   }
 }
 
+async function submitValues() {
+  if (isSubmitting.value || selectedItem.value == null) {
+    return
+  }
+
+  pageError.value = null
+  successMessage.value = null
+  isSubmitting.value = true
+
+  try {
+    const response = await fetchJson<ContentItemResponse>(
+      selectedItem.value._links['set-values'].href,
+      withJsonDefaults({
+        method: 'POST',
+        body: JSON.stringify({
+          language: language.value,
+          version: version.value,
+          values: Object.fromEntries(
+            Object.entries(fieldForm).map(([key, value]) => [key, normalizeFieldValue(value)])
+          )
+        })
+      })
+    )
+
+    upsertNode(extractParentIdFromHref(response._links.parent?.href), response)
+    selectedItemId.value = response.id
+    await syncInspectorFromItem(response)
+    successMessage.value = `Saved ${Object.keys(fieldForm).length} field values for ${response.name}.`
+  } catch (error) {
+    pageError.value = getErrorMessage(error)
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
 async function applyMutationResponse(response: ContentMutationResponse) {
   for (const affected of response.affectedBranches) {
     applyBranchToTree(affected.branch)
@@ -337,7 +428,7 @@ async function applyMutationResponse(response: ContentMutationResponse) {
   const refreshedItem = await getItem(response.item.id)
   upsertNode(extractParentIdFromHref(refreshedItem._links.parent?.href), refreshedItem)
   selectedItemId.value = response.item.id
-  syncFormsFromItem(refreshedItem)
+  await syncInspectorFromItem(refreshedItem)
 }
 
 function applyDeletedMutationResponse(response: ContentMutationResponse) {
@@ -362,7 +453,7 @@ function applyDeletedMutationResponse(response: ContentMutationResponse) {
   }
 
   selectedItemId.value = parentNode.item.id
-  syncFormsFromItem(parentNode.item)
+  void syncInspectorFromItem(parentNode.item)
 }
 
 function applyBranchToTree(branch: ContentBranchResponse) {
@@ -473,6 +564,12 @@ function syncFormsFromItem(item: ContentItemResponse) {
   renameForm.key = pathSegments[pathSegments.length - 1] ?? ''
   moveForm.parentId = extractParentIdFromHref(item._links.parent?.href) ?? ''
   createForm.parentId = item.id
+  syncFieldForm(item)
+}
+
+async function syncInspectorFromItem(item: ContentItemResponse) {
+  syncFormsFromItem(item)
+  await loadTemplateFields(item)
 }
 
 function resetCreateForm() {
@@ -486,6 +583,22 @@ function resetInspectorForms() {
   renameForm.key = ''
   moveForm.parentId = ''
   createForm.parentId = ''
+  clearFieldForm()
+  templateFields.value = []
+}
+
+function syncFieldForm(item: ContentItemResponse) {
+  clearFieldForm()
+
+  for (const [key, value] of Object.entries(item.fields)) {
+    fieldForm[key] = value ?? ''
+  }
+}
+
+function clearFieldForm() {
+  for (const key of Object.keys(fieldForm)) {
+    delete fieldForm[key]
+  }
 }
 
 async function getRootBranch() {
@@ -498,6 +611,26 @@ async function getBranch(itemId: string) {
 
 async function getItem(itemId: string) {
   return await fetchJson<ContentItemResponse>(withContext(`/api/v1/content/${itemId}`))
+}
+
+async function loadTemplateFields(item: ContentItemResponse) {
+  isLoadingTemplateFields.value = true
+
+  try {
+    const response =
+      await fetchJson<TemplateFieldCollectionResponse>(`${item._links.template.href}/fields`)
+
+    templateFields.value = response.embedded.fields
+      .slice()
+      .sort((left, right) =>
+        left.sectionSortOrder - right.sectionSortOrder ||
+        left.sectionName.localeCompare(right.sectionName) ||
+        left.name.localeCompare(right.name))
+  } catch {
+    templateFields.value = []
+  } finally {
+    isLoadingTemplateFields.value = false
+  }
 }
 
 async function sendMutation(url: string, init: RequestInit) {
@@ -542,6 +675,10 @@ function extractParentIdFromHref(href: string | undefined) {
 function normalizeOptionalValue(value: string) {
   const trimmed = value.trim()
   return trimmed.length === 0 ? null : trimmed
+}
+
+function normalizeFieldValue(value: string) {
+  return value.length === 0 ? null : value
 }
 
 function getErrorMessage(error: unknown) {
@@ -690,6 +827,54 @@ function countNodes(nodes: TreeNode[]): number {
             </section>
 
             <section class="form-stack">
+              <form class="editor-card" @submit.prevent="submitValues">
+                <div class="editor-card__header">
+                  <div>
+                    <p class="eyebrow">Fields</p>
+                    <h4>Edit resolved field values</h4>
+                  </div>
+                  <span class="callout">Uses the language/version value contract</span>
+                </div>
+
+                <div v-if="isLoadingTemplateFields" class="empty-state empty-state--compact">
+                  Loading template field metadata...
+                </div>
+
+                <div v-else-if="editorFields.length === 0" class="empty-state empty-state--compact">
+                  No editable fields were returned for this item in the current context.
+                </div>
+
+                <template v-else>
+                  <div
+                    v-for="field in editorFields"
+                    :key="field.key"
+                    class="field-editor"
+                  >
+                    <label class="field">
+                      <span>{{ field.label }}</span>
+                      <small class="field-meta">
+                        {{ field.sectionName }} · {{ field.type }} · {{ field.scopeLabel }}
+                      </small>
+                      <textarea
+                        v-if="field.usesTextarea"
+                        v-model="fieldForm[field.key]"
+                        class="field-textarea"
+                        :rows="field.type === 'RichText' ? 6 : 3"
+                      />
+                      <input
+                        v-else
+                        v-model="fieldForm[field.key]"
+                        type="text"
+                      />
+                    </label>
+                  </div>
+
+                  <button class="button" type="submit" :disabled="isSubmitting">
+                    Save Values
+                  </button>
+                </template>
+              </form>
+
               <form class="editor-card" @submit.prevent="submitRename">
                 <div class="editor-card__header">
                   <div>
