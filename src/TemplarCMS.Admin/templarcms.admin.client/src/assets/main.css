@@ -377,6 +377,11 @@ button {
   color: var(--accent-strong);
 }
 
+.button--danger {
+  background: linear-gradient(135deg, #a63e3e, #7d2626);
+  color: #fff7f4;
+}
+
 .composer-panel {
   background: rgba(255, 255, 255, 0.9);
 }

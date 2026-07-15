@@ -1128,7 +1128,7 @@ public sealed class ContentLookupEndpointsTests
     }
 
     [Fact]
-    public async Task DeleteAsync_ShouldReturnNoContent_WhenItemExists()
+    public async Task DeleteAsync_ShouldReturnAffectedRootBranch_WhenDeletingRootItem()
     {
         var itemId = new ContentItemId(Guid.NewGuid());
         var item =
@@ -1138,10 +1138,24 @@ public sealed class ContentLookupEndpointsTests
                 path: "/home",
                 name: "Home",
                 key: "home");
+        var sibling =
+            CreateResolvedItem(
+                itemId: new ContentItemId(Guid.NewGuid()),
+                parentId: null,
+                path: "/articles",
+                name: "Articles",
+                key: "articles");
         var service =
             new FakeContentItemService(
                 item,
-                []);
+                [item, sibling]);
+        service.SetChildren(null, [item, sibling]);
+        service.OnDeleteItemAsync = deletedItemId =>
+        {
+            service.SetItemUnavailable(deletedItemId);
+            service.SetChildren(null, [sibling]);
+            return Task.CompletedTask;
+        };
 
         var result =
             await ContentLookupEndpoints.DeleteAsync(
@@ -1149,8 +1163,75 @@ public sealed class ContentLookupEndpointsTests
                 service,
                 TestContext.Current.CancellationToken);
 
-        Assert.IsType<NoContent>(result.Result);
+        var ok = Assert.IsType<Ok<ContentMutationResponse>>(result.Result);
+        Assert.NotNull(ok.Value);
         Assert.Equal(itemId, service.LastDeletedItemId);
+        Assert.Equal(itemId.Value.ToString(), ok.Value.Item.Id);
+
+        var affectedBranch = Assert.Single(ok.Value.AffectedBranches);
+        Assert.Equal("deleted-from", affectedBranch.Scope);
+        Assert.Null(affectedBranch.Branch.Item);
+        Assert.Equal(
+            new[] { "/articles" },
+            affectedBranch.Branch.Embedded.Children.Select(child => child.Path).ToArray());
+    }
+
+    [Fact]
+    public async Task DeleteAsync_ShouldReturnAffectedParentBranch_WhenDeletingChildItem()
+    {
+        var parentId = new ContentItemId(Guid.NewGuid());
+        var itemId = new ContentItemId(Guid.NewGuid());
+        var parent =
+            CreateResolvedItem(
+                itemId: parentId,
+                parentId: null,
+                path: "/home",
+                name: "Home",
+                key: "home");
+        var item =
+            CreateResolvedItem(
+                itemId: itemId,
+                parentId: parentId,
+                path: "/home/child-a",
+                name: "Child A",
+                key: "child-a");
+        var sibling =
+            CreateResolvedItem(
+                itemId: new ContentItemId(Guid.NewGuid()),
+                parentId: parentId,
+                path: "/home/child-b",
+                name: "Child B",
+                key: "child-b");
+        var service =
+            new FakeContentItemService(
+                item,
+                [item, sibling]);
+        service.SetItem(parent);
+        service.SetChildren(parentId, [item, sibling]);
+        service.OnDeleteItemAsync = deletedItemId =>
+        {
+            service.SetItemUnavailable(deletedItemId);
+            service.SetChildren(parentId, [sibling]);
+            return Task.CompletedTask;
+        };
+
+        var result =
+            await ContentLookupEndpoints.DeleteAsync(
+                itemId.Value,
+                service,
+                TestContext.Current.CancellationToken);
+
+        var ok = Assert.IsType<Ok<ContentMutationResponse>>(result.Result);
+        Assert.NotNull(ok.Value);
+        Assert.Equal(itemId, service.LastDeletedItemId);
+
+        var affectedBranch = Assert.Single(ok.Value.AffectedBranches);
+        Assert.Equal("deleted-from", affectedBranch.Scope);
+        Assert.NotNull(affectedBranch.Branch.Item);
+        Assert.Equal(parentId.Value.ToString(), affectedBranch.Branch.Item!.Id);
+        Assert.Equal(
+            new[] { "/home/child-b" },
+            affectedBranch.Branch.Embedded.Children.Select(child => child.Path).ToArray());
     }
 
     [Fact]
@@ -1411,9 +1492,23 @@ public sealed class ContentLookupEndpointsTests
 
         public ResolvedContentItem? StoredItem { get; set; }
 
+        public HashSet<ContentItemId> UnavailableItems { get; } = [];
+
         public void SetItem(ResolvedContentItem item)
         {
             _itemsById[item.Item.Id] = item;
+            UnavailableItems.Remove(item.Item.Id);
+        }
+
+        public void SetItemUnavailable(ContentItemId itemId)
+        {
+            _itemsById.Remove(itemId);
+            UnavailableItems.Add(itemId);
+
+            if (StoredItem?.Item.Id == itemId)
+            {
+                StoredItem = null;
+            }
         }
 
         public void SetChildren(
@@ -1435,6 +1530,11 @@ public sealed class ContentLookupEndpointsTests
         {
             LastRequestedItemId = itemId;
             LastContext = context;
+
+            if (UnavailableItems.Contains(itemId))
+            {
+                return Task.FromResult<ResolvedContentItem?>(null);
+            }
 
             if (StoredItem != null && StoredItem.Item.Id == itemId)
             {
