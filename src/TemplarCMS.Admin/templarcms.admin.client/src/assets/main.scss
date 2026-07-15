@@ -388,6 +388,11 @@ button {
   font-size: 0.78rem;
 }
 
+.field-help {
+  color: var(--ink-faint);
+  font-size: 0.8rem;
+}
+
 .field-editor {
   padding: 0.8rem 0.9rem;
   border: 1px solid rgba(109, 127, 56, 0.12);
@@ -550,6 +555,13 @@ button {
   gap: 0.65rem;
   align-items: center;
   color: var(--ink-soft);
+}
+
+.checkbox-field--editor {
+  padding: 0.8rem 0.9rem;
+  border-radius: 0.85rem;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--surface-border);
 }
 
 .checkbox-field input {

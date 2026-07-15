@@ -49,6 +49,105 @@ const fieldTypeOptions = [
   'Json'
 ] as const
 
+const editorRegistry = {
+  SingleLineText: {
+    editorKind: 'text',
+    inputType: 'text',
+    placeholder: 'Enter text',
+    rows: null,
+    step: null,
+    helpText: null
+  },
+  MultiLineText: {
+    editorKind: 'textarea',
+    inputType: 'text',
+    placeholder: 'Enter text',
+    rows: 3,
+    step: null,
+    helpText: null
+  },
+  RichText: {
+    editorKind: 'textarea',
+    inputType: 'text',
+    placeholder: 'Enter rich text or HTML',
+    rows: 6,
+    step: null,
+    helpText: 'Rich text currently saves as string content.'
+  },
+  Checkbox: {
+    editorKind: 'checkbox',
+    inputType: 'checkbox',
+    placeholder: null,
+    rows: null,
+    step: null,
+    helpText: 'Stored as true or false.'
+  },
+  DateTime: {
+    editorKind: 'date-time',
+    inputType: 'datetime-local',
+    placeholder: null,
+    rows: null,
+    step: null,
+    helpText: 'Use local date and time; the API still persists a string value.'
+  },
+  Integer: {
+    editorKind: 'number',
+    inputType: 'number',
+    placeholder: '0',
+    rows: null,
+    step: '1',
+    helpText: 'Whole numbers only.'
+  },
+  Decimal: {
+    editorKind: 'number',
+    inputType: 'number',
+    placeholder: '0.00',
+    rows: null,
+    step: '0.01',
+    helpText: 'Decimal numbers are validated by the API.'
+  },
+  Droplink: {
+    editorKind: 'text',
+    inputType: 'text',
+    placeholder: 'Enter referenced item id or path',
+    rows: null,
+    step: null,
+    helpText: 'Reference-style fields still use a plain text value for now.'
+  },
+  Multilist: {
+    editorKind: 'textarea',
+    inputType: 'text',
+    placeholder: 'Enter one or more referenced values',
+    rows: 3,
+    step: null,
+    helpText: 'Multiple references are still authored as string content for now.'
+  },
+  Image: {
+    editorKind: 'text',
+    inputType: 'text',
+    placeholder: 'Enter media reference',
+    rows: null,
+    step: null,
+    helpText: 'Image fields still store a string reference today.'
+  },
+  File: {
+    editorKind: 'text',
+    inputType: 'text',
+    placeholder: 'Enter file reference',
+    rows: null,
+    step: null,
+    helpText: 'File fields still store a string reference today.'
+  },
+  Json: {
+    editorKind: 'textarea',
+    inputType: 'text',
+    placeholder: '{ }',
+    rows: 6,
+    step: null,
+    helpText: 'JSON is not schema-aware yet, but the editor keeps the field distinct.'
+  }
+} as const
+
 const language = ref('en')
 const version = ref(1)
 const isBootstrapping = ref(false)
@@ -134,6 +233,7 @@ const editorFields = computed<EditorFieldModel[]>(() =>
     .map(key => {
       const templateField = templateFields.value.find(field => field.key === key)
       const type = templateField?.type ?? 'SingleLineText'
+      const editor = getEditorDefinition(type)
 
       return {
         key,
@@ -148,7 +248,12 @@ const editorFields = computed<EditorFieldModel[]>(() =>
             : templateField.isUnversioned
               ? 'Unversioned'
               : 'Versioned',
-        usesTextarea: type === 'MultiLineText' || type === 'RichText' || type === 'Json'
+        editorKind: editor.editorKind,
+        inputType: editor.inputType,
+        placeholder: editor.placeholder,
+        rows: editor.rows,
+        step: editor.step,
+        helpText: editor.helpText
       }
     }))
 
@@ -997,6 +1102,28 @@ function normalizeFieldValue(value: string) {
   return value.length === 0 ? null : value
 }
 
+function getCheckboxValue(key: string) {
+  return fieldForm[key]?.trim().toLowerCase() === 'true'
+}
+
+function setCheckboxValue(key: string, checked: boolean) {
+  fieldForm[key] = checked ? 'true' : 'false'
+}
+
+function setFieldValue(key: string, value: string | number | null | undefined) {
+  fieldForm[key] = value == null ? '' : String(value)
+}
+
+function onCheckboxInput(key: string, event: Event) {
+  const target = event.target as HTMLInputElement | null
+  setCheckboxValue(key, target?.checked ?? false)
+}
+
+function onFieldInput(key: string, event: Event) {
+  const target = event.target as HTMLInputElement | null
+  setFieldValue(key, target?.value ?? '')
+}
+
 function ensureCreateTemplateSelection(item: ContentItemResponse) {
   if (availableTemplates.value.length === 0) {
     return
@@ -1026,6 +1153,10 @@ function getTemplateIdByKey(key: string) {
 
 function getTemplateKeyById(id: string) {
   return availableTemplates.value.find(template => template.id === id)?.key ?? null
+}
+
+function getEditorDefinition(fieldType: string) {
+  return editorRegistry[fieldType as keyof typeof editorRegistry] ?? editorRegistry.SingleLineText
 }
 
 function mapTemplateSectionViewModel(section: TemplateSectionResponse): TemplateSectionViewModel {
@@ -1246,16 +1377,31 @@ function countNodes(nodes: TreeNode[]): number {
                       <small class="field-meta">
                         {{ field.sectionName }} · {{ field.type }} · {{ field.scopeLabel }}
                       </small>
+                      <small v-if="field.helpText != null" class="field-help">
+                        {{ field.helpText }}
+                      </small>
+                      <label v-if="field.editorKind === 'checkbox'" class="checkbox-field checkbox-field--editor">
+                        <input
+                          :checked="getCheckboxValue(field.key)"
+                          type="checkbox"
+                          @change="onCheckboxInput(field.key, $event)"
+                        />
+                        <span>Enabled</span>
+                      </label>
                       <textarea
-                        v-if="field.usesTextarea"
+                        v-else-if="field.editorKind === 'textarea'"
                         v-model="fieldForm[field.key]"
                         class="field-textarea"
-                        :rows="field.type === 'RichText' ? 6 : 3"
+                        :placeholder="field.placeholder ?? undefined"
+                        :rows="field.rows ?? 3"
                       />
                       <input
                         v-else
-                        v-model="fieldForm[field.key]"
-                        type="text"
+                        :value="fieldForm[field.key]"
+                        :type="field.inputType"
+                        :placeholder="field.placeholder ?? undefined"
+                        :step="field.step ?? undefined"
+                        @input="onFieldInput(field.key, $event)"
                       />
                     </label>
                   </div>

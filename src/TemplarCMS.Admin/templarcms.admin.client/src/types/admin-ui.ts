@@ -15,7 +15,12 @@ export type EditorFieldModel = {
   type: string
   sectionName: string
   scopeLabel: string
-  usesTextarea: boolean
+  editorKind: 'checkbox' | 'date-time' | 'number' | 'textarea' | 'text'
+  inputType: 'checkbox' | 'datetime-local' | 'number' | 'text'
+  placeholder: string | null
+  rows: number | null
+  step: string | null
+  helpText: string | null
 }
 
 export type TemplateFieldViewModel = {
