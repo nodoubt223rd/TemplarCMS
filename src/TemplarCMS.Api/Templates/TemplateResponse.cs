@@ -11,10 +11,29 @@ public sealed class TemplateResponse
 
     public required string Key { get; init; }
 
+    public TemplateBaseTemplateResponse? BaseTemplate { get; init; }
+
     public required IReadOnlyCollection<TemplateSectionResponse> Sections { get; init; }
 
     [JsonPropertyName("_links")]
     public required TemplateLinksResponse Links { get; init; }
+}
+
+public sealed class TemplateBaseTemplateResponse
+{
+    public required string Id { get; init; }
+
+    public required string Name { get; init; }
+
+    public required string Key { get; init; }
+
+    [JsonPropertyName("_links")]
+    public required TemplateBaseTemplateLinksResponse Links { get; init; }
+}
+
+public sealed class TemplateBaseTemplateLinksResponse
+{
+    public required LinkResponse Self { get; init; }
 }
 
 public sealed class TemplateCollectionResponse

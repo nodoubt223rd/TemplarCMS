@@ -17,3 +17,19 @@ export type EditorFieldModel = {
   scopeLabel: string
   usesTextarea: boolean
 }
+
+export type TemplateFieldViewModel = {
+  id: string
+  name: string
+  key: string
+  type: string
+  scopeLabel: string
+}
+
+export type TemplateSectionViewModel = {
+  id: string
+  name: string
+  key: string
+  sortOrder: number
+  fields: TemplateFieldViewModel[]
+}
