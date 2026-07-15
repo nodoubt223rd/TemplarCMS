@@ -5,5 +5,7 @@
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     <NuGetAudit>false</NuGetAudit>
+    <RestoreConfigFile>$(MSBuildThisFileDirectory)nuget.config</RestoreConfigFile>
+    <RestorePackagesPath>$(MSBuildThisFileDirectory).tmp\nuget-packages</RestorePackagesPath>
   </PropertyGroup>
 </Project>
