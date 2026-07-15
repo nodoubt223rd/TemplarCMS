@@ -98,50 +98,10 @@ namespace TemplarCMS.ContentModeling.Serialization
                 new FieldId(field.Id),
                 GetRequiredValue(field.Name, "field.name"),
                 GetRequiredValue(field.Key, "field.key"),
-                ParseFieldType(field.FieldType),
+                FieldTypeParser.Parse(field.FieldType),
                 field.IsShared,
                 field.IsUnversioned,
                 field.Metadata);
-        }
-
-        /// <summary>
-        /// Converts a JSON field type identifier into a domain field type.
-        /// </summary>
-        /// <param name="fieldType">
-        /// The JSON field type value.
-        /// </param>
-        /// <returns>
-        /// The corresponding domain field type.
-        /// </returns>
-        /// <exception cref="InvalidOperationException">
-        /// Thrown when the field type is missing or unsupported.
-        /// </exception>
-        private static FieldType ParseFieldType(string? fieldType)
-        {
-            if (string.IsNullOrWhiteSpace(fieldType))
-            {
-                throw new InvalidOperationException(
-                    "Field type is required.");
-            }
-
-            return fieldType.Trim().ToLowerInvariant() switch
-            {
-                "singlelinetext" => FieldType.SingleLineText,
-                "multilinetext" => FieldType.MultiLineText,
-                "richtext" => FieldType.RichText,
-                "checkbox" => FieldType.Checkbox,
-                "datetime" => FieldType.DateTime,
-                "integer" => FieldType.Integer,
-                "decimal" => FieldType.Decimal,
-                "droplink" => FieldType.Droplink,
-                "multilist" => FieldType.Multilist,
-                "image" => FieldType.Image,
-                "file" => FieldType.File,
-                "json" => FieldType.Json,
-
-                _ => throw new InvalidOperationException(
-                    $"Unsupported field type '{fieldType}'.")
-            };
         }
 
         /// <summary>
