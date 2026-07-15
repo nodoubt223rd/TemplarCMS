@@ -3,6 +3,7 @@ import { computed, defineComponent, onMounted, reactive, ref } from 'vue'
 import type { PropType } from 'vue'
 import type {
   ContentBranchResponse,
+  ContentItemDependencyResponse,
   ContentItemResponse,
   ContentMutationResponse,
   TemplateCollectionResponse,
@@ -201,6 +202,8 @@ const availableTemplates = ref<TemplateSummaryResponse[]>([])
 const isLoadingTemplates = ref(false)
 const templateFields = ref<TemplateFieldItemResponse[]>([])
 const isLoadingTemplateFields = ref(false)
+const selectedItemDependencies = ref<ContentItemDependencyResponse | null>(null)
+const isLoadingItemDependencies = ref(false)
 const selectedTemplateId = ref<string | null>(null)
 const selectedTemplateDetail = ref<TemplateResponse | null>(null)
 const selectedTemplateDependencies = ref<TemplateDependencyResponse | null>(null)
@@ -368,6 +371,7 @@ async function refreshRootBranch() {
         await syncInspectorFromItem(currentNode.item)
       } else {
         selectedItemId.value = null
+        resetInspectorForms()
       }
     }
   } catch (error) {
@@ -502,6 +506,12 @@ async function submitDelete() {
   }
 
   const itemToDelete = selectedItem.value
+  const dependencyState = selectedItemDependencies.value
+
+  if (dependencyState?.canDelete === false) {
+    pageError.value = `Content item ${itemToDelete.name} still has direct children.`
+    return
+  }
 
   if (!window.confirm(`Delete ${itemToDelete.name}? This only works when the item has no direct children.`)) {
     return
@@ -710,7 +720,10 @@ function syncFormsFromItem(item: ContentItemResponse) {
 
 async function syncInspectorFromItem(item: ContentItemResponse) {
   syncFormsFromItem(item)
-  await loadTemplateFields(item)
+  await Promise.all([
+    loadTemplateFields(item),
+    loadContentDependencies(item)
+  ])
 }
 
 function resetCreateForm() {
@@ -726,6 +739,7 @@ function resetInspectorForms() {
   createForm.parentId = ''
   clearFieldForm()
   templateFields.value = []
+  selectedItemDependencies.value = null
 }
 
 function syncFieldForm(item: ContentItemResponse) {
@@ -795,6 +809,21 @@ async function loadTemplateFields(item: ContentItemResponse) {
     templateFields.value = []
   } finally {
     isLoadingTemplateFields.value = false
+  }
+}
+
+async function loadContentDependencies(item: ContentItemResponse) {
+  isLoadingItemDependencies.value = true
+  selectedItemDependencies.value = null
+
+  try {
+    selectedItemDependencies.value =
+      await fetchJson<ContentItemDependencyResponse>(item._links.dependencies.href)
+  } catch (error) {
+    selectedItemDependencies.value = null
+    pageError.value = getErrorMessage(error)
+  } finally {
+    isLoadingItemDependencies.value = false
   }
 }
 
@@ -1688,12 +1717,48 @@ function countNodes(nodes: TreeNode[]): number {
                 <div class="editor-card__header">
                   <div>
                     <p class="eyebrow">Delete</p>
-                    <h4>Remove the current leaf item</h4>
+                    <h4>Safe delete preflight</h4>
                   </div>
-                  <span class="callout">Blocked when direct children exist</span>
+                  <span
+                    v-if="selectedItemDependencies != null"
+                    :class="['callout', selectedItemDependencies.canDelete ? 'callout--success' : 'callout--danger']"
+                  >
+                    {{ selectedItemDependencies.canDelete ? 'Delete ready' : 'Delete blocked' }}
+                  </span>
+                  <span v-else class="callout">Checks child dependencies</span>
                 </div>
 
-                <button class="button button--danger" type="submit" :disabled="isSubmitting">
+                <div v-if="isLoadingItemDependencies" class="empty-state empty-state--compact">
+                  Loading child dependency state...
+                </div>
+
+                <template v-else-if="selectedItemDependencies != null">
+                  <div class="dependency-summary">
+                    <div class="dependency-stat">
+                      <strong>{{ selectedItemDependencies.summary.directChildCount }}</strong>
+                      <span>direct children</span>
+                    </div>
+                  </div>
+
+                  <section class="dependency-card">
+                    <h5>Direct children</h5>
+                    <ul v-if="selectedItemDependencies.embedded.children.length > 0" class="dependency-list">
+                      <li
+                        v-for="child in selectedItemDependencies.embedded.children"
+                        :key="child.id"
+                      >
+                        {{ child.name }} · {{ child.path }}
+                      </li>
+                    </ul>
+                    <p v-else class="dependency-empty">This item does not currently have any direct children.</p>
+                  </section>
+                </template>
+
+                <button
+                  class="button button--danger"
+                  type="submit"
+                  :disabled="isSubmitting || isLoadingItemDependencies || selectedItemDependencies?.canDelete !== true"
+                >
                   Delete Item
                 </button>
               </form>

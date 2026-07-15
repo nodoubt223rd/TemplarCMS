@@ -45,6 +45,31 @@ export type ContentMutationResponse = {
   affectedBranches: ContentMutationAffectedBranchResponse[]
 }
 
+export type ContentDependencyChildResponse = {
+  id: string
+  name: string
+  path: string
+  _links: {
+    self: LinkResponse
+  }
+}
+
+export type ContentItemDependencyResponse = {
+  id: string
+  path: string
+  canDelete: boolean
+  summary: {
+    directChildCount: number
+  }
+  embedded: {
+    children: ContentDependencyChildResponse[]
+  }
+  _links: {
+    self: LinkResponse
+    'content-item': LinkResponse
+  }
+}
+
 export type TemplateSummaryResponse = {
   id: string
   name: string
