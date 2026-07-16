@@ -21,6 +21,16 @@ builder.Services.AddSwaggerGen(
                 Title = "TemplarCMS API",
                 Version = "v1"
             });
+        options.AddSecurityDefinition(
+            ApiKeyAuthenticationDefaults.SchemeName,
+            new OpenApiSecurityScheme
+            {
+                Type = SecuritySchemeType.ApiKey,
+                Name = "X-Templar-Api-Key",
+                In = ParameterLocation.Header,
+                Description = "API key required for authoring endpoints when AuthoringSecurity is enabled."
+            });
+        options.OperationFilter<AuthoringSecurityOperationFilter>();
     });
 builder.Services.AddTemplarApiAuthoringSecurity(
     builder.Configuration);
