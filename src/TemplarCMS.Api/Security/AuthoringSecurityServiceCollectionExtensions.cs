@@ -20,6 +20,7 @@ public static class AuthoringSecurityServiceCollectionExtensions
             .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(
                 ApiKeyAuthenticationDefaults.SchemeName,
                 _ => { });
+        services.AddSingleton<IAuthorizationHandler, AuthoringAccessAuthorizationHandler>();
 
         services.AddAuthorization(
             options =>
@@ -30,7 +31,7 @@ public static class AuthoringSecurityServiceCollectionExtensions
                     {
                         policy
                             .AddAuthenticationSchemes(ApiKeyAuthenticationDefaults.SchemeName)
-                            .RequireAuthenticatedUser();
+                            .AddRequirements(new AuthoringAccessRequirement());
                     });
             });
 

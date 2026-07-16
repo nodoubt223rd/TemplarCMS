@@ -8,6 +8,9 @@ var builder = WebApplication.CreateBuilder(args);
 var openApiEnabled =
     builder.Configuration.GetValue<bool?>("OpenApi:Enabled")
     ?? builder.Environment.IsDevelopment();
+var authoringSecurityHeaderName =
+    builder.Configuration.GetValue<string>("AuthoringSecurity:ApiKeyHeaderName")
+    ?? "X-Templar-Api-Key";
 
 builder.Services.AddProblemDetails();
 builder.Services.AddEndpointsApiExplorer();
@@ -26,7 +29,7 @@ builder.Services.AddSwaggerGen(
             new OpenApiSecurityScheme
             {
                 Type = SecuritySchemeType.ApiKey,
-                Name = "X-Templar-Api-Key",
+                Name = authoringSecurityHeaderName,
                 In = ParameterLocation.Header,
                 Description = "API key required for authoring endpoints when AuthoringSecurity is enabled."
             });

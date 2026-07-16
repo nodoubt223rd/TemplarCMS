@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 
 namespace TemplarCMS.Api.Security;
@@ -73,5 +74,55 @@ internal sealed class ApiKeyAuthenticationHandler : AuthenticationHandler<Authen
                 ApiKeyAuthenticationDefaults.SchemeName);
 
         return Task.FromResult(AuthenticateResult.Success(ticket));
+    }
+
+    protected override async Task HandleChallengeAsync(
+        AuthenticationProperties properties)
+    {
+        var options =
+            _authoringSecurityOptions.CurrentValue;
+        var authenticateResult =
+            await HandleAuthenticateOnceSafeAsync();
+        ProblemDetails problem;
+
+        if (authenticateResult.Succeeded)
+        {
+            await base.HandleChallengeAsync(properties);
+            return;
+        }
+
+        if (authenticateResult.Failure != null)
+        {
+            problem =
+                ApiProblems.AuthoringAuthenticationFailed(
+                    authenticateResult.Failure.Message);
+        }
+        else
+        {
+            problem =
+                ApiProblems.AuthoringAuthenticationRequired(
+                    options.ApiKeyHeaderName);
+        }
+
+        await WriteProblemAsync(problem);
+    }
+
+    protected override Task HandleForbiddenAsync(
+        AuthenticationProperties properties)
+    {
+        return WriteProblemAsync(
+            ApiProblems.AuthoringAccessForbidden());
+    }
+
+    private Task WriteProblemAsync(
+        ProblemDetails problem)
+    {
+        Response.StatusCode =
+            problem.Status ?? StatusCodes.Status500InternalServerError;
+        Response.ContentType = "application/problem+json";
+
+        return Response.WriteAsJsonAsync(
+            problem,
+            cancellationToken: Context.RequestAborted);
     }
 }

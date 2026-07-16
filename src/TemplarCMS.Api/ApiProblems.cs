@@ -6,6 +6,27 @@ namespace TemplarCMS.Api;
 
 internal static class ApiProblems
 {
+    public static ProblemDetails AuthoringAuthenticationRequired(string headerName) =>
+        CreateProblemDetails(
+            title: "Authoring authentication is required",
+            detail: $"Provide the configured API key using the '{headerName}' header.",
+            statusCode: StatusCodes.Status401Unauthorized,
+            code: "authoring-authentication-required");
+
+    public static ProblemDetails AuthoringAuthenticationFailed(string detail) =>
+        CreateProblemDetails(
+            title: "Authoring authentication failed",
+            detail: detail,
+            statusCode: StatusCodes.Status401Unauthorized,
+            code: "authoring-authentication-failed");
+
+    public static ProblemDetails AuthoringAccessForbidden() =>
+        CreateProblemDetails(
+            title: "Authoring access is forbidden",
+            detail: "The current identity is not allowed to perform this authoring operation.",
+            statusCode: StatusCodes.Status403Forbidden,
+            code: "authoring-access-forbidden");
+
     public static ProblemHttpResult ContentItemNotFound(Guid id) =>
         Create(
             title: "Content item was not found",
@@ -289,6 +310,20 @@ internal static class ApiProblems
         int statusCode,
         string code)
     {
+        return TypedResults.Problem(
+            CreateProblemDetails(
+                title,
+                detail,
+                statusCode,
+                code));
+    }
+
+    private static ProblemDetails CreateProblemDetails(
+        string title,
+        string detail,
+        int statusCode,
+        string code)
+    {
         var problem =
             new ProblemDetails
             {
@@ -299,7 +334,6 @@ internal static class ApiProblems
             };
 
         problem.Extensions["code"] = code;
-
-        return TypedResults.Problem(problem);
+        return problem;
     }
 }
