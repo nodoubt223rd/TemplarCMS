@@ -28,20 +28,17 @@ public sealed class DefaultContentBootstrapper : IDefaultContentBootstrapper
     private static readonly ContentItemId TemplatesRootId = new(new Guid("4CF76720-EA11-431C-8DF0-93A057DFAD98"));
     private static readonly ContentItemId StandardItemId = new(new Guid("74922877-D8DF-466B-93CE-96E5C91D5B7E"));
 
-    private readonly ITemplateRepository _templateRepository;
     private readonly IContentModelCatalog _contentModelCatalog;
     private readonly IContentRepository _contentRepository;
     private readonly IContentItemService _contentItemService;
     private readonly ILogger<DefaultContentBootstrapper> _logger;
 
     public DefaultContentBootstrapper(
-        ITemplateRepository templateRepository,
         IContentModelCatalog contentModelCatalog,
         IContentRepository contentRepository,
         IContentItemService contentItemService,
         ILogger<DefaultContentBootstrapper> logger)
     {
-        _templateRepository = templateRepository ?? throw new ArgumentNullException(nameof(templateRepository));
         _contentModelCatalog = contentModelCatalog ?? throw new ArgumentNullException(nameof(contentModelCatalog));
         _contentRepository = contentRepository ?? throw new ArgumentNullException(nameof(contentRepository));
         _contentItemService = contentItemService ?? throw new ArgumentNullException(nameof(contentItemService));
@@ -53,7 +50,6 @@ public sealed class DefaultContentBootstrapper : IDefaultContentBootstrapper
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        await EnsureTemplatesAsync(cancellationToken);
         await _contentModelCatalog.RefreshAsync(cancellationToken);
 
         var folderTemplate =
@@ -149,42 +145,6 @@ public sealed class DefaultContentBootstrapper : IDefaultContentBootstrapper
             cancellationToken);
     }
 
-    private async Task EnsureTemplatesAsync(
-        CancellationToken cancellationToken)
-    {
-        IReadOnlyCollection<TemplateDefinition> existingTemplates;
-
-        try
-        {
-            existingTemplates =
-                await _templateRepository.GetTemplatesAsync(cancellationToken);
-        }
-        catch (DirectoryNotFoundException)
-        {
-            existingTemplates = [];
-        }
-
-        var existingTemplateKeys =
-            new HashSet<TemplateKey>(
-                existingTemplates.Select(template => template.Key));
-
-        foreach (var template in GetDefaultTemplates())
-        {
-            if (existingTemplateKeys.Contains(template.Key))
-            {
-                continue;
-            }
-
-            await _templateRepository.CreateTemplateAsync(
-                template,
-                cancellationToken);
-
-            _logger.LogInformation(
-                "Seeded default template '{TemplateKey}'.",
-                template.Key);
-        }
-    }
-
     private async Task<ContentItemDefinition> EnsureItemAsync(
         ContentItemId defaultId,
         string name,
@@ -277,72 +237,5 @@ public sealed class DefaultContentBootstrapper : IDefaultContentBootstrapper
                     child.Key.Value,
                     key,
                     StringComparison.OrdinalIgnoreCase));
-    }
-
-    private static IReadOnlyCollection<TemplateDefinition> GetDefaultTemplates()
-    {
-        var standardTemplate =
-            new TemplateDefinition(
-                new TemplateId(new Guid("95071327-4AAB-4827-9641-1C45EF6A1D37")),
-                "Standard",
-                StandardTemplateKey,
-                sections:
-                [
-                    new TemplateSectionDefinition(
-                        new Guid("55081A71-C336-41F0-B070-F44B84E0D7C0"),
-                        "Content",
-                        "content",
-                        100,
-                        [
-                            new FieldDefinition(
-                                new FieldId(new Guid("BE9B2863-EB2D-4D2E-8990-884A87AB6A0B")),
-                                "Title",
-                                "title",
-                                FieldType.SingleLineText,
-                                isUnversioned: true),
-                            new FieldDefinition(
-                                new FieldId(new Guid("D315D9AF-F921-4385-BD24-8A97BCE1AFA3")),
-                                "Navigation Title",
-                                "navigationTitle",
-                                FieldType.SingleLineText,
-                                isUnversioned: true),
-                            new FieldDefinition(
-                                new FieldId(new Guid("B6A8A944-F09A-4779-83EB-1ABEA205F51C")),
-                                "Meta Description",
-                                "metaDescription",
-                                FieldType.MultiLineText,
-                                isUnversioned: true)
-                        ])
-                ]);
-        var folderTemplate =
-            new TemplateDefinition(
-                new TemplateId(new Guid("6991D76D-6475-4A2B-B04F-D16E9E4AAE9F")),
-                "Folder",
-                FolderTemplateKey,
-                standardTemplate,
-                []);
-
-        var itemTemplate =
-            new TemplateDefinition(
-                new TemplateId(new Guid("562BA716-A878-45E5-9BA7-397F46BA7B1D")),
-                "Item",
-                ItemTemplateKey,
-                standardTemplate,
-                [
-                    new TemplateSectionDefinition(
-                        new Guid("6A1AE5E6-BB4E-4EB9-90BE-FA03C50D9C6D"),
-                        "Content",
-                        "content",
-                        100,
-                        [
-                            new FieldDefinition(
-                                new FieldId(new Guid("EA54795D-4FBE-477B-A2CC-F8DA57485729")),
-                                "Body",
-                                "body",
-                                FieldType.RichText)
-                        ])
-                ]);
-
-        return [standardTemplate, folderTemplate, itemTemplate];
     }
 }

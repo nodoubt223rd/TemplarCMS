@@ -27,18 +27,18 @@ internal static class DefaultContentBootstrapServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(environment);
 
-        var appDataPath =
+        var runtimeDataPath =
             Path.Combine(
                 environment.ContentRootPath,
-                "App_Data");
+                "RuntimeData");
         var defaultConnectionString =
-            $"Data Source={Path.Combine(appDataPath, "templarcms.db")}";
+            $"Data Source={Path.Combine(runtimeDataPath, "templarcms.db")}";
         var configuredTemplatesPath =
             configuration["Templates:TemplatesPath"];
         var templatesPath =
             Path.GetFullPath(
                 string.IsNullOrWhiteSpace(configuredTemplatesPath)
-                    ? Path.Combine(appDataPath, "Templates")
+                    ? Path.Combine(runtimeDataPath, "Templates")
                     : Path.Combine(environment.ContentRootPath, configuredTemplatesPath));
 
         services.AddDbContext<TemplarCmsDbContext>(
@@ -46,8 +46,14 @@ internal static class DefaultContentBootstrapServiceCollectionExtensions
                 options.UseSqlite(
                     configuration.GetConnectionString("TemplarCms") ?? defaultConnectionString));
 
+        services.AddSingleton<IBuiltInTemplateProvider, BuiltInTemplateProvider>();
         services.AddSingleton<IJsonTemplateMapper, JsonTemplateMapper>();
-        services.AddSingleton<ITemplateRepository, JsonTemplateRepository>();
+        services.AddSingleton<JsonTemplateRepository>();
+        services.AddSingleton<ITemplateRepository>(
+            serviceProvider =>
+                new BuiltInTemplateRepository(
+                    serviceProvider.GetRequiredService<JsonTemplateRepository>(),
+                    serviceProvider.GetRequiredService<IBuiltInTemplateProvider>()));
         services.AddSingleton<ITemplateValidator, TemplateValidator>();
         services.AddSingleton<ITemplateInheritanceResolver, TemplateInheritanceResolver>();
         services.AddSingleton<IEffectiveTemplateBuilder, EffectiveTemplateBuilder>();

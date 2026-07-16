@@ -8,6 +8,9 @@ dist/
 coverage/
 TestResults/
 .tmp/
+RuntimeData/
+src/TemplarCMS.Api/App_Data/
+src/TemplarCMS.Api/RuntimeData/
 src/TemplarCMS.Admin/templarcms.admin.client/.certs/
 *.user
 *.suo

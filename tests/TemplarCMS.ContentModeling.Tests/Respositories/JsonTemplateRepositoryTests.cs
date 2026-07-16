@@ -60,7 +60,7 @@ public sealed class JsonTemplateRepositoryTests
     }
 
     [Fact]
-    public async Task GetTemplatesAsync_ShouldThrow_WhenDirectoryMissing()
+    public async Task GetTemplatesAsync_ShouldReturnEmpty_WhenDirectoryMissing()
     {
         var missingPath =
             Path.Combine(
@@ -70,8 +70,10 @@ public sealed class JsonTemplateRepositoryTests
         var repository =
             CreateRepository(missingPath);
 
-        await Assert.ThrowsAsync<DirectoryNotFoundException>(() =>
-            repository.GetTemplatesAsync(TestContext.Current.CancellationToken));
+        var templates =
+            await repository.GetTemplatesAsync(TestContext.Current.CancellationToken);
+
+        Assert.Empty(templates);
     }
 
     [Fact]
