@@ -8,6 +8,7 @@ dist/
 coverage/
 TestResults/
 .tmp/
+src/TemplarCMS.Admin/templarcms.admin.client/.certs/
 *.user
 *.suo
 *.db
