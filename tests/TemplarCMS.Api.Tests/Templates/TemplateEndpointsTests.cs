@@ -167,6 +167,10 @@ public sealed class TemplateEndpointsTests
         var problem = Assert.IsType<ProblemHttpResult>(result.Result);
 
         Assert.Equal(StatusCodes.Status404NotFound, problem.StatusCode);
+        AssertProblem(
+            problem,
+            "Template was not found",
+            "template-not-found");
     }
 
     [Fact]
@@ -181,6 +185,10 @@ public sealed class TemplateEndpointsTests
         var problem = Assert.IsType<ProblemHttpResult>(result.Result);
 
         Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        AssertProblem(
+            problem,
+            "Invalid template lookup request",
+            "invalid-template-lookup-request");
     }
 
     [Fact]
@@ -392,6 +400,10 @@ public sealed class TemplateEndpointsTests
         var problem = Assert.IsType<ProblemHttpResult>(result.Result);
 
         Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        AssertProblem(
+            problem,
+            "Template could not be deleted",
+            "template-could-not-be-deleted");
     }
 
     [Fact]
@@ -462,6 +474,10 @@ public sealed class TemplateEndpointsTests
         var problem = Assert.IsType<ProblemHttpResult>(result.Result);
 
         Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        AssertProblem(
+            problem,
+            "Invalid template create request",
+            "invalid-template-create-request");
     }
 
     [Fact]
@@ -489,6 +505,10 @@ public sealed class TemplateEndpointsTests
         var problem = Assert.IsType<ProblemHttpResult>(result.Result);
 
         Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+        AssertProblem(
+            problem,
+            "Template could not be created",
+            "template-could-not-be-created");
     }
 
     [Fact]
@@ -546,6 +566,9 @@ public sealed class TemplateEndpointsTests
         var problem = Assert.IsType<ProblemHttpResult>(result.Result);
         var value = Assert.IsType<ProblemDetails>(problem.ProblemDetails);
         Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        Assert.Equal("Invalid template create request", value.Title);
+        Assert.Equal("/api/problems/invalid-template-create-request", value.Type);
+        Assert.Equal("invalid-template-create-request", Assert.IsType<string>(value.Extensions["code"]));
         Assert.NotNull(value.Detail);
         Assert.Contains("version-aware link field type", value.Detail, StringComparison.OrdinalIgnoreCase);
     }
@@ -598,6 +621,10 @@ public sealed class TemplateEndpointsTests
         var problem = Assert.IsType<ProblemHttpResult>(result.Result);
 
         Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        AssertProblem(
+            problem,
+            "Invalid template create request",
+            "invalid-template-create-request");
         Assert.Equal(new TemplateKey("article-page"), repository.LastDeletedTemplateKey);
         Assert.Equal(2, catalog.RefreshCallCount);
     }
@@ -615,6 +642,10 @@ public sealed class TemplateEndpointsTests
         var problem = Assert.IsType<ProblemHttpResult>(result.Result);
 
         Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        AssertProblem(
+            problem,
+            "Template request is required",
+            "template-request-required");
     }
 
     [Fact]
@@ -635,6 +666,10 @@ public sealed class TemplateEndpointsTests
         var problem = Assert.IsType<ProblemHttpResult>(result.Result);
 
         Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        AssertProblem(
+            problem,
+            "Invalid template create request",
+            "invalid-template-create-request");
     }
 
     [Fact]
@@ -674,6 +709,10 @@ public sealed class TemplateEndpointsTests
         var problem = Assert.IsType<ProblemHttpResult>(result.Result);
 
         Assert.Equal(StatusCodes.Status404NotFound, problem.StatusCode);
+        AssertProblem(
+            problem,
+            "Template was not found",
+            "template-not-found");
     }
 
     [Fact]
@@ -742,6 +781,10 @@ public sealed class TemplateEndpointsTests
         var problem = Assert.IsType<ProblemHttpResult>(result.Result);
 
         Assert.Equal(StatusCodes.Status404NotFound, problem.StatusCode);
+        AssertProblem(
+            problem,
+            "Template was not found",
+            "template-not-found");
     }
 
     [Fact]
@@ -775,6 +818,10 @@ public sealed class TemplateEndpointsTests
         var problem = Assert.IsType<ProblemHttpResult>(result.Result);
 
         Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+        AssertProblem(
+            problem,
+            "Template could not be updated",
+            "template-could-not-be-updated");
     }
 
     [Fact]
@@ -815,6 +862,10 @@ public sealed class TemplateEndpointsTests
         var problem = Assert.IsType<ProblemHttpResult>(result.Result);
 
         Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        AssertProblem(
+            problem,
+            "Invalid template update request",
+            "invalid-template-update-request");
         Assert.NotNull(repository.LastRollbackTemplate);
         Assert.Equal(existingTemplate.Key, repository.LastRollbackTemplate.Key);
         Assert.Equal(new TemplateKey("landing-page"), repository.LastRollbackExistingKey);
@@ -857,6 +908,10 @@ public sealed class TemplateEndpointsTests
         var problem = Assert.IsType<ProblemHttpResult>(result.Result);
 
         Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        AssertProblem(
+            problem,
+            "Template could not be deleted",
+            "template-could-not-be-deleted");
         Assert.Null(repository.LastDeletedTemplateKey);
     }
 
@@ -886,6 +941,10 @@ public sealed class TemplateEndpointsTests
         var problem = Assert.IsType<ProblemHttpResult>(result.Result);
 
         Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        AssertProblem(
+            problem,
+            "Template could not be deleted",
+            "template-could-not-be-deleted");
     }
 
     [Fact]
@@ -921,6 +980,10 @@ public sealed class TemplateEndpointsTests
         var problem = Assert.IsType<ProblemHttpResult>(result.Result);
 
         Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        AssertProblem(
+            problem,
+            "Template could not be deleted",
+            "template-could-not-be-deleted");
         Assert.NotNull(repository.LastRecreatedTemplate);
         Assert.Equal(template.Key, repository.LastRecreatedTemplate.Key);
         Assert.Equal(2, catalog.RefreshCallCount);
@@ -1086,6 +1149,10 @@ public sealed class TemplateEndpointsTests
         var problem = Assert.IsType<ProblemHttpResult>(result.Result);
 
         Assert.Equal(StatusCodes.Status404NotFound, problem.StatusCode);
+        AssertProblem(
+            problem,
+            "Template was not found",
+            "template-not-found");
     }
 
     [Fact]
@@ -1103,6 +1170,10 @@ public sealed class TemplateEndpointsTests
         var problem = Assert.IsType<ProblemHttpResult>(result.Result);
 
         Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        AssertProblem(
+            problem,
+            "Invalid template lookup request",
+            "invalid-template-lookup-request");
     }
 
     [Fact]
@@ -1117,6 +1188,10 @@ public sealed class TemplateEndpointsTests
         var problem = Assert.IsType<ProblemHttpResult>(result.Result);
 
         Assert.Equal(StatusCodes.Status404NotFound, problem.StatusCode);
+        AssertProblem(
+            problem,
+            "Template was not found",
+            "template-not-found");
     }
 
     [Fact]
@@ -1131,6 +1206,10 @@ public sealed class TemplateEndpointsTests
         var problem = Assert.IsType<ProblemHttpResult>(result.Result);
 
         Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        AssertProblem(
+            problem,
+            "Invalid template lookup request",
+            "invalid-template-lookup-request");
     }
 
     private static EffectiveTemplateDefinition CreateTemplate()
@@ -1494,5 +1573,17 @@ public sealed class TemplateEndpointsTests
 
             return Task.FromResult(resolved);
         }
+    }
+
+    private static void AssertProblem(
+        ProblemHttpResult problem,
+        string expectedTitle,
+        string expectedCode)
+    {
+        var value = Assert.IsType<ProblemDetails>(problem.ProblemDetails);
+        Assert.Equal(expectedTitle, value.Title);
+        Assert.Equal($"/api/problems/{expectedCode}", value.Type);
+        Assert.True(value.Extensions.TryGetValue("code", out var code));
+        Assert.Equal(expectedCode, Assert.IsType<string>(code));
     }
 }
