@@ -195,12 +195,29 @@ internal static class ApiProblems
             statusCode: StatusCodes.Status400BadRequest,
             code: "invalid-content-field-value-request");
 
-    public static ProblemHttpResult ContentItemCouldNotBeDeleted(string detail) =>
+    public static ProblemHttpResult ContentItemCouldNotBeDeleted(string detail, int statusCode = StatusCodes.Status400BadRequest) =>
+        Create(
+            title: statusCode == StatusCodes.Status409Conflict
+                ? "Content item could not be deleted"
+                : "Invalid content delete request",
+            detail: detail,
+            statusCode: statusCode,
+            code: statusCode == StatusCodes.Status409Conflict
+                ? "content-item-could-not-be-deleted"
+                : "invalid-content-delete-request");
+
+    public static ProblemHttpResult ContentItemDeleteConflict(
+        string detail,
+        string dependenciesHref) =>
         Create(
             title: "Content item could not be deleted",
             detail: detail,
-            statusCode: StatusCodes.Status400BadRequest,
-            code: "content-item-could-not-be-deleted");
+            statusCode: StatusCodes.Status409Conflict,
+            code: "content-item-could-not-be-deleted",
+            extensions: new Dictionary<string, object?>(StringComparer.Ordinal)
+            {
+                ["dependencies"] = dependenciesHref
+            });
 
     public static ProblemHttpResult InvalidContentDeleteRequest(string detail) =>
         Create(
@@ -297,6 +314,19 @@ internal static class ApiProblems
                 ? "template-not-found"
                 : "template-could-not-be-deleted");
 
+    public static ProblemHttpResult TemplateDeleteConflict(
+        string detail,
+        string dependenciesHref) =>
+        Create(
+            title: "Template could not be deleted",
+            detail: detail,
+            statusCode: StatusCodes.Status409Conflict,
+            code: "template-could-not-be-deleted",
+            extensions: new Dictionary<string, object?>(StringComparer.Ordinal)
+            {
+                ["dependencies"] = dependenciesHref
+            });
+
     public static ProblemHttpResult InvalidTemplateDeleteRequest(string detail) =>
         Create(
             title: "Invalid template delete request",
@@ -318,6 +348,22 @@ internal static class ApiProblems
                 code));
     }
 
+    private static ProblemHttpResult Create(
+        string title,
+        string detail,
+        int statusCode,
+        string code,
+        IReadOnlyDictionary<string, object?> extensions)
+    {
+        return TypedResults.Problem(
+            CreateProblemDetails(
+                title,
+                detail,
+                statusCode,
+                code,
+                extensions));
+    }
+
     private static ProblemDetails CreateProblemDetails(
         string title,
         string detail,
@@ -334,6 +380,28 @@ internal static class ApiProblems
             };
 
         problem.Extensions["code"] = code;
+        return problem;
+    }
+
+    private static ProblemDetails CreateProblemDetails(
+        string title,
+        string detail,
+        int statusCode,
+        string code,
+        IReadOnlyDictionary<string, object?> extensions)
+    {
+        var problem =
+            CreateProblemDetails(
+                title,
+                detail,
+                statusCode,
+                code);
+
+        foreach (var extension in extensions)
+        {
+            problem.Extensions[extension.Key] = extension.Value;
+        }
+
         return problem;
     }
 }

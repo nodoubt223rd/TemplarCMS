@@ -1214,6 +1214,7 @@ public sealed class ContentLookupEndpointsTests
                 item,
                 [item, sibling]);
         service.SetChildren(null, [item, sibling]);
+        service.SetChildren(itemId, []);
         service.OnDeleteItemAsync = deletedItemId =>
         {
             service.SetItemUnavailable(deletedItemId);
@@ -1272,6 +1273,7 @@ public sealed class ContentLookupEndpointsTests
                 [item, sibling]);
         service.SetItem(parent);
         service.SetChildren(parentId, [item, sibling]);
+        service.SetChildren(itemId, []);
         service.OnDeleteItemAsync = deletedItemId =>
         {
             service.SetItemUnavailable(deletedItemId);
@@ -1331,8 +1333,16 @@ public sealed class ContentLookupEndpointsTests
             new FakeContentItemService(
                 item,
                 []);
-        service.OnDeleteItemAsync = _ => throw new InvalidOperationException(
-            $"Content item '{itemId}' cannot be deleted because it has direct child items.");
+        service.SetChildren(
+            itemId,
+            [
+                CreateResolvedItem(
+                    itemId: new ContentItemId(Guid.NewGuid()),
+                    parentId: itemId,
+                    path: "/home/child",
+                    name: "Child",
+                    key: "child")
+            ]);
 
         var result =
             await ContentLookupEndpoints.DeleteAsync(
@@ -1342,11 +1352,15 @@ public sealed class ContentLookupEndpointsTests
 
         var problem = Assert.IsType<ProblemHttpResult>(result.Result);
 
-        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
         AssertProblem(
             problem,
             "Content item could not be deleted",
             "content-item-could-not-be-deleted");
+        AssertProblemExtension(
+            problem,
+            "dependencies",
+            $"/api/v1/content/{itemId.Value}/dependencies?lang=en&version=1");
     }
 
     [Fact]
@@ -1783,5 +1797,15 @@ public sealed class ContentLookupEndpointsTests
         Assert.Equal($"/api/problems/{expectedCode}", value.Type);
         Assert.True(value.Extensions.TryGetValue("code", out var code));
         Assert.Equal(expectedCode, Assert.IsType<string>(code));
+    }
+
+    private static void AssertProblemExtension(
+        ProblemHttpResult problem,
+        string expectedKey,
+        string expectedValue)
+    {
+        var value = Assert.IsType<ProblemDetails>(problem.ProblemDetails);
+        Assert.True(value.Extensions.TryGetValue(expectedKey, out var extension));
+        Assert.Equal(expectedValue, Assert.IsType<string>(extension));
     }
 }

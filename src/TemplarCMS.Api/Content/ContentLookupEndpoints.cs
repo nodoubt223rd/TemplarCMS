@@ -137,6 +137,7 @@ public static class ContentLookupEndpoints
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .RequireAuthorization(ApiAuthorizationPolicies.AuthorContent);
 
@@ -776,14 +777,16 @@ public static class ContentLookupEndpoints
 
         try
         {
+            var context =
+                CreateContext(
+                    null,
+                    null);
             var itemId =
                 new ContentItemId(id);
             var existingItem =
                 await contentItemService.GetItemAsync(
                     itemId,
-                    CreateContext(
-                        null,
-                        null),
+                    context,
                     cancellationToken);
 
             if (existingItem == null)
@@ -791,10 +794,18 @@ public static class ContentLookupEndpoints
                 return ApiProblems.ContentItemNotFound(id);
             }
 
-            var context =
-                CreateContext(
-                    null,
-                    null);
+            var children =
+                await contentItemService.GetChildItemsAsync(
+                    itemId,
+                    context,
+                    cancellationToken);
+
+            if (children.Count > 0)
+            {
+                return ApiProblems.ContentItemDeleteConflict(
+                    $"Content item '{itemId}' cannot be deleted because it has direct child items. Review the dependency snapshot before retrying after removing or moving child items.",
+                    $"/api/v1/content/{itemId.Value}/dependencies?lang={context.Language}&version={context.Version.Value}");
+            }
 
             await contentItemService.DeleteItemAsync(
                 itemId,
@@ -816,6 +827,18 @@ public static class ContentLookupEndpoints
         }
         catch (InvalidOperationException exception)
         {
+            if (exception.Message.Contains("direct child items", StringComparison.OrdinalIgnoreCase))
+            {
+                var context =
+                    CreateContext(
+                        null,
+                        null);
+
+                return ApiProblems.ContentItemDeleteConflict(
+                    exception.Message,
+                    $"/api/v1/content/{id}/dependencies?lang={context.Language}&version={context.Version.Value}");
+            }
+
             return ApiProblems.ContentItemCouldNotBeDeleted(exception.Message);
         }
         catch (ArgumentException exception)
