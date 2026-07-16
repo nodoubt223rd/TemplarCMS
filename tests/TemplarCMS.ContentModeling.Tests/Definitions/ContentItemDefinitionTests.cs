@@ -258,6 +258,14 @@ public sealed class ContentItemDefinitionTests
     }
 
     [Fact]
+    public void ContentItemKey_StripsPunctuationIntoSeoFriendlySlug()
+    {
+        var key = ContentItemKey.FromDisplayName(" Hello, World's Best! ");
+
+        Assert.Equal("hello-worlds-best", key.Value);
+    }
+
+    [Fact]
     public void ContentItemId_Throws_WhenValueIsEmpty()
     {
         Assert.Throws<ArgumentException>(

@@ -6,8 +6,6 @@ public sealed class CreateContentItemRequest
 {
     public required string Name { get; init; }
 
-    public required string Key { get; init; }
-
     public required Guid TemplateId { get; init; }
 
     public Guid? ParentId { get; init; }
@@ -21,8 +19,6 @@ public sealed class UpdateContentItemRequest
 public sealed class RenameContentItemRequest
 {
     public required string Name { get; init; }
-
-    public required string Key { get; init; }
 }
 
 public sealed class MoveContentItemRequest

@@ -544,7 +544,6 @@ public sealed class ContentLookupEndpointsTests
                 new CreateContentItemRequest
                 {
                     Name = " Home Page ",
-                    Key = "Home Page",
                     TemplateId = templateId,
                     ParentId = parentId
                 },
@@ -587,7 +586,6 @@ public sealed class ContentLookupEndpointsTests
                 new CreateContentItemRequest
                 {
                     Name = "Home Page",
-                    Key = "home-page",
                     TemplateId = Guid.NewGuid()
                 },
                 service,
@@ -782,8 +780,7 @@ public sealed class ContentLookupEndpointsTests
                 itemId.Value,
                 new RenameContentItemRequest
                 {
-                    Name = "Landing Page",
-                    Key = "landing page"
+                    Name = "Landing Page"
                 },
                 "EN",
                 1,
@@ -816,8 +813,7 @@ public sealed class ContentLookupEndpointsTests
                 itemId.Value,
                 new RenameContentItemRequest
                 {
-                    Name = "Landing Page",
-                    Key = "landing-page"
+                    Name = "Landing Page"
                 },
                 "en",
                 1,
@@ -987,8 +983,7 @@ public sealed class ContentLookupEndpointsTests
             await ContentLookupEndpoints.CreateAsync(
                 new CreateContentItemRequest
                 {
-                    Name = "Home Page",
-                    Key = " ",
+                    Name = " ",
                     TemplateId = Guid.NewGuid()
                 },
                 new FakeContentItemService(null, []),

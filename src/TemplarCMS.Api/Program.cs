@@ -13,6 +13,7 @@ var app = builder.Build();
 
 app.UseExceptionHandler();
 app.MapContentLookupEndpoints();
+app.MapFieldTypeEndpoints();
 app.MapTemplateEndpoints();
 
 app.Run();

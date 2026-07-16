@@ -17,6 +17,19 @@ public readonly record struct ContentItemKey
         }
 
         Value = Normalize(value);
+
+        if (string.IsNullOrWhiteSpace(Value))
+        {
+            throw new ArgumentException("Content item key is required.", nameof(value));
+        }
+    }
+
+    /// <summary>
+    /// Creates a content item key from an authored display name using SEO-friendly normalization.
+    /// </summary>
+    public static ContentItemKey FromDisplayName(string value)
+    {
+        return new ContentItemKey(value);
     }
 
     /// <summary>
@@ -32,13 +45,35 @@ public readonly record struct ContentItemKey
 
     private static string Normalize(string value)
     {
-        var segments =
-            value.Trim()
-                .ToLowerInvariant()
-                .Split(
-                    null as char[],
-                    StringSplitOptions.RemoveEmptyEntries);
+        var builder = new System.Text.StringBuilder();
+        var previousWasSeparator = false;
 
-        return string.Join("-", segments);
+        foreach (var character in value.Trim().ToLowerInvariant())
+        {
+            if (char.IsLetterOrDigit(character))
+            {
+                builder.Append(character);
+                previousWasSeparator = false;
+                continue;
+            }
+
+            if (character is '\'' or '’')
+            {
+                continue;
+            }
+
+            if (builder.Length > 0 && !previousWasSeparator)
+            {
+                builder.Append('-');
+                previousWasSeparator = true;
+            }
+        }
+
+        if (builder.Length > 0 && builder[^1] == '-')
+        {
+            builder.Length--;
+        }
+
+        return builder.ToString();
     }
 }
