@@ -92,6 +92,7 @@ When enabled:
 - `POST`, `PUT`, and `DELETE` authoring routes require the configured API key header.
 - Read routes stay anonymous for now.
 - The API responds with standard `401` and `403` endpoint metadata so the contract stays compatible with stricter future auth flows.
+- The OpenAPI document marks protected authoring routes with the API key requirement so Postman imports and Swagger UI are easier to use.
 
 ## Goals
 
