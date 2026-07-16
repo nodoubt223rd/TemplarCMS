@@ -57,6 +57,26 @@ Goals:
 - Keep current delete contracts compatible with a future recycle-bin or
   restore workflow
 
+### System Seed Data Contract
+
+Status: Future
+
+Problem:
+TemplarCMS now relies on stable out-of-box templates, fields, and root
+items with fixed ids, but the long-term contract for where canonical
+system data lives and how upgrades reconcile it with instance state is
+not fully documented.
+
+Goals:
+- Keep built-in system templates, fields, and starter items defined in
+  source-controlled code or seed artifacts rather than treating runtime
+  `App_Data` contents as the product truth
+- Preserve fixed ids for canonical system items so patches and support
+  tooling can target the same objects across instances
+- Separate mutable runtime storage from canonical built-in definitions
+- Define how bootstrap or upgrade logic handles drift, missing items,
+  and intentional local customization
+
 ## Content Modeling
 
 ### Standard Template Parity
@@ -125,6 +145,40 @@ Goals:
 - Consistent deletion
 - Default security settings
 - Strongly typed cookie definitions
+
+### CLI Exploration
+
+Status: Future
+
+Problem:
+TemplarCMS currently relies on API-first and admin-UI-first workflows,
+but developer and operator scenarios may benefit from a dedicated CLI.
+
+Goals:
+- Explore a `templar` CLI for bootstrap, diagnostics, patching, and
+  environment inspection
+- Consider safe commands for system seed verification, content model
+  refresh, health checks, and support workflows
+- Keep any future CLI aligned with the stable built-in ids and
+  source-controlled system data contract
+
+### Multi-Database Strategy
+
+Status: Future
+
+Problem:
+Sitecore-style CMS operations often separate authoring, delivery, and
+core system concerns into distinct databases, while TemplarCMS
+currently uses a single runtime persistence model.
+
+Goals:
+- Evaluate whether TemplarCMS should eventually distinguish authoring
+  (`master`-like), published delivery (`web`-like), and admin/system
+  (`core`-like) storage concerns
+- Document which responsibilities belong in each store if TemplarCMS
+  grows beyond a single database
+- Keep current persistence choices compatible with a future publishing
+  database split rather than assuming one database forever
 
 Potential APIs:
 

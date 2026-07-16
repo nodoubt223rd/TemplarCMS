@@ -365,6 +365,36 @@ public sealed class TemplateEndpointsTests
     }
 
     [Fact]
+    public async Task DeleteAsync_ShouldReturnProblem_WhenTemplateIsBuiltIn()
+    {
+        var template =
+            CreateAuthoredTemplate(
+                "Standard",
+                "standard");
+        var catalog =
+            new FakeContentModelCatalog(
+                [template]);
+        var repository =
+            new FakeTemplateRepository
+            {
+                OnDeleteTemplateAsync = _ => throw new InvalidOperationException(
+                    "Built-in template 'standard' is source-controlled and cannot be deleted through the mutable template repository.")
+            };
+
+        var result =
+            await TemplateEndpoints.DeleteAsync(
+                template.Id.Value,
+                repository,
+                catalog,
+                new FakeContentRepository(),
+                TestContext.Current.CancellationToken);
+
+        var problem = Assert.IsType<ProblemHttpResult>(result.Result);
+
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+    }
+
+    [Fact]
     public async Task CreateAsync_ShouldAssignBaseTemplate_WhenBaseTemplateKeyIsProvided()
     {
         var baseTemplate =
@@ -1290,6 +1320,8 @@ public sealed class TemplateEndpointsTests
 
         public Func<TemplateKey, TemplateDefinition, Task>? OnUpdateTemplateAsync { get; set; }
 
+        public Func<TemplateKey, Task>? OnDeleteTemplateAsync { get; set; }
+
         public TemplateDefinition? LastCreatedTemplate { get; private set; }
 
         public TemplateDefinition? LastRecreatedTemplate { get; private set; }
@@ -1354,7 +1386,9 @@ public sealed class TemplateEndpointsTests
             CancellationToken cancellationToken = default)
         {
             LastDeletedTemplateKey = key;
-            return Task.CompletedTask;
+            return OnDeleteTemplateAsync == null
+                ? Task.CompletedTask
+                : OnDeleteTemplateAsync(key);
         }
     }
 

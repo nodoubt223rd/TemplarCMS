@@ -71,8 +71,7 @@ public sealed class JsonTemplateRepository : ITemplateRepository
     {
         if (!Directory.Exists(_options.TemplatesPath))
         {
-            throw new DirectoryNotFoundException(
-                $"Template directory '{_options.TemplatesPath}' was not found.");
+            return Array.Empty<TemplateDefinition>();
         }
 
         var templateFiles =

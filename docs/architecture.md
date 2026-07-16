@@ -944,6 +944,9 @@ Recommended choices for the first implementation:
 - Typed runtime field projection layered above string storage.
 - Single base template inheritance.
 - Normalized content item keys.
+- Built-in system templates and starter items use fixed ids and should
+  remain source-controlled bootstrap data rather than relying on
+  instance-local `App_Data` files as the product truth.
 - Computed runtime path strategy.
 - No publishing in MVP.
 - No auth in MVP.

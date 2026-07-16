@@ -141,15 +141,19 @@ public sealed class DefaultContentBootstrapperTests
 
     private static (
         DefaultContentBootstrapper Bootstrapper,
-        InMemoryTemplateRepository TemplateRepository,
+        ITemplateRepository TemplateRepository,
         InMemoryContentRepository ContentRepository,
         IContentModelCatalog Catalog) CreateBootstrapper()
     {
         var templateRepository = new InMemoryTemplateRepository();
+        var builtInTemplateRepository =
+            new BuiltInTemplateRepository(
+                templateRepository,
+                new BuiltInTemplateProvider());
         var contentRepository = new InMemoryContentRepository();
         var catalog =
             new ContentModelCatalog(
-                templateRepository,
+                builtInTemplateRepository,
                 new TemplateValidator(),
                 new EffectiveTemplateBuilder(
                     new TemplateInheritanceResolver()),
@@ -168,12 +172,11 @@ public sealed class DefaultContentBootstrapperTests
 
         return (
             new DefaultContentBootstrapper(
-                templateRepository,
                 catalog,
                 contentRepository,
                 contentItemService,
                 NullLogger<DefaultContentBootstrapper>.Instance),
-            templateRepository,
+            builtInTemplateRepository,
             contentRepository,
             catalog);
     }
