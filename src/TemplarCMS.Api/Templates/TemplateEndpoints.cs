@@ -61,6 +61,7 @@ public static class TemplateEndpoints
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .RequireAuthorization(ApiAuthorizationPolicies.AuthorContent);
 
@@ -481,6 +482,9 @@ public static class TemplateEndpoints
                 return ApiProblems.TemplateNotFound(id);
             }
 
+            var dependenciesHref =
+                $"/api/v1/templates/{template.Id.Value}/dependencies";
+
             var templates =
                 await templateRepository.GetTemplatesAsync(
                     cancellationToken);
@@ -490,8 +494,9 @@ public static class TemplateEndpoints
 
             if (dependentTemplate != null)
             {
-                return ApiProblems.TemplateCouldNotBeDeleted(
-                    $"Template '{template.Key}' is used as a base template by '{dependentTemplate.Key}'.");
+                return ApiProblems.TemplateDeleteConflict(
+                    $"Template '{template.Key}' is used as a base template by '{dependentTemplate.Key}'. Review the dependency snapshot before retrying after removing dependent templates.",
+                    dependenciesHref);
             }
 
             var dependentItems =
@@ -501,8 +506,9 @@ public static class TemplateEndpoints
 
             if (dependentItems.Count > 0)
             {
-                return ApiProblems.TemplateCouldNotBeDeleted(
-                    $"Template '{template.Key}' is still assigned to one or more content items.");
+                return ApiProblems.TemplateDeleteConflict(
+                    $"Template '{template.Key}' is still assigned to one or more content items. Review the dependency snapshot before retrying after reassigning those items.",
+                    dependenciesHref);
             }
 
             await templateRepository.DeleteTemplateAsync(
