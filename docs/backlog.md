@@ -18,6 +18,8 @@ Goals:
   production-ready
 - Add authorization policies for content creation, update, and delete
   operations
+- Add end-to-end HTTP tests that exercise `401`, `403`, and successful
+  API-key authoring flows through the real ASP.NET Core pipeline
 - Keep current endpoint contracts compatible with future `401` and
   `403` responses
 

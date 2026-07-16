@@ -1,8 +1,10 @@
 using System.Reflection;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using TemplarCMS.Api.Content;
@@ -31,6 +33,48 @@ public sealed class AuthoringSecurityEndpointTests
         Assert.Contains(
             policy!.AuthenticationSchemes,
             scheme => string.Equals(scheme, ApiKeyAuthenticationDefaults.SchemeName, StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData(false, false, true)]
+    [InlineData(true, false, false)]
+    [InlineData(true, true, true)]
+    public async Task AuthoringPolicy_ShouldHonorEnabledAndAuthenticationState(
+        bool enabled,
+        bool isAuthenticated,
+        bool expectedSuccess)
+    {
+        var configuration =
+            new ConfigurationBuilder()
+                .AddInMemoryCollection(
+                    new Dictionary<string, string?>
+                    {
+                        ["AuthoringSecurity:Enabled"] = enabled.ToString()
+                    })
+                .Build();
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddOptions();
+        services.AddTemplarApiAuthoringSecurity(configuration);
+
+        await using var serviceProvider = services.BuildServiceProvider();
+        var authorizationService =
+            serviceProvider.GetRequiredService<IAuthorizationService>();
+        var principal =
+            isAuthenticated
+                ? new ClaimsPrincipal(
+                    new ClaimsIdentity(
+                        [new Claim(ClaimTypes.NameIdentifier, "tester")],
+                        "Test"))
+                : new ClaimsPrincipal(new ClaimsIdentity());
+
+        var result =
+            await authorizationService.AuthorizeAsync(
+                principal,
+                resource: null,
+                ApiAuthorizationPolicies.AuthorContent);
+
+        Assert.Equal(expectedSuccess, result.Succeeded);
     }
 
     [Theory]
