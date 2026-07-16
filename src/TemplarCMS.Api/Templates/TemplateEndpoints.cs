@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
 using TemplarCMS.Application.Content;
 using TemplarCMS.Abstractions.Content;
 using TemplarCMS.Api;
 using TemplarCMS.Api.Content;
+using TemplarCMS.Api.Security;
 using TemplarCMS.ContentModeling.Abstractions;
 using TemplarCMS.ContentModeling.Catalog;
 using TemplarCMS.ContentModeling.Definitions;
@@ -32,7 +34,10 @@ public static class TemplateEndpoints
             .WithTags("Templates")
             .Produces<TemplateResponse>(StatusCodes.Status201Created)
             .ProducesProblem(StatusCodes.Status400BadRequest)
-            .ProducesProblem(StatusCodes.Status409Conflict);
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .RequireAuthorization(ApiAuthorizationPolicies.AuthorContent);
 
         endpoints.MapPut(
                 "/api/v1/templates/{id:guid}",
@@ -41,8 +46,11 @@ public static class TemplateEndpoints
             .WithTags("Templates")
             .Produces<TemplateResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
-            .ProducesProblem(StatusCodes.Status409Conflict);
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .RequireAuthorization(ApiAuthorizationPolicies.AuthorContent);
 
         endpoints.MapDelete(
                 "/api/v1/templates/{id:guid}",
@@ -51,7 +59,10 @@ public static class TemplateEndpoints
             .WithTags("Templates")
             .Produces(StatusCodes.Status204NoContent)
             .ProducesProblem(StatusCodes.Status400BadRequest)
-            .ProducesProblem(StatusCodes.Status404NotFound);
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .RequireAuthorization(ApiAuthorizationPolicies.AuthorContent);
 
         endpoints.MapGet(
                 "/api/v1/templates/{id:guid}",
@@ -84,7 +95,7 @@ public static class TemplateEndpoints
     }
 
     public static async Task<Ok<TemplateCollectionResponse>> GetAllAsync(
-        IContentModelCatalog contentModelCatalog,
+        [FromServices] IContentModelCatalog contentModelCatalog,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(contentModelCatalog);
@@ -114,7 +125,7 @@ public static class TemplateEndpoints
 
     public static async Task<Results<Ok<TemplateResponse>, ProblemHttpResult>> GetByIdAsync(
         Guid id,
-        IContentModelCatalog contentModelCatalog,
+        [FromServices] IContentModelCatalog contentModelCatalog,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(contentModelCatalog);
@@ -142,8 +153,8 @@ public static class TemplateEndpoints
 
     public static async Task<Results<Created<TemplateResponse>, ProblemHttpResult>> CreateAsync(
         CreateTemplateRequest? request,
-        ITemplateRepository templateRepository,
-        IContentModelCatalog contentModelCatalog,
+        [FromServices] ITemplateRepository templateRepository,
+        [FromServices] IContentModelCatalog contentModelCatalog,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(templateRepository);
@@ -232,8 +243,8 @@ public static class TemplateEndpoints
     public static async Task<Results<Ok<TemplateResponse>, ProblemHttpResult>> UpdateAsync(
         Guid id,
         CreateTemplateRequest? request,
-        ITemplateRepository templateRepository,
-        IContentModelCatalog contentModelCatalog,
+        [FromServices] ITemplateRepository templateRepository,
+        [FromServices] IContentModelCatalog contentModelCatalog,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(templateRepository);
@@ -335,7 +346,7 @@ public static class TemplateEndpoints
 
     public static async Task<Results<Ok<TemplateFieldCollectionResponse>, ProblemHttpResult>> GetFieldsByIdAsync(
         Guid id,
-        IContentModelCatalog contentModelCatalog,
+        [FromServices] IContentModelCatalog contentModelCatalog,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(contentModelCatalog);
@@ -363,10 +374,10 @@ public static class TemplateEndpoints
 
     public static async Task<Results<Ok<TemplateDependencyResponse>, ProblemHttpResult>> GetDependenciesByIdAsync(
         Guid id,
-        ITemplateRepository templateRepository,
-        IContentModelCatalog contentModelCatalog,
-        IContentRepository contentRepository,
-        IContentPathResolver contentPathResolver,
+        [FromServices] ITemplateRepository templateRepository,
+        [FromServices] IContentModelCatalog contentModelCatalog,
+        [FromServices] IContentRepository contentRepository,
+        [FromServices] IContentPathResolver contentPathResolver,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(templateRepository);
@@ -447,9 +458,9 @@ public static class TemplateEndpoints
 
     public static async Task<Results<NoContent, ProblemHttpResult>> DeleteAsync(
         Guid id,
-        ITemplateRepository templateRepository,
-        IContentModelCatalog contentModelCatalog,
-        IContentRepository contentRepository,
+        [FromServices] ITemplateRepository templateRepository,
+        [FromServices] IContentModelCatalog contentModelCatalog,
+        [FromServices] IContentRepository contentRepository,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(templateRepository);

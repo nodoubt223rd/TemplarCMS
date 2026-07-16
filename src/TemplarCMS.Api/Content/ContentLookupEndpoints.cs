@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
 using TemplarCMS.Api;
+using TemplarCMS.Api.Security;
 using TemplarCMS.Application.Content;
 using TemplarCMS.Domain.Content;
 
@@ -71,7 +73,10 @@ public static class ContentLookupEndpoints
             .WithTags("Content")
             .Produces<ContentMutationResponse>(StatusCodes.Status201Created)
             .ProducesProblem(StatusCodes.Status400BadRequest)
-            .ProducesProblem(StatusCodes.Status409Conflict);
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .RequireAuthorization(ApiAuthorizationPolicies.AuthorContent);
 
         endpoints.MapPut(
                 "/api/v1/content/{id:guid}",
@@ -80,7 +85,10 @@ public static class ContentLookupEndpoints
             .WithTags("Content")
             .Produces<ContentItemResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
-            .ProducesProblem(StatusCodes.Status404NotFound);
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .RequireAuthorization(ApiAuthorizationPolicies.AuthorContent);
 
         endpoints.MapPost(
                 "/api/v1/content/{id:guid}/rename",
@@ -89,8 +97,11 @@ public static class ContentLookupEndpoints
             .WithTags("Content")
             .Produces<ContentMutationResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
-            .ProducesProblem(StatusCodes.Status409Conflict);
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .RequireAuthorization(ApiAuthorizationPolicies.AuthorContent);
 
         endpoints.MapPost(
                 "/api/v1/content/{id:guid}/move",
@@ -99,8 +110,11 @@ public static class ContentLookupEndpoints
             .WithTags("Content")
             .Produces<ContentMutationResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
-            .ProducesProblem(StatusCodes.Status409Conflict);
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .RequireAuthorization(ApiAuthorizationPolicies.AuthorContent);
 
         endpoints.MapPost(
                 "/api/v1/content/{id:guid}/values",
@@ -109,7 +123,10 @@ public static class ContentLookupEndpoints
             .WithTags("Content")
             .Produces<ContentItemResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
-            .ProducesProblem(StatusCodes.Status404NotFound);
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .RequireAuthorization(ApiAuthorizationPolicies.AuthorContent);
 
         endpoints.MapDelete(
                 "/api/v1/content/{id:guid}",
@@ -118,7 +135,10 @@ public static class ContentLookupEndpoints
             .WithTags("Content")
             .Produces<ContentMutationResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
-            .ProducesProblem(StatusCodes.Status404NotFound);
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .RequireAuthorization(ApiAuthorizationPolicies.AuthorContent);
 
         endpoints.MapGet(
                 "/api/v1/content/{id:guid}/dependencies",
@@ -136,7 +156,7 @@ public static class ContentLookupEndpoints
         Guid id,
         string? lang,
         int? version,
-        IContentItemService contentItemService,
+        [FromServices] IContentItemService contentItemService,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(contentItemService);
@@ -174,7 +194,7 @@ public static class ContentLookupEndpoints
         string? path,
         string? lang,
         int? version,
-        IContentItemService contentItemService,
+        [FromServices] IContentItemService contentItemService,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(contentItemService);
@@ -219,7 +239,7 @@ public static class ContentLookupEndpoints
         Guid id,
         string? lang,
         int? version,
-        IContentItemService contentItemService,
+        [FromServices] IContentItemService contentItemService,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(contentItemService);
@@ -262,7 +282,7 @@ public static class ContentLookupEndpoints
     public static async Task<Results<Ok<ContentItemCollectionResponse>, ProblemHttpResult>> GetRootChildrenAsync(
         string? lang,
         int? version,
-        IContentItemService contentItemService,
+        [FromServices] IContentItemService contentItemService,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(contentItemService);
@@ -295,7 +315,7 @@ public static class ContentLookupEndpoints
         Guid id,
         string? lang,
         int? version,
-        IContentItemService contentItemService,
+        [FromServices] IContentItemService contentItemService,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(contentItemService);
@@ -340,7 +360,7 @@ public static class ContentLookupEndpoints
     public static async Task<Results<Ok<ContentBranchResponse>, ProblemHttpResult>> GetRootBranchAsync(
         string? lang,
         int? version,
-        IContentItemService contentItemService,
+        [FromServices] IContentItemService contentItemService,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(contentItemService);
@@ -370,7 +390,7 @@ public static class ContentLookupEndpoints
 
     public static async Task<Results<Created<ContentMutationResponse>, ProblemHttpResult>> CreateAsync(
         CreateContentItemRequest? request,
-        IContentItemService contentItemService,
+        [FromServices] IContentItemService contentItemService,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(contentItemService);
@@ -450,7 +470,7 @@ public static class ContentLookupEndpoints
         UpdateContentItemRequest? request,
         string? lang,
         int? version,
-        IContentItemService contentItemService,
+        [FromServices] IContentItemService contentItemService,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(contentItemService);
@@ -532,7 +552,7 @@ public static class ContentLookupEndpoints
     public static async Task<Results<Ok<ContentItemResponse>, ProblemHttpResult>> SetValuesAsync(
         Guid id,
         SetContentFieldValuesRequest? request,
-        IContentItemService contentItemService,
+        [FromServices] IContentItemService contentItemService,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(contentItemService);
@@ -601,7 +621,7 @@ public static class ContentLookupEndpoints
         RenameContentItemRequest? request,
         string? lang,
         int? version,
-        IContentItemService contentItemService,
+        [FromServices] IContentItemService contentItemService,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(contentItemService);
@@ -669,7 +689,7 @@ public static class ContentLookupEndpoints
         MoveContentItemRequest? request,
         string? lang,
         int? version,
-        IContentItemService contentItemService,
+        [FromServices] IContentItemService contentItemService,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(contentItemService);
@@ -749,7 +769,7 @@ public static class ContentLookupEndpoints
 
     public static async Task<Results<Ok<ContentMutationResponse>, ProblemHttpResult>> DeleteAsync(
         Guid id,
-        IContentItemService contentItemService,
+        [FromServices] IContentItemService contentItemService,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(contentItemService);
@@ -808,7 +828,7 @@ public static class ContentLookupEndpoints
         Guid id,
         string? lang,
         int? version,
-        IContentItemService contentItemService,
+        [FromServices] IContentItemService contentItemService,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(contentItemService);
