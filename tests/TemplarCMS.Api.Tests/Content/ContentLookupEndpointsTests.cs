@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
 using TemplarCMS.Api.Content;
 using TemplarCMS.Application.Content;
 using TemplarCMS.Domain.Content;
@@ -71,6 +72,10 @@ public sealed class ContentLookupEndpointsTests
         var problem = Assert.IsType<ProblemHttpResult>(result.Result);
 
         Assert.Equal(StatusCodes.Status404NotFound, problem.StatusCode);
+        AssertProblem(
+            problem,
+            "Content item was not found",
+            "content-item-not-found");
     }
 
     [Fact]
@@ -87,6 +92,10 @@ public sealed class ContentLookupEndpointsTests
         var problem = Assert.IsType<ProblemHttpResult>(result.Result);
 
         Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        AssertProblem(
+            problem,
+            "Invalid content lookup request",
+            "invalid-content-lookup-request");
     }
 
     [Fact]
@@ -160,6 +169,10 @@ public sealed class ContentLookupEndpointsTests
         var problem = Assert.IsType<ProblemHttpResult>(result.Result);
 
         Assert.Equal(StatusCodes.Status404NotFound, problem.StatusCode);
+        AssertProblem(
+            problem,
+            "Content item was not found",
+            "content-item-not-found");
     }
 
     [Fact]
@@ -176,6 +189,10 @@ public sealed class ContentLookupEndpointsTests
         var problem = Assert.IsType<ProblemHttpResult>(result.Result);
 
         Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        AssertProblem(
+            problem,
+            "Invalid path lookup request",
+            "invalid-path-lookup-request");
     }
 
     [Fact]
@@ -281,6 +298,10 @@ public sealed class ContentLookupEndpointsTests
         var problem = Assert.IsType<ProblemHttpResult>(result.Result);
 
         Assert.Equal(StatusCodes.Status404NotFound, problem.StatusCode);
+        AssertProblem(
+            problem,
+            "Content item was not found",
+            "content-item-not-found");
     }
 
     [Fact]
@@ -297,6 +318,10 @@ public sealed class ContentLookupEndpointsTests
         var problem = Assert.IsType<ProblemHttpResult>(result.Result);
 
         Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        AssertProblem(
+            problem,
+            "Invalid content lookup request",
+            "invalid-content-lookup-request");
     }
 
     [Fact]
@@ -454,6 +479,10 @@ public sealed class ContentLookupEndpointsTests
         var problem = Assert.IsType<ProblemHttpResult>(result.Result);
 
         Assert.Equal(StatusCodes.Status404NotFound, problem.StatusCode);
+        AssertProblem(
+            problem,
+            "Content item was not found",
+            "content-item-not-found");
     }
 
     [Fact]
@@ -594,6 +623,10 @@ public sealed class ContentLookupEndpointsTests
         var problem = Assert.IsType<ProblemHttpResult>(result.Result);
 
         Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+        AssertProblem(
+            problem,
+            "Content item could not be created",
+            "content-item-could-not-be-created");
     }
 
     [Fact]
@@ -608,6 +641,10 @@ public sealed class ContentLookupEndpointsTests
         var problem = Assert.IsType<ProblemHttpResult>(result.Result);
 
         Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        AssertProblem(
+            problem,
+            "Content item request is required",
+            "content-item-request-required");
     }
 
     [Fact]
@@ -683,6 +720,10 @@ public sealed class ContentLookupEndpointsTests
         var problem = Assert.IsType<ProblemHttpResult>(result.Result);
 
         Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        AssertProblem(
+            problem,
+            "Content item request is required",
+            "content-item-request-required");
     }
 
     [Fact]
@@ -703,6 +744,10 @@ public sealed class ContentLookupEndpointsTests
         var problem = Assert.IsType<ProblemHttpResult>(result.Result);
 
         Assert.Equal(StatusCodes.Status404NotFound, problem.StatusCode);
+        AssertProblem(
+            problem,
+            "Content item was not found",
+            "content-item-not-found");
     }
 
     [Fact]
@@ -736,6 +781,10 @@ public sealed class ContentLookupEndpointsTests
         var problem = Assert.IsType<ProblemHttpResult>(result.Result);
 
         Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        AssertProblem(
+            problem,
+            "Invalid content update request",
+            "invalid-content-update-request");
     }
 
     [Fact]
@@ -823,6 +872,10 @@ public sealed class ContentLookupEndpointsTests
         var problem = Assert.IsType<ProblemHttpResult>(result.Result);
 
         Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+        AssertProblem(
+            problem,
+            "Content item could not be renamed",
+            "content-item-could-not-be-renamed");
     }
 
     [Fact]
@@ -942,6 +995,10 @@ public sealed class ContentLookupEndpointsTests
         var problem = Assert.IsType<ProblemHttpResult>(result.Result);
 
         Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        AssertProblem(
+            problem,
+            "Invalid content move request",
+            "invalid-content-move-request");
     }
 
     [Fact]
@@ -992,6 +1049,10 @@ public sealed class ContentLookupEndpointsTests
         var problem = Assert.IsType<ProblemHttpResult>(result.Result);
 
         Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        AssertProblem(
+            problem,
+            "Invalid content create request",
+            "invalid-content-create-request");
     }
 
     [Fact]
@@ -1097,6 +1158,10 @@ public sealed class ContentLookupEndpointsTests
         var problem = Assert.IsType<ProblemHttpResult>(result.Result);
 
         Assert.Equal(StatusCodes.Status404NotFound, problem.StatusCode);
+        AssertProblem(
+            problem,
+            "Content item was not found",
+            "content-item-not-found");
     }
 
     [Fact]
@@ -1120,6 +1185,10 @@ public sealed class ContentLookupEndpointsTests
         var problem = Assert.IsType<ProblemHttpResult>(result.Result);
 
         Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        AssertProblem(
+            problem,
+            "Invalid content field value request",
+            "invalid-content-field-value-request");
     }
 
     [Fact]
@@ -1241,6 +1310,10 @@ public sealed class ContentLookupEndpointsTests
         var problem = Assert.IsType<ProblemHttpResult>(result.Result);
 
         Assert.Equal(StatusCodes.Status404NotFound, problem.StatusCode);
+        AssertProblem(
+            problem,
+            "Content item was not found",
+            "content-item-not-found");
     }
 
     [Fact]
@@ -1270,6 +1343,10 @@ public sealed class ContentLookupEndpointsTests
         var problem = Assert.IsType<ProblemHttpResult>(result.Result);
 
         Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        AssertProblem(
+            problem,
+            "Content item could not be deleted",
+            "content-item-could-not-be-deleted");
     }
 
     [Fact]
@@ -1284,6 +1361,10 @@ public sealed class ContentLookupEndpointsTests
         var problem = Assert.IsType<ProblemHttpResult>(result.Result);
 
         Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        AssertProblem(
+            problem,
+            "Invalid content delete request",
+            "invalid-content-delete-request");
     }
 
     [Fact]
@@ -1397,6 +1478,10 @@ public sealed class ContentLookupEndpointsTests
         var problem = Assert.IsType<ProblemHttpResult>(result.Result);
 
         Assert.Equal(StatusCodes.Status404NotFound, problem.StatusCode);
+        AssertProblem(
+            problem,
+            "Content item was not found",
+            "content-item-not-found");
     }
 
     [Fact]
@@ -1413,6 +1498,10 @@ public sealed class ContentLookupEndpointsTests
         var problem = Assert.IsType<ProblemHttpResult>(result.Result);
 
         Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        AssertProblem(
+            problem,
+            "Invalid content lookup request",
+            "invalid-content-lookup-request");
     }
 
     private sealed class FakeContentItemService : IContentItemService
@@ -1682,5 +1771,17 @@ public sealed class ContentLookupEndpointsTests
             {
                 ["title"] = new StringTypedFieldValue(title)
             });
+    }
+
+    private static void AssertProblem(
+        ProblemHttpResult problem,
+        string expectedTitle,
+        string expectedCode)
+    {
+        var value = Assert.IsType<ProblemDetails>(problem.ProblemDetails);
+        Assert.Equal(expectedTitle, value.Title);
+        Assert.Equal($"/api/problems/{expectedCode}", value.Type);
+        Assert.True(value.Extensions.TryGetValue("code", out var code));
+        Assert.Equal(expectedCode, Assert.IsType<string>(code));
     }
 }
