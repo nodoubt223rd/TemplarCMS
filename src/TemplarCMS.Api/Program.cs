@@ -1,6 +1,7 @@
 using Microsoft.OpenApi.Models;
 using TemplarCMS.Api.Bootstrap;
 using TemplarCMS.Api.Content;
+using TemplarCMS.Api.Security;
 using TemplarCMS.Api.Templates;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -21,6 +22,8 @@ builder.Services.AddSwaggerGen(
                 Version = "v1"
             });
     });
+builder.Services.AddTemplarApiAuthoringSecurity(
+    builder.Configuration);
 builder.Services.AddTemplarCmsRuntime(
     builder.Configuration,
     builder.Environment);
@@ -28,6 +31,8 @@ builder.Services.AddTemplarCmsRuntime(
 var app = builder.Build();
 
 app.UseExceptionHandler();
+app.UseAuthentication();
+app.UseAuthorization();
 
 if (openApiEnabled)
 {

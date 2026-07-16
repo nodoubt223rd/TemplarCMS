@@ -72,6 +72,27 @@ Both routes are enabled by the `OpenApi:Enabled` setting and default to `true`
 in the API appsettings so the dev team can import the contract into Postman from
 an IIS-hosted test instance or inspect the endpoints quickly in a browser.
 
+## Authoring Security
+
+Write endpoints now support a first-pass authoring security model that can be
+enabled for Postman and shared test instances.
+
+Configuration:
+
+```json
+"AuthoringSecurity": {
+  "Enabled": false,
+  "ApiKeyHeaderName": "X-Templar-Api-Key",
+  "ApiKey": ""
+}
+```
+
+When enabled:
+
+- `POST`, `PUT`, and `DELETE` authoring routes require the configured API key header.
+- Read routes stay anonymous for now.
+- The API responds with standard `401` and `403` endpoint metadata so the contract stays compatible with stricter future auth flows.
+
 ## Goals
 
 - Sitecore-inspired templates
