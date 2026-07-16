@@ -47,7 +47,7 @@ export default defineConfig(({ command }) => {
         ? `https://localhost:${env.ASPNETCORE_HTTPS_PORT}`
         : env.ASPNETCORE_URLS
             ? env.ASPNETCORE_URLS.split(';')[0]
-            : 'https://localhost:7089';
+            : 'https://localhost:55686';
 
     return {
         ...config,
