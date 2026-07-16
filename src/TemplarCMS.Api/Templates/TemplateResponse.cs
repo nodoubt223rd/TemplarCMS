@@ -191,6 +191,43 @@ public sealed class TemplateCollectionLinksResponse
     public required LinkResponse Self { get; init; }
 }
 
+public sealed class FieldTypeCollectionResponse
+{
+    public required FieldTypeCollectionEmbeddedResponse Embedded { get; init; }
+
+    [JsonPropertyName("_links")]
+    public required FieldTypeCollectionLinksResponse Links { get; init; }
+}
+
+public sealed class FieldTypeCollectionEmbeddedResponse
+{
+    public required IReadOnlyCollection<FieldTypeResponse> FieldTypes { get; init; }
+}
+
+public sealed class FieldTypeCollectionLinksResponse
+{
+    public required LinkResponse Self { get; init; }
+}
+
+public sealed class FieldTypeResponse
+{
+    public required string Value { get; init; }
+
+    public required string Label { get; init; }
+
+    public required string EditorKind { get; init; }
+
+    public required string InputType { get; init; }
+
+    public string? Placeholder { get; init; }
+
+    public int? Rows { get; init; }
+
+    public string? Step { get; init; }
+
+    public string? HelpText { get; init; }
+}
+
 public sealed class TemplateDependencyResponse
 {
     public required string TemplateId { get; init; }

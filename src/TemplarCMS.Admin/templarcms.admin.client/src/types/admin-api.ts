@@ -70,6 +70,26 @@ export type ContentItemDependencyResponse = {
   }
 }
 
+export type FieldTypeResponse = {
+  value: string
+  label: string
+  editorKind: 'checkbox' | 'date-time' | 'general-link' | 'number' | 'textarea' | 'text'
+  inputType: 'checkbox' | 'datetime-local' | 'number' | 'text'
+  placeholder: string | null
+  rows: number | null
+  step: string | null
+  helpText: string | null
+}
+
+export type FieldTypeCollectionResponse = {
+  embedded: {
+    fieldTypes: FieldTypeResponse[]
+  }
+  _links: {
+    self: LinkResponse
+  }
+}
+
 export type TemplateSummaryResponse = {
   id: string
   name: string

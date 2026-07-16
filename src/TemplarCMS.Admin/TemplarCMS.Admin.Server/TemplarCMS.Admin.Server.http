@@ -1,6 +1,6 @@
 @TemplarCMS.Admin.Server_HostAddress = http://localhost:5003
 
-GET {{TemplarCMS.Admin.Server_HostAddress}}/weatherforecast/
+GET {{TemplarCMS.Admin.Server_HostAddress}}/api/v1/templates
 Accept: application/json
 
 ###

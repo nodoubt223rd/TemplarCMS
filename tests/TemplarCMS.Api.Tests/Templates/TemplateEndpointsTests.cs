@@ -17,6 +17,24 @@ namespace TemplarCMS.Api.Tests.Templates;
 public sealed class TemplateEndpointsTests
 {
     [Fact]
+    public async Task GetFieldTypesAsync_ShouldReturnCSharpDefinedFieldMetadata()
+    {
+        var result = await FieldTypeEndpoints.GetAllAsync();
+
+        var ok = Assert.IsType<Ok<FieldTypeCollectionResponse>>(result);
+        Assert.NotNull(ok.Value);
+
+        var fieldTypes = ok.Value.Embedded.FieldTypes.ToArray();
+        Assert.NotEmpty(fieldTypes);
+
+        var generalLink = Assert.Single(fieldTypes, fieldType => fieldType.Value == "GeneralLink");
+        Assert.Equal("General Link", generalLink.Label);
+        Assert.Equal("general-link", generalLink.EditorKind);
+        Assert.Equal("text", generalLink.InputType);
+        Assert.Equal("/api/v1/field-types", ok.Value.Links.Self.Href);
+    }
+
+    [Fact]
     public async Task GetAllAsync_ShouldReturnTemplatesInStableOrder()
     {
         var article =

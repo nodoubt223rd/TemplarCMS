@@ -388,7 +388,7 @@ public static class ContentLookupEndpoints
                 new ContentItemDefinition(
                     itemId,
                     request.Name,
-                    new ContentItemKey(request.Key),
+                    ContentItemKey.FromDisplayName(request.Name),
                     new TemplateId(request.TemplateId),
                     request.ParentId == null ? null : new ContentItemId(request.ParentId.Value));
 
@@ -618,7 +618,7 @@ public static class ContentLookupEndpoints
             await contentItemService.RenameItemAsync(
                 itemId,
                 request.Name,
-                new ContentItemKey(request.Key),
+                ContentItemKey.FromDisplayName(request.Name),
                 cancellationToken);
 
             var context = CreateContext(lang, version);

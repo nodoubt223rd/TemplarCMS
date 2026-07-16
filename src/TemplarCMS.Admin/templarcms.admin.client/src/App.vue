@@ -3,6 +3,8 @@ import { computed, defineComponent, onMounted, reactive, ref } from 'vue'
 import type { PropType } from 'vue'
 import type {
   ContentBranchResponse,
+  FieldTypeCollectionResponse,
+  FieldTypeResponse,
   ContentItemDependencyResponse,
   ContentItemResponse,
   ContentMutationResponse,
@@ -46,129 +48,6 @@ type TemplateDraftSection = {
   fields: TemplateDraftField[]
 }
 
-const fieldTypeOptions = [
-  { value: 'SingleLineText', label: 'Single-Line Text' },
-  { value: 'MultiLineText', label: 'Multi-Line Text' },
-  { value: 'RichText', label: 'Rich Text' },
-  { value: 'Checkbox', label: 'Checkbox' },
-  { value: 'DateTime', label: 'Date/Time' },
-  { value: 'Integer', label: 'Integer' },
-  { value: 'Decimal', label: 'Decimal' },
-  { value: 'Droplink', label: 'Droplink' },
-  { value: 'Multilist', label: 'Multilist' },
-  { value: 'GeneralLink', label: 'General Link' },
-  { value: 'Image', label: 'Image' },
-  { value: 'File', label: 'File' },
-  { value: 'Json', label: 'JSON' }
-] as const
-
-const editorRegistry = {
-  SingleLineText: {
-    editorKind: 'text',
-    inputType: 'text',
-    placeholder: 'Enter text',
-    rows: null,
-    step: null,
-    helpText: null
-  },
-  MultiLineText: {
-    editorKind: 'textarea',
-    inputType: 'text',
-    placeholder: 'Enter text',
-    rows: 3,
-    step: null,
-    helpText: null
-  },
-  RichText: {
-    editorKind: 'textarea',
-    inputType: 'text',
-    placeholder: 'Enter rich text or HTML',
-    rows: 6,
-    step: null,
-    helpText: 'Rich text currently saves as string content.'
-  },
-  Checkbox: {
-    editorKind: 'checkbox',
-    inputType: 'checkbox',
-    placeholder: null,
-    rows: null,
-    step: null,
-    helpText: 'Stored as true or false.'
-  },
-  DateTime: {
-    editorKind: 'date-time',
-    inputType: 'datetime-local',
-    placeholder: null,
-    rows: null,
-    step: null,
-    helpText: 'Use local date and time; the API still persists a string value.'
-  },
-  Integer: {
-    editorKind: 'number',
-    inputType: 'number',
-    placeholder: '0',
-    rows: null,
-    step: '1',
-    helpText: 'Whole numbers only.'
-  },
-  Decimal: {
-    editorKind: 'number',
-    inputType: 'number',
-    placeholder: '0.00',
-    rows: null,
-    step: '0.01',
-    helpText: 'Decimal numbers are validated by the API.'
-  },
-  Droplink: {
-    editorKind: 'text',
-    inputType: 'text',
-    placeholder: 'Enter referenced item id or path',
-    rows: null,
-    step: null,
-    helpText: 'Reference-style fields still use a plain text value for now.'
-  },
-  Multilist: {
-    editorKind: 'textarea',
-    inputType: 'text',
-    placeholder: 'Enter one or more referenced values',
-    rows: 3,
-    step: null,
-    helpText: 'Multiple references are still authored as string content for now.'
-  },
-  GeneralLink: {
-    editorKind: 'general-link',
-    inputType: 'text',
-    placeholder: null,
-    rows: null,
-    step: null,
-    helpText: 'General links can point to an internal content item or an external URL.'
-  },
-  Image: {
-    editorKind: 'text',
-    inputType: 'text',
-    placeholder: 'Enter media reference',
-    rows: null,
-    step: null,
-    helpText: 'Image fields still store a string reference today.'
-  },
-  File: {
-    editorKind: 'text',
-    inputType: 'text',
-    placeholder: 'Enter file reference',
-    rows: null,
-    step: null,
-    helpText: 'File fields still store a string reference today.'
-  },
-  Json: {
-    editorKind: 'textarea',
-    inputType: 'text',
-    placeholder: '{ }',
-    rows: 6,
-    step: null,
-    helpText: 'JSON is not schema-aware yet, but the editor keeps the field distinct.'
-  }
-} as const
-
 const language = ref('en')
 const version = ref(1)
 const isBootstrapping = ref(false)
@@ -183,14 +62,12 @@ const selectedItem = computed(() => selectedNode.value?.item ?? null)
 
 const createForm = reactive({
   name: '',
-  key: '',
   templateId: '',
   parentId: ''
 })
 
 const renameForm = reactive({
-  name: '',
-  key: ''
+  name: ''
 })
 
 const moveForm = reactive({
@@ -198,6 +75,8 @@ const moveForm = reactive({
 })
 
 const fieldForm = reactive<Record<string, string>>({})
+const availableFieldTypes = ref<FieldTypeResponse[]>([])
+const isLoadingFieldTypes = ref(false)
 const availableTemplates = ref<TemplateSummaryResponse[]>([])
 const isLoadingTemplates = ref(false)
 const templateFields = ref<TemplateFieldItemResponse[]>([])
@@ -241,6 +120,8 @@ const templateDesignerHeading = computed(() =>
   templateDesignerForm.mode === 'create'
     ? 'Draft a new template'
     : `Editing ${templateDesignerForm.name || 'template'}`)
+const fieldTypeLookup = computed(() =>
+  new Map(availableFieldTypes.value.map(fieldType => [fieldType.value, fieldType])))
 const selectedItemTemplateName = computed(() => {
   const item = selectedItem.value
 
@@ -256,7 +137,7 @@ const editorFields = computed<EditorFieldModel[]>(() =>
     .map(key => {
       const templateField = templateFields.value.find(field => field.key === key)
       const type = templateField?.type ?? 'SingleLineText'
-      const editor = getEditorDefinition(type)
+      const editor = getFieldTypeDefinition(type)
 
       return {
         key,
@@ -349,6 +230,7 @@ const TreeBranch = defineComponent({
 
 onMounted(async () => {
   startNewTemplateDraft()
+  await loadFieldTypes()
   await loadTemplates()
   await refreshRootBranch()
 
@@ -431,7 +313,6 @@ async function submitCreate() {
       method: 'POST',
       body: JSON.stringify({
         name: createForm.name,
-        key: createForm.key,
         templateId: createForm.templateId,
         parentId: normalizeOptionalValue(createForm.parentId)
       })
@@ -460,8 +341,7 @@ async function submitRename() {
     const response = await sendMutation(selectedItem.value._links.rename.href, {
       method: 'POST',
       body: JSON.stringify({
-        name: renameForm.name,
-        key: renameForm.key
+        name: renameForm.name
       })
     })
 
@@ -710,8 +590,6 @@ function findNodeById(nodes: TreeNode[], id: string | null): TreeNode | null {
 
 function syncFormsFromItem(item: ContentItemResponse) {
   renameForm.name = item.name
-  const pathSegments = item.path.split('/').filter(Boolean)
-  renameForm.key = pathSegments[pathSegments.length - 1] ?? ''
   moveForm.parentId = extractParentIdFromHref(item._links.parent?.href) ?? ''
   createForm.parentId = item.id
   ensureCreateTemplateSelection(item)
@@ -728,13 +606,11 @@ async function syncInspectorFromItem(item: ContentItemResponse) {
 
 function resetCreateForm() {
   createForm.name = ''
-  createForm.key = ''
   createForm.templateId = getSuggestedTemplateId()
 }
 
 function resetInspectorForms() {
   renameForm.name = ''
-  renameForm.key = ''
   moveForm.parentId = ''
   createForm.parentId = ''
   clearFieldForm()
@@ -781,6 +657,20 @@ async function loadTemplates() {
     selectedTemplateId.value = null
   } finally {
     isLoadingTemplates.value = false
+  }
+}
+
+async function loadFieldTypes() {
+  isLoadingFieldTypes.value = true
+
+  try {
+    const response = await fetchJson<FieldTypeCollectionResponse>('/api/v1/field-types')
+    availableFieldTypes.value = response.embedded.fieldTypes
+  } catch (error) {
+    availableFieldTypes.value = []
+    pageError.value = getErrorMessage(error)
+  } finally {
+    isLoadingFieldTypes.value = false
   }
 }
 
@@ -1350,12 +1240,21 @@ function getTemplateKeyById(id: string) {
   return availableTemplates.value.find(template => template.id === id)?.key ?? null
 }
 
-function getEditorDefinition(fieldType: string) {
-  return editorRegistry[fieldType as keyof typeof editorRegistry] ?? editorRegistry.SingleLineText
+function getFieldTypeDefinition(fieldType: string): FieldTypeResponse {
+  return fieldTypeLookup.value.get(fieldType) ?? {
+    value: fieldType,
+    label: fieldType,
+    editorKind: 'text',
+    inputType: 'text',
+    placeholder: 'Enter text',
+    rows: null,
+    step: null,
+    helpText: null
+  }
 }
 
 function getFieldTypeLabel(fieldType: string) {
-  return fieldTypeOptions.find(option => option.value === fieldType)?.label ?? fieldType
+  return getFieldTypeDefinition(fieldType).label
 }
 
 function mapTemplateSectionViewModel(section: TemplateSectionResponse): TemplateSectionViewModel {
@@ -1674,9 +1573,9 @@ function countNodes(nodes: TreeNode[]): number {
                 <div class="editor-card__header">
                   <div>
                     <p class="eyebrow">Rename</p>
-                    <h4>Update display name and key</h4>
+                    <h4>Update display name</h4>
                   </div>
-                  <span class="callout">Uses the explicit rename contract</span>
+                  <span class="callout">Key is generated from the name</span>
                 </div>
 
                 <label class="field">
@@ -1686,7 +1585,7 @@ function countNodes(nodes: TreeNode[]): number {
 
                 <label class="field">
                   <span>Key</span>
-                  <input v-model="renameForm.key" type="text" required />
+                  <small class="field-meta">The server generates an SEO-friendly key from the current name.</small>
                 </label>
 
                 <button class="button" type="submit" :disabled="isSubmitting">
@@ -1786,7 +1685,7 @@ function countNodes(nodes: TreeNode[]): number {
 
           <label class="field">
             <span>Key</span>
-            <input v-model="createForm.key" type="text" required />
+            <small class="field-meta">The server generates an SEO-friendly key from the authored name.</small>
           </label>
 
           <label class="field">
@@ -2163,9 +2062,12 @@ function countNodes(nodes: TreeNode[]): number {
 
                           <label class="field">
                             <span>Field Type</span>
-                            <select v-model="field.type">
+                            <select v-model="field.type" :disabled="isLoadingFieldTypes || availableFieldTypes.length === 0">
+                              <option disabled value="">
+                                {{ isLoadingFieldTypes ? 'Loading field types...' : 'Select a field type' }}
+                              </option>
                               <option
-                                v-for="fieldType in fieldTypeOptions"
+                                v-for="fieldType in availableFieldTypes"
                                 :key="fieldType.value"
                                 :value="fieldType.value"
                               >
