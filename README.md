@@ -54,6 +54,48 @@ Notes:
 - The IIS site and app pool should already exist before publishing.
 - Use `-SkipTests` when you want a faster inner-loop deploy from a known-good branch.
 
+### IIS Prerequisites
+
+Before expecting the published API to start behind IIS, make sure the host
+machine has the following in place:
+
+- IIS installed with HTTPS bindings configured for the chosen host name.
+- The ASP.NET Core Hosting Bundle installed so `AspNetCoreModuleV2` is
+  available to IIS.
+- A .NET runtime compatible with the target framework in
+  [TemplarCMS.Api.csproj](/E:/Projects/TemplarCMS/src/TemplarCMS.Api/TemplarCMS.Api.csproj).
+- Host-name resolution configured locally when using a custom dev host such as
+  `templarcms.api`.
+
+If IIS returns `500.19` with error code `0x8007000d` while loading
+`web.config`, check for a missing Hosting Bundle first.
+
+### Local HTTPS For Custom Dev Hosts
+
+`dotnet dev-certs` is usually enough for `localhost`, but a custom IIS host
+name such as `https://templarcms.api` needs its own trusted certificate.
+
+One workable local path is `mkcert`:
+
+```powershell
+mkcert -install
+mkcert -pkcs12 -p12-file .\.certs\templarcms.api.pfx templarcms.api
+```
+
+Then:
+
+- Import the generated `.pfx` into `Certificates (Local Computer) > Personal`.
+- Bind that certificate to the IIS site using the `templarcms.api` HTTPS host
+  name.
+- Add a local hosts-file entry such as `127.0.0.1 templarcms.api`.
+
+After installing the Hosting Bundle or changing IIS certificate bindings,
+restart IIS:
+
+```powershell
+iisreset
+```
+
 ## API Discovery
 
 The API now exposes an OpenAPI document at:
@@ -71,6 +113,12 @@ There is also a browser UI at:
 Both routes are enabled by the `OpenApi:Enabled` setting and default to `true`
 in the API appsettings so the dev team can import the contract into Postman from
 an IIS-hosted test instance or inspect the endpoints quickly in a browser.
+
+Quick IIS-hosted smoke-test targets:
+
+- `https://templarcms.api/openapi`
+- `https://templarcms.api/openapi/v1.json`
+- `https://templarcms.api/api/v1/field-types`
 
 ## Authoring Security
 
