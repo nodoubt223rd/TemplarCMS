@@ -1,4 +1,5 @@
 using Microsoft.OpenApi.Models;
+using TemplarCMS.Api;
 using TemplarCMS.Api.Bootstrap;
 using TemplarCMS.Api.Content;
 using TemplarCMS.Api.Security;
@@ -62,6 +63,7 @@ if (openApiEnabled)
         });
 }
 
+app.MapApiRootEndpoints(openApiEnabled);
 app.MapContentLookupEndpoints();
 app.MapFieldTypeEndpoints();
 app.MapTemplateEndpoints();
