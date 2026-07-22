@@ -16,7 +16,18 @@ import type {
   TemplateSummaryResponse
 } from './types/admin-api'
 import type { GeneralLinkDraft } from './types/general-link'
+import type {
+  TemplateDesignerFormState,
+  TemplateDraftSection
+} from './types/template-designer'
 import type { EditorFieldModel, TreeNode } from './types/admin-ui'
+import {
+  applyBranchToTree as applyBranchToContentTree,
+  createTreeNode,
+  extractParentIdFromHref,
+  findTreeNodeById,
+  upsertTreeNode
+} from './utils/content-tree'
 import {
   buildEditorFields,
   createFieldTypeLookup,
@@ -28,25 +39,15 @@ import {
   parseGeneralLinkValue,
   updateGeneralLinkDraft as updateGeneralLinkDraftValue
 } from './utils/general-link'
-
-type TemplateDesignerMode = 'create' | 'edit'
-
-type TemplateDraftField = {
-  id: string
-  name: string
-  key: string
-  type: string
-  isShared: boolean
-  isUnversioned: boolean
-}
-
-type TemplateDraftSection = {
-  id: string
-  name: string
-  key: string
-  sortOrder: number
-  fields: TemplateDraftField[]
-}
+import {
+  addTemplateDraftField,
+  addTemplateDraftSection,
+  buildTemplateDesignerPayload,
+  createNewTemplateDesignerState,
+  mapTemplateToDesignerState,
+  removeTemplateDraftField,
+  removeTemplateDraftSection
+} from './utils/template-designer'
 
 const language = ref('en')
 const version = ref(1)
@@ -57,7 +58,7 @@ const successMessage = ref<string | null>(null)
 
 const rootNodes = ref<TreeNode[]>([])
 const selectedItemId = ref<string | null>(null)
-const selectedNode = computed(() => findNodeById(rootNodes.value, selectedItemId.value))
+const selectedNode = computed(() => findTreeNodeById(rootNodes.value, selectedItemId.value))
 const selectedItem = computed(() => selectedNode.value?.item ?? null)
 
 const createForm = reactive({
@@ -88,13 +89,7 @@ const selectedTemplateDetail = ref<TemplateResponse | null>(null)
 const selectedTemplateDependencies = ref<TemplateDependencyResponse | null>(null)
 const isLoadingTemplateDetail = ref(false)
 const isLoadingTemplateDependencies = ref(false)
-const templateDesignerForm = reactive({
-  mode: 'create' as TemplateDesignerMode,
-  templateId: '',
-  name: '',
-  key: '',
-  baseTemplateId: ''
-})
+const templateDesignerForm = reactive<TemplateDesignerFormState>(createNewTemplateDesignerState().form)
 const templateDraftSections = ref<TemplateDraftSection[]>([])
 
 const treeCount = computed(() => countNodes(rootNodes.value))
@@ -212,10 +207,10 @@ async function refreshRootBranch() {
 
   try {
     const branch = await getRootBranch()
-    rootNodes.value = branch.embedded.children.map(createNode)
+    rootNodes.value = branch.embedded.children.map(createTreeNode)
 
     if (selectedItemId.value != null) {
-      const currentNode = findNodeById(rootNodes.value, selectedItemId.value)
+      const currentNode = findTreeNodeById(rootNodes.value, selectedItemId.value)
       if (currentNode != null) {
         await syncInspectorFromItem(currentNode.item)
       } else {
@@ -255,8 +250,8 @@ async function loadBranch(node: TreeNode) {
     const branch = await getBranch(node.item.id)
     node.children = branch.embedded.children.map(branchChild => {
       const currentChild = node.children.find(child => child.item.id === branchChild.id)
-      return currentChild == null ? createNode(branchChild) : mergeNode(currentChild, branchChild)
-    }).sort(compareNodes)
+      return currentChild == null ? createTreeNode(branchChild) : currentChild
+    }).sort((left, right) => left.item.path.localeCompare(right.item.path))
     node.isBranchLoaded = true
   } catch (error) {
     pageError.value = getErrorMessage(error)
@@ -406,7 +401,7 @@ async function submitValues() {
       })
     )
 
-    upsertNode(extractParentIdFromHref(response._links.parent?.href), response)
+    rootNodes.value = upsertTreeNode(rootNodes.value, extractParentIdFromHref(response._links.parent?.href), response)
     selectedItemId.value = response.id
     await syncInspectorFromItem(response)
     successMessage.value = `Saved ${Object.keys(fieldForm).length} field values for ${response.name}.`
@@ -419,18 +414,18 @@ async function submitValues() {
 
 async function applyMutationResponse(response: ContentMutationResponse) {
   for (const affected of response.affectedBranches) {
-    applyBranchToTree(affected.branch)
+    rootNodes.value = applyBranchToContentTree(rootNodes.value, affected.branch)
   }
 
   const refreshedItem = await getItem(response.item.id)
-  upsertNode(extractParentIdFromHref(refreshedItem._links.parent?.href), refreshedItem)
+  rootNodes.value = upsertTreeNode(rootNodes.value, extractParentIdFromHref(refreshedItem._links.parent?.href), refreshedItem)
   selectedItemId.value = response.item.id
   await syncInspectorFromItem(refreshedItem)
 }
 
 function applyDeletedMutationResponse(response: ContentMutationResponse) {
   for (const affected of response.affectedBranches) {
-    applyBranchToTree(affected.branch)
+    rootNodes.value = applyBranchToContentTree(rootNodes.value, affected.branch)
   }
 
   const parentId = extractParentIdFromHref(response.item._links.parent?.href)
@@ -441,7 +436,7 @@ function applyDeletedMutationResponse(response: ContentMutationResponse) {
     return
   }
 
-  const parentNode = findNodeById(rootNodes.value, parentId)
+  const parentNode = findTreeNodeById(rootNodes.value, parentId)
 
   if (parentNode == null) {
     selectedItemId.value = null
@@ -451,108 +446,6 @@ function applyDeletedMutationResponse(response: ContentMutationResponse) {
 
   selectedItemId.value = parentNode.item.id
   void syncInspectorFromItem(parentNode.item)
-}
-
-function applyBranchToTree(branch: ContentBranchResponse) {
-  if (branch.item == null) {
-    rootNodes.value = branch.embedded.children
-      .map(branchChild => {
-        const currentNode = findNodeById(rootNodes.value, branchChild.id)
-        return currentNode == null ? createNode(branchChild) : mergeNode(currentNode, branchChild)
-      })
-      .sort(compareNodes)
-
-    return
-  }
-
-  const parentNode = findNodeById(rootNodes.value, branch.item.id)
-
-  if (parentNode == null) {
-    rootNodes.value = upsertAtRoot(rootNodes.value, branch.item)
-    return
-  }
-
-  parentNode.item = branch.item
-  parentNode.isBranchLoaded = true
-  parentNode.children = branch.embedded.children
-    .map(branchChild => {
-      const existingChild = parentNode.children.find(child => child.item.id === branchChild.id)
-      return existingChild == null ? createNode(branchChild) : mergeNode(existingChild, branchChild)
-    })
-    .sort(compareNodes)
-}
-
-function upsertNode(parentId: string | null, item: ContentItemResponse) {
-  if (parentId == null) {
-    rootNodes.value = upsertAtRoot(rootNodes.value, item)
-    return
-  }
-
-  const parentNode = findNodeById(rootNodes.value, parentId)
-
-  if (parentNode == null) {
-    return
-  }
-
-  const currentNode = parentNode.children.find(child => child.item.id === item.id)
-
-  if (currentNode == null) {
-    parentNode.children = [...parentNode.children, createNode(item)].sort(compareNodes)
-  } else {
-    mergeNode(currentNode, item)
-    parentNode.children = [...parentNode.children].sort(compareNodes)
-  }
-
-  parentNode.isBranchLoaded = true
-}
-
-function upsertAtRoot(nodes: TreeNode[], item: ContentItemResponse) {
-  const currentNode = nodes.find(node => node.item.id === item.id)
-
-  if (currentNode == null) {
-    return [...nodes, createNode(item)].sort(compareNodes)
-  }
-
-  mergeNode(currentNode, item)
-  return [...nodes].sort(compareNodes)
-}
-
-function mergeNode(node: TreeNode, item: ContentItemResponse) {
-  node.item = item
-  return node
-}
-
-function createNode(item: ContentItemResponse): TreeNode {
-  return {
-    item,
-    children: [],
-    isExpanded: false,
-    isBranchLoaded: false,
-    isBranchLoading: false
-  }
-}
-
-function compareNodes(left: TreeNode, right: TreeNode) {
-  return left.item.path.localeCompare(right.item.path)
-}
-
-function findNodeById(nodes: TreeNode[], id: string | null): TreeNode | null {
-  if (id == null) {
-    return null
-  }
-
-  for (const node of nodes) {
-    if (node.item.id === id) {
-      return node
-    }
-
-    const nested = findNodeById(node.children, id)
-    if (nested != null) {
-      return nested
-    }
-  }
-
-  return null
 }
 
 function syncFormsFromItem(item: ContentItemResponse) {
@@ -748,12 +641,9 @@ async function applyTemplateToCreate() {
 }
 
 function startNewTemplateDraft() {
-  templateDesignerForm.mode = 'create'
-  templateDesignerForm.templateId = ''
-  templateDesignerForm.name = ''
-  templateDesignerForm.key = ''
-  templateDesignerForm.baseTemplateId = ''
-  templateDraftSections.value = [createDraftSection()]
+  const state = createNewTemplateDesignerState()
+  Object.assign(templateDesignerForm, state.form)
+  templateDraftSections.value = state.sections
 }
 
 function loadSelectedTemplateIntoDesigner() {
@@ -761,67 +651,25 @@ function loadSelectedTemplateIntoDesigner() {
     return
   }
 
-  templateDesignerForm.mode = 'edit'
-  templateDesignerForm.templateId = selectedTemplateDetail.value.id
-  templateDesignerForm.name = selectedTemplateDetail.value.name
-  templateDesignerForm.key = selectedTemplateDetail.value.key
-  templateDesignerForm.baseTemplateId = selectedTemplateDetail.value.baseTemplate?.id ?? ''
-  templateDraftSections.value = selectedTemplateDetail.value.sections.map(section => ({
-    id: section.id,
-    name: section.name,
-    key: section.key,
-    sortOrder: section.sortOrder,
-    fields: section.fields.map(field => ({
-      id: field.id,
-      name: field.name,
-      key: field.key,
-      type: field.type,
-      isShared: field.isShared,
-      isUnversioned: field.isUnversioned
-    }))
-  }))
-
-  if (templateDraftSections.value.length === 0) {
-    templateDraftSections.value = [createDraftSection()]
-  }
+  const state = mapTemplateToDesignerState(selectedTemplateDetail.value)
+  Object.assign(templateDesignerForm, state.form)
+  templateDraftSections.value = state.sections
 }
 
 function addDraftSection() {
-  templateDraftSections.value = [...templateDraftSections.value, createDraftSection()]
+  templateDraftSections.value = addTemplateDraftSection(templateDraftSections.value)
 }
 
 function removeDraftSection(sectionId: string) {
-  templateDraftSections.value =
-    templateDraftSections.value.filter(section => section.id !== sectionId)
-
-  if (templateDraftSections.value.length === 0) {
-    templateDraftSections.value = [createDraftSection()]
-  }
+  templateDraftSections.value = removeTemplateDraftSection(templateDraftSections.value, sectionId)
 }
 
 function addDraftField(sectionId: string) {
-  templateDraftSections.value = templateDraftSections.value.map(section =>
-    section.id !== sectionId
-      ? section
-      : {
-          ...section,
-          fields: [...section.fields, createDraftField()]
-        })
+  templateDraftSections.value = addTemplateDraftField(templateDraftSections.value, sectionId)
 }
 
 function removeDraftField(sectionId: string, fieldId: string) {
-  templateDraftSections.value = templateDraftSections.value.map(section => {
-    if (section.id !== sectionId) {
-      return section
-    }
-
-    const remainingFields = section.fields.filter(field => field.id !== fieldId)
-
-    return {
-      ...section,
-      fields: remainingFields.length === 0 ? [createDraftField()] : remainingFields
-    }
-  })
+  templateDraftSections.value = removeTemplateDraftField(templateDraftSections.value, sectionId, fieldId)
 }
 
 async function submitTemplateDesigner() {
@@ -841,23 +689,11 @@ async function submitTemplateDesigner() {
   isSubmitting.value = true
 
   try {
-    const payload = {
-      name: templateDesignerForm.name,
-      key: templateDesignerForm.key,
-      baseTemplateKeys: baseTemplateKey == null ? [] : [baseTemplateKey],
-      sections: templateDraftSections.value.map(section => ({
-        name: section.name,
-        key: section.key,
-        sortOrder: Number(section.sortOrder),
-        fields: section.fields.map(field => ({
-          name: field.name,
-          key: field.key,
-          type: field.type,
-          isShared: field.isShared,
-          isUnversioned: field.isShared ? false : field.isUnversioned
-        }))
-      }))
-    }
+    const payload = buildTemplateDesignerPayload(
+      templateDesignerForm,
+      templateDraftSections.value,
+      baseTemplateKey
+    )
 
     const isEditing = templateDesignerForm.mode === 'edit' && templateDesignerForm.templateId.length > 0
     const response = await fetchJson<TemplateResponse>(
@@ -990,15 +826,6 @@ function withJsonDefaults(init: RequestInit): RequestInit {
   }
 }
 
-function extractParentIdFromHref(href: string | undefined) {
-  if (href == null) {
-    return null
-  }
-
-  const match = href.match(/\/api\/v1\/content\/([^/?]+)/i)
-  return match?.[1] ?? null
-}
-
 function normalizeOptionalValue(value: string) {
   const trimmed = value.trim()
   return trimmed.length === 0 ? null : trimmed
@@ -1100,27 +927,6 @@ function getTemplateKeyById(id: string) {
 
 function getFieldTypeLabel(fieldType: string) {
   return getEditorFieldTypeLabel(fieldType, fieldTypeLookup.value)
-}
-
-function createDraftSection(): TemplateDraftSection {
-  return {
-    id: crypto.randomUUID(),
-    name: '',
-    key: '',
-    sortOrder: 100,
-    fields: [createDraftField()]
-  }
-}
-
-function createDraftField(): TemplateDraftField {
-  return {
-    id: crypto.randomUUID(),
-    name: '',
-    key: '',
-    type: 'SingleLineText',
-    isShared: false,
-    isUnversioned: false
-  }
 }
 
 function getErrorMessage(error: unknown) {
