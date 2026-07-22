@@ -11,13 +11,18 @@ import type {
   TemplateCollectionResponse,
   TemplateDependencyResponse,
   TemplateResponse,
-  TemplateSectionResponse,
   TemplateFieldCollectionResponse,
   TemplateFieldItemResponse,
   TemplateSummaryResponse
 } from './types/admin-api'
 import type { GeneralLinkDraft } from './types/general-link'
-import type { EditorFieldModel, TemplateSectionViewModel, TreeNode } from './types/admin-ui'
+import type { EditorFieldModel, TreeNode } from './types/admin-ui'
+import {
+  buildEditorFields,
+  createFieldTypeLookup,
+  getFieldTypeLabel as getEditorFieldTypeLabel
+} from './utils/editor-fields'
+import { buildTemplateWorkspaceViewModel } from './utils/template-workspace'
 import {
   normalizeGeneralLinkKind,
   parseGeneralLinkValue,
@@ -99,16 +104,10 @@ const selectedTemplateSummary = computed(() =>
   selectedTemplateId.value == null
     ? null
     : availableTemplates.value.find(template => template.id === selectedTemplateId.value) ?? null)
-const templateSections = computed<TemplateSectionViewModel[]>(() =>
-  (selectedTemplateDetail.value?.sections ?? [])
-    .slice()
-    .sort((left, right) =>
-      left.sortOrder - right.sortOrder ||
-      left.name.localeCompare(right.name) ||
-      left.key.localeCompare(right.key))
-    .map(mapTemplateSectionViewModel))
-const selectedTemplateFieldCount = computed(() =>
-  templateSections.value.reduce((total, section) => total + section.fields.length, 0))
+const templateWorkspace = computed(() =>
+  buildTemplateWorkspaceViewModel(selectedTemplateDetail.value, fieldTypeLookup.value))
+const templateSections = computed(() => templateWorkspace.value.sections)
+const selectedTemplateFieldCount = computed(() => templateWorkspace.value.fieldCount)
 const availableBaseTemplates = computed(() =>
   availableTemplates.value.filter(template => template.id !== templateDesignerForm.templateId))
 const templateDesignerHeading = computed(() =>
@@ -116,7 +115,7 @@ const templateDesignerHeading = computed(() =>
     ? 'Draft a new template'
     : `Editing ${templateDesignerForm.name || 'template'}`)
 const fieldTypeLookup = computed(() =>
-  new Map(availableFieldTypes.value.map(fieldType => [fieldType.value, fieldType])))
+  createFieldTypeLookup(availableFieldTypes.value))
 const selectedItemTemplateName = computed(() => {
   const item = selectedItem.value
 
@@ -127,34 +126,7 @@ const selectedItemTemplateName = computed(() => {
   return availableTemplates.value.find(template => template.id === item.templateId)?.name ?? null
 })
 const editorFields = computed<EditorFieldModel[]>(() =>
-  Object.keys(fieldForm)
-    .sort((left, right) => left.localeCompare(right))
-    .map(key => {
-      const templateField = templateFields.value.find(field => field.key === key)
-      const type = templateField?.type ?? 'SingleLineText'
-      const editor = getFieldTypeDefinition(type)
-
-      return {
-        key,
-        label: templateField?.name ?? key,
-        value: fieldForm[key] ?? '',
-        type: getFieldTypeLabel(type),
-        sectionName: templateField?.sectionName ?? 'Fields',
-        scopeLabel: templateField == null
-          ? 'Unknown scope'
-          : templateField.isShared
-            ? 'Shared'
-            : templateField.isUnversioned
-              ? 'Unversioned'
-              : 'Versioned',
-        editorKind: editor.editorKind,
-        inputType: editor.inputType,
-        placeholder: editor.placeholder,
-        rows: editor.rows,
-        step: editor.step,
-        helpText: editor.helpText
-      }
-    }))
+  buildEditorFields(fieldForm, templateFields.value, fieldTypeLookup.value))
 
 const TreeBranch = defineComponent({
   name: 'TreeBranch',
@@ -1126,44 +1098,8 @@ function getTemplateKeyById(id: string) {
   return availableTemplates.value.find(template => template.id === id)?.key ?? null
 }
 
-function getFieldTypeDefinition(fieldType: string): FieldTypeResponse {
-  return fieldTypeLookup.value.get(fieldType) ?? {
-    value: fieldType,
-    label: fieldType,
-    editorKind: 'text',
-    inputType: 'text',
-    placeholder: 'Enter text',
-    rows: null,
-    step: null,
-    helpText: null
-  }
-}
-
 function getFieldTypeLabel(fieldType: string) {
-  return getFieldTypeDefinition(fieldType).label
-}
-
-function mapTemplateSectionViewModel(section: TemplateSectionResponse): TemplateSectionViewModel {
-  return {
-    id: section.id,
-    name: section.name,
-    key: section.key,
-    sortOrder: section.sortOrder,
-    fields: section.fields
-      .slice()
-      .sort((left, right) => left.name.localeCompare(right.name) || left.key.localeCompare(right.key))
-      .map(field => ({
-        id: field.id,
-        name: field.name,
-        key: field.key,
-        type: getFieldTypeLabel(field.type),
-        scopeLabel: field.isShared
-          ? 'Shared'
-          : field.isUnversioned
-            ? 'Unversioned'
-            : 'Versioned'
-      }))
-  }
+  return getEditorFieldTypeLabel(fieldType, fieldTypeLookup.value)
 }
 
 function createDraftSection(): TemplateDraftSection {
