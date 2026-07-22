@@ -16,7 +16,13 @@ import type {
   TemplateFieldItemResponse,
   TemplateSummaryResponse
 } from './types/admin-api'
+import type { GeneralLinkDraft } from './types/general-link'
 import type { EditorFieldModel, TemplateSectionViewModel, TreeNode } from './types/admin-ui'
+import {
+  normalizeGeneralLinkKind,
+  parseGeneralLinkValue,
+  updateGeneralLinkDraft as updateGeneralLinkDraftValue
+} from './utils/general-link'
 
 type TemplateDesignerMode = 'create' | 'edit'
 
@@ -27,17 +33,6 @@ type TemplateDraftField = {
   type: string
   isShared: boolean
   isUnversioned: boolean
-}
-
-type GeneralLinkKind = 'internal' | 'external'
-
-type GeneralLinkDraft = {
-  kind: GeneralLinkKind
-  itemId: string
-  url: string
-  text: string
-  target: string
-  parseWarning: string | null
 }
 
 type TemplateDraftSection = {
@@ -1064,128 +1059,19 @@ function onFieldInput(key: string, event: Event) {
 }
 
 function getGeneralLinkDraft(key: string): GeneralLinkDraft {
-  const rawValue = fieldForm[key]?.trim() ?? ''
-
-  if (rawValue.length === 0) {
-    return createEmptyGeneralLinkDraft()
-  }
-
-  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(rawValue)) {
-    return {
-      kind: 'internal',
-      itemId: rawValue,
-      url: '',
-      text: '',
-      target: '',
-      parseWarning: 'Legacy internal link value detected. Saving will convert it to structured JSON.'
-    }
-  }
-
-  try {
-    const asUrl = new URL(rawValue)
-
-    return {
-      kind: 'external',
-      itemId: '',
-      url: asUrl.toString(),
-      text: '',
-      target: '',
-      parseWarning: 'Legacy external link value detected. Saving will convert it to structured JSON.'
-    }
-  } catch {
-    // Fall through to JSON parsing.
-  }
-
-  try {
-    const parsed = JSON.parse(rawValue) as {
-      kind?: string
-      itemId?: string
-      url?: string
-      text?: string
-      target?: string
-    }
-
-    return {
-      kind: parsed.kind === 'internal' ? 'internal' : 'external',
-      itemId: parsed.itemId ?? '',
-      url: parsed.url ?? '',
-      text: parsed.text ?? '',
-      target: parsed.target ?? '',
-      parseWarning: parsed.kind === 'internal' || parsed.kind === 'external'
-        ? null
-        : 'Stored General Link value is missing a valid kind. Saving will normalize it.'
-    }
-  } catch {
-    return {
-      kind: 'external',
-      itemId: '',
-      url: '',
-      text: '',
-      target: '',
-      parseWarning: 'Stored General Link value could not be parsed. Saving will replace it with the structured editor value.'
-    }
-  }
-}
-
-function createEmptyGeneralLinkDraft(): GeneralLinkDraft {
-  return {
-    kind: 'external',
-    itemId: '',
-    url: '',
-    text: '',
-    target: '',
-    parseWarning: null
-  }
+  return parseGeneralLinkValue(fieldForm[key])
 }
 
 function updateGeneralLinkDraft(
   key: string,
   update: Partial<GeneralLinkDraft>)
 {
-  const nextDraft = {
-    ...getGeneralLinkDraft(key),
-    ...update,
-    parseWarning: null
-  }
-
-  fieldForm[key] = serializeGeneralLinkDraft(nextDraft)
-}
-
-function serializeGeneralLinkDraft(draft: GeneralLinkDraft) {
-  const isEmpty =
-    draft.itemId.trim().length === 0
-    && draft.url.trim().length === 0
-    && draft.text.trim().length === 0
-    && draft.target.trim().length === 0
-
-  if (isEmpty) {
-    return ''
-  }
-
-  const payload: Record<string, string> = {
-    kind: draft.kind
-  }
-
-  if (draft.kind === 'internal') {
-    payload.itemId = draft.itemId.trim()
-  } else {
-    payload.url = draft.url.trim()
-  }
-
-  if (draft.text.trim().length > 0) {
-    payload.text = draft.text.trim()
-  }
-
-  if (draft.target.trim().length > 0) {
-    payload.target = draft.target.trim()
-  }
-
-  return JSON.stringify(payload)
+  fieldForm[key] = updateGeneralLinkDraftValue(fieldForm[key], update)
 }
 
 function onGeneralLinkKindInput(key: string, event: Event) {
   const target = event.target as HTMLSelectElement | null
-  const kind = target?.value === 'internal' ? 'internal' : 'external'
+  const kind = normalizeGeneralLinkKind(target?.value)
   updateGeneralLinkDraft(key, { kind })
 }
 
