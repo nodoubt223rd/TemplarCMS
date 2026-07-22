@@ -38,3 +38,8 @@ export type TemplateSectionViewModel = {
   sortOrder: number
   fields: TemplateFieldViewModel[]
 }
+
+export type TemplateWorkspaceViewModel = {
+  sections: TemplateSectionViewModel[]
+  fieldCount: number
+}
