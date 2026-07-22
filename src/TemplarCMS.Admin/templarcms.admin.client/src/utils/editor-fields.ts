@@ -1,0 +1,76 @@
+import type { FieldTypeResponse, TemplateFieldItemResponse } from '@/types/admin-api'
+import type { EditorFieldModel } from '@/types/admin-ui'
+
+const defaultFieldTypeDefinition: FieldTypeResponse = {
+  value: 'SingleLineText',
+  label: 'SingleLineText',
+  editorKind: 'text',
+  inputType: 'text',
+  placeholder: 'Enter text',
+  rows: null,
+  step: null,
+  helpText: null
+}
+
+export function createFieldTypeLookup(fieldTypes: FieldTypeResponse[]): Map<string, FieldTypeResponse> {
+  return new Map(fieldTypes.map(fieldType => [fieldType.value, fieldType]))
+}
+
+export function getFieldTypeDefinition(
+  fieldType: string,
+  fieldTypeLookup: ReadonlyMap<string, FieldTypeResponse>
+): FieldTypeResponse {
+  return fieldTypeLookup.get(fieldType) ?? {
+    ...defaultFieldTypeDefinition,
+    value: fieldType,
+    label: fieldType
+  }
+}
+
+export function getFieldTypeLabel(
+  fieldType: string,
+  fieldTypeLookup: ReadonlyMap<string, FieldTypeResponse>
+): string {
+  return getFieldTypeDefinition(fieldType, fieldTypeLookup).label
+}
+
+export function buildEditorFields(
+  fieldForm: Record<string, string>,
+  templateFields: TemplateFieldItemResponse[],
+  fieldTypeLookup: ReadonlyMap<string, FieldTypeResponse>
+): EditorFieldModel[] {
+  return Object.keys(fieldForm)
+    .sort((left, right) => left.localeCompare(right))
+    .map(key => {
+      const templateField = templateFields.find(field => field.key === key)
+      const type = templateField?.type ?? 'SingleLineText'
+      const editor = getFieldTypeDefinition(type, fieldTypeLookup)
+
+      return {
+        key,
+        label: templateField?.name ?? key,
+        value: fieldForm[key] ?? '',
+        type: getFieldTypeLabel(type, fieldTypeLookup),
+        sectionName: templateField?.sectionName ?? 'Fields',
+        scopeLabel: getScopeLabel(templateField),
+        editorKind: editor.editorKind,
+        inputType: editor.inputType,
+        placeholder: editor.placeholder,
+        rows: editor.rows,
+        step: editor.step,
+        helpText: editor.helpText
+      }
+    })
+}
+
+function getScopeLabel(templateField: TemplateFieldItemResponse | undefined): string {
+  if (templateField == null) {
+    return 'Unknown scope'
+  }
+
+  if (templateField.isShared) {
+    return 'Shared'
+  }
+
+  return templateField.isUnversioned ? 'Unversioned' : 'Versioned'
+}
