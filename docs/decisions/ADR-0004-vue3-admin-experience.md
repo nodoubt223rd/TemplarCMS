@@ -73,6 +73,11 @@ Article Template
 
 The UI should render the correct editors based on field metadata.
 
+The current Vue admin client already consumes `/api/v1/field-types`
+metadata for both content editing and template authoring so field labels,
+help text, input hints, and editor-kind decisions stay aligned with the
+server catalog.
+
 ### Component-Based Editors
 
 Field types should map to reusable Vue components.
@@ -88,7 +93,7 @@ DroplinkFieldEditor
 MultilistFieldEditor
 ```
 
-A registry-based approach should be used so new field types can be introduced without modifying the core editor shell.
+A registry-style approach should be used so new field types can be introduced without modifying the core editor shell.
 
 ## State Management
 
@@ -148,7 +153,7 @@ The admin UI should not be coupled to delivery rendering concerns.
 
 ## Future Work
 
-- Dynamic template designer.
+- Richer field-type-specific template designer affordances.
 - Visual content editor.
 - Workflow management UI.
 - Publishing dashboard.

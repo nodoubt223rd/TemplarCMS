@@ -34,6 +34,20 @@ export function getFieldTypeLabel(
   return getFieldTypeDefinition(fieldType, fieldTypeLookup).label
 }
 
+export function getFieldTypeOptions(
+  selectedFieldType: string,
+  fieldTypes: readonly FieldTypeResponse[]
+): FieldTypeResponse[] {
+  if (fieldTypes.some(fieldType => fieldType.value === selectedFieldType)) {
+    return [...fieldTypes]
+  }
+
+  return [
+    getFieldTypeDefinition(selectedFieldType, createFieldTypeLookup([...fieldTypes])),
+    ...fieldTypes
+  ]
+}
+
 export function buildEditorFields(
   fieldForm: Record<string, string>,
   templateFields: TemplateFieldItemResponse[],

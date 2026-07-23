@@ -153,6 +153,96 @@ export function buildTemplateDesignerPayload(
   }
 }
 
+export function validateTemplateDesignerState(
+  form: TemplateDesignerFormState,
+  sections: TemplateDraftSection[],
+  availableFieldTypes: readonly string[],
+  baseTemplateKey: string | null
+): string[] {
+  const errors: string[] = []
+
+  if (form.name.trim().length === 0) {
+    errors.push('Template name is required.')
+  }
+
+  if (form.key.trim().length === 0) {
+    errors.push('Template key is required.')
+  }
+
+  if (form.baseTemplateId.trim().length > 0 && baseTemplateKey == null) {
+    errors.push('The selected base template could not be resolved.')
+  }
+
+  if (sections.length === 0) {
+    errors.push('At least one section is required.')
+    return errors
+  }
+
+  const normalizedSectionKeys = new Set<string>()
+  const normalizedFieldKeys = new Set<string>()
+  const availableFieldTypeSet = new Set(availableFieldTypes)
+
+  for (const section of sections) {
+    if (section.name.trim().length === 0) {
+      errors.push('Every section needs a name.')
+    }
+
+    const normalizedSectionKey = section.key.trim().toLowerCase()
+
+    if (normalizedSectionKey.length === 0) {
+      errors.push('Every section needs a key.')
+    } else {
+      if (normalizedSectionKeys.has(normalizedSectionKey)) {
+        errors.push(`Duplicate section key '${section.key.trim()}'.`)
+      }
+
+      normalizedSectionKeys.add(normalizedSectionKey)
+    }
+
+    if (section.fields.length === 0) {
+      errors.push(`Section '${section.name.trim() || section.key.trim() || 'untitled'}' needs at least one field.`)
+      continue
+    }
+
+    const normalizedSectionFieldKeys = new Set<string>()
+
+    for (const field of section.fields) {
+      if (field.name.trim().length === 0) {
+        errors.push('Every field needs a name.')
+      }
+
+      const normalizedFieldKey = field.key.trim().toLowerCase()
+
+      if (normalizedFieldKey.length === 0) {
+        errors.push('Every field needs a key.')
+      } else {
+        if (normalizedSectionFieldKeys.has(normalizedFieldKey)) {
+          errors.push(
+            `Section '${section.key.trim() || section.name.trim() || 'untitled'}' has duplicate field key '${field.key.trim()}'.`
+          )
+        }
+
+        if (normalizedFieldKeys.has(normalizedFieldKey)) {
+          errors.push(`Duplicate field key '${field.key.trim()}' appears across the template.`)
+        }
+
+        if (normalizedSectionKeys.has(normalizedFieldKey)) {
+          errors.push(`A section and field both use the key '${field.key.trim()}'.`)
+        }
+
+        normalizedSectionFieldKeys.add(normalizedFieldKey)
+        normalizedFieldKeys.add(normalizedFieldKey)
+      }
+
+      if (availableFieldTypeSet.size > 0 && !availableFieldTypeSet.has(field.type)) {
+        errors.push(`Field '${field.name.trim() || field.key.trim() || 'untitled'}' uses an unknown field type '${field.type}'.`)
+      }
+    }
+  }
+
+  return Array.from(new Set(errors))
+}
+
 function defaultIdFactory(): string {
   return crypto.randomUUID()
 }

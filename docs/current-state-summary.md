@@ -372,6 +372,16 @@ Invalid authored values return validation errors
 Unsupported field types return validation errors
 ```
 
+Admin authoring note:
+
+```text
+The Vue admin client now consumes the field-type catalog endpoint for
+both content editing and template design. Field labels, help text,
+input hints, and editor-kind behavior are driven from the same server
+metadata, and legacy unsupported template field types remain visible in
+the designer until an author explicitly replaces them.
+```
+
 Runtime consumption note:
 
 ```text

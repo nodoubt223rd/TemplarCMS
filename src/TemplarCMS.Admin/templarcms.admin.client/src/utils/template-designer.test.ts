@@ -8,7 +8,8 @@ import {
   createNewTemplateDesignerState,
   mapTemplateToDesignerState,
   removeTemplateDraftField,
-  removeTemplateDraftSection
+  removeTemplateDraftSection,
+  validateTemplateDesignerState
 } from './template-designer'
 
 describe('template designer utilities', () => {
@@ -226,5 +227,110 @@ describe('template designer utilities', () => {
         }
       ]
     })
+  })
+
+  it('validates duplicate keys and unresolved base template selections', () => {
+    const errors = validateTemplateDesignerState(
+      {
+        mode: 'create',
+        templateId: '',
+        name: 'Article',
+        key: 'article',
+        baseTemplateId: 'missing-base-id'
+      },
+      [
+        {
+          id: 'section-1',
+          name: 'Hero',
+          key: 'hero',
+          sortOrder: 100,
+          fields: [
+            {
+              id: 'field-1',
+              name: 'Heading',
+              key: 'hero',
+              type: 'SingleLineText',
+              isShared: false,
+              isUnversioned: false
+            },
+            {
+              id: 'field-2',
+              name: 'Teaser',
+              key: 'summary',
+              type: 'RichText',
+              isShared: false,
+              isUnversioned: false
+            }
+          ]
+        },
+        {
+          id: 'section-2',
+          name: 'SEO',
+          key: 'hero',
+          sortOrder: 200,
+          fields: [
+            {
+              id: 'field-3',
+              name: 'Summary',
+              key: 'summary',
+              type: 'SingleLineText',
+              isShared: false,
+              isUnversioned: false
+            }
+          ]
+        }
+      ],
+      ['SingleLineText', 'Checkbox'],
+      null
+    )
+
+    expect(errors).toEqual([
+      'The selected base template could not be resolved.',
+      "A section and field both use the key 'hero'.",
+      "Field 'Teaser' uses an unknown field type 'RichText'.",
+      "Duplicate section key 'hero'.",
+      "Duplicate field key 'summary' appears across the template."
+    ])
+  })
+
+  it('validates missing authored structure before submit', () => {
+    const errors = validateTemplateDesignerState(
+      {
+        mode: 'create',
+        templateId: '',
+        name: '   ',
+        key: '',
+        baseTemplateId: ''
+      },
+      [
+        {
+          id: 'section-1',
+          name: '',
+          key: '',
+          sortOrder: 100,
+          fields: [
+            {
+              id: 'field-1',
+              name: '',
+              key: '',
+              type: 'SingleLineText',
+              isShared: false,
+              isUnversioned: false
+            }
+          ]
+        }
+      ],
+      ['SingleLineText'],
+      null
+    )
+
+    expect(errors).toEqual([
+      'Template name is required.',
+      'Template key is required.',
+      'Every section needs a name.',
+      'Every section needs a key.',
+      'Every field needs a name.',
+      'Every field needs a key.'
+    ])
   })
 })
