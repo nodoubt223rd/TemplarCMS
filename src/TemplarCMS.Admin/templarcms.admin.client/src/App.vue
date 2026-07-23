@@ -22,6 +22,17 @@ import type {
 } from './types/template-designer'
 import type { EditorFieldModel, TreeNode } from './types/admin-ui'
 import {
+  clearFieldFormValues,
+  getSuggestedCreateTemplateId,
+  getSuggestedTemplateId,
+  getTemplateIdByKey,
+  getTemplateKeyById,
+  resetCreateForm as resetCreateInspectorForm,
+  resetInspectorForms as resetInspectorFormState,
+  syncFieldFormValues,
+  syncInspectorFormsFromItem
+} from './utils/content-inspector'
+import {
   applyBranchToTree as applyBranchToContentTree,
   createTreeNode,
   extractParentIdFromHref,
@@ -33,6 +44,23 @@ import {
   createFieldTypeLookup,
   getFieldTypeLabel as getEditorFieldTypeLabel
 } from './utils/editor-fields'
+import {
+  getCheckboxFieldValue,
+  normalizeFieldValue,
+  normalizeOptionalValue,
+  readCheckboxEventValue,
+  readInputEventValue,
+  setCheckboxFieldValue,
+  setFieldFormValue
+} from './utils/field-form'
+import {
+  fetchJson,
+  fetchWithNoContent,
+  getErrorMessage,
+  sendMutation,
+  withContext as withRequestContext,
+  withJsonDefaults
+} from './utils/request-helpers'
 import { buildTemplateWorkspaceViewModel } from './utils/template-workspace'
 import {
   normalizeGeneralLinkKind,
@@ -271,7 +299,7 @@ async function submitCreate() {
   isSubmitting.value = true
 
   try {
-    const response = await sendMutation('/api/v1/content', {
+    const response = await sendMutation<ContentMutationResponse>('/api/v1/content', {
       method: 'POST',
       body: JSON.stringify({
         name: createForm.name,
@@ -300,7 +328,7 @@ async function submitRename() {
   isSubmitting.value = true
 
   try {
-    const response = await sendMutation(selectedItem.value._links.rename.href, {
+    const response = await sendMutation<ContentMutationResponse>(selectedItem.value._links.rename.href, {
       method: 'POST',
       body: JSON.stringify({
         name: renameForm.name
@@ -326,7 +354,7 @@ async function submitMove() {
   isSubmitting.value = true
 
   try {
-    const response = await sendMutation(selectedItem.value._links.move.href, {
+    const response = await sendMutation<ContentMutationResponse>(selectedItem.value._links.move.href, {
       method: 'POST',
       body: JSON.stringify({
         parentId: normalizeOptionalValue(moveForm.parentId)
@@ -364,7 +392,7 @@ async function submitDelete() {
   isSubmitting.value = true
 
   try {
-    const response = await sendMutation(itemToDelete._links.delete.href, {
+    const response = await sendMutation<ContentMutationResponse>(itemToDelete._links.delete.href, {
       method: 'DELETE'
     })
 
@@ -449,10 +477,7 @@ function applyDeletedMutationResponse(response: ContentMutationResponse) {
 }
 
 function syncFormsFromItem(item: ContentItemResponse) {
-  renameForm.name = item.name
-  moveForm.parentId = extractParentIdFromHref(item._links.parent?.href) ?? ''
-  createForm.parentId = item.id
-  ensureCreateTemplateSelection(item)
+  syncInspectorFormsFromItem(item, renameForm, moveForm, createForm, availableTemplates.value)
   syncFieldForm(item)
 }
 
@@ -465,31 +490,22 @@ async function syncInspectorFromItem(item: ContentItemResponse) {
 }
 
 function resetCreateForm() {
-  createForm.name = ''
-  createForm.templateId = getSuggestedTemplateId()
+  resetCreateInspectorForm(createForm, availableTemplates.value)
 }
 
 function resetInspectorForms() {
-  renameForm.name = ''
-  moveForm.parentId = ''
-  createForm.parentId = ''
+  resetInspectorFormState(renameForm, moveForm, createForm)
   clearFieldForm()
   templateFields.value = []
   selectedItemDependencies.value = null
 }
 
 function syncFieldForm(item: ContentItemResponse) {
-  clearFieldForm()
-
-  for (const [key, value] of Object.entries(item.fields)) {
-    fieldForm[key] = value ?? ''
-  }
+  syncFieldFormValues(fieldForm, item)
 }
 
 function clearFieldForm() {
-  for (const key of Object.keys(fieldForm)) {
-    delete fieldForm[key]
-  }
+  clearFieldFormValues(fieldForm)
 }
 
 async function getRootBranch() {
@@ -506,7 +522,7 @@ async function loadTemplates() {
       .sort((left, right) => left.name.localeCompare(right.name) || left.key.localeCompare(right.key))
 
     if (createForm.templateId.length === 0) {
-      createForm.templateId = getSuggestedTemplateId()
+      createForm.templateId = getSuggestedTemplateId(availableTemplates.value)
     }
 
     if (selectedTemplateId.value == null) {
@@ -677,7 +693,7 @@ async function submitTemplateDesigner() {
     return
   }
 
-  const baseTemplateKey = getTemplateKeyById(templateDesignerForm.baseTemplateId)
+  const baseTemplateKey = getTemplateKeyById(availableTemplates.value, templateDesignerForm.baseTemplateId)
 
   if (templateDesignerForm.baseTemplateId.length > 0 && baseTemplateKey == null) {
     pageError.value = 'The selected base template could not be resolved.'
@@ -764,7 +780,7 @@ async function submitTemplateDelete() {
       .sort((left, right) => left.name.localeCompare(right.name) || left.key.localeCompare(right.key))
 
     if (createForm.templateId === deletedTemplateId) {
-      createForm.templateId = getSuggestedTemplateId()
+      createForm.templateId = getSuggestedTemplateId(availableTemplates.value)
     }
 
     if (templateDesignerForm.templateId === deletedTemplateId) {
@@ -787,74 +803,28 @@ async function submitTemplateDelete() {
   }
 }
 
-async function sendMutation(url: string, init: RequestInit) {
-  return await fetchJson<ContentMutationResponse>(url, withJsonDefaults(init))
-}
-
-async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(url, init)
-
-  if (!response.ok) {
-    const problem = await response.json().catch(() => null) as { detail?: string; title?: string } | null
-    throw new Error(problem?.detail ?? problem?.title ?? `Request failed with ${response.status}.`)
-  }
-
-  return await response.json() as T
-}
-
-async function fetchWithNoContent(url: string, init?: RequestInit) {
-  const response = await fetch(url, init)
-
-  if (!response.ok) {
-    const problem = await response.json().catch(() => null) as { detail?: string; title?: string } | null
-    throw new Error(problem?.detail ?? problem?.title ?? `Request failed with ${response.status}.`)
-  }
-}
-
 function withContext(url: string) {
-  const separator = url.includes('?') ? '&' : '?'
-  return `${url}${separator}lang=${encodeURIComponent(language.value)}&version=${encodeURIComponent(version.value)}`
-}
-
-function withJsonDefaults(init: RequestInit): RequestInit {
-  return {
-    ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(init.headers ?? {})
-    }
-  }
-}
-
-function normalizeOptionalValue(value: string) {
-  const trimmed = value.trim()
-  return trimmed.length === 0 ? null : trimmed
-}
-
-function normalizeFieldValue(value: string) {
-  return value.length === 0 ? null : value
+  return withRequestContext(url, language.value, version.value)
 }
 
 function getCheckboxValue(key: string) {
-  return fieldForm[key]?.trim().toLowerCase() === 'true'
+  return getCheckboxFieldValue(fieldForm, key)
 }
 
 function setCheckboxValue(key: string, checked: boolean) {
-  fieldForm[key] = checked ? 'true' : 'false'
+  setCheckboxFieldValue(fieldForm, key, checked)
 }
 
 function setFieldValue(key: string, value: string | number | null | undefined) {
-  fieldForm[key] = value == null ? '' : String(value)
+  setFieldFormValue(fieldForm, key, value)
 }
 
 function onCheckboxInput(key: string, event: Event) {
-  const target = event.target as HTMLInputElement | null
-  setCheckboxValue(key, target?.checked ?? false)
+  setCheckboxValue(key, readCheckboxEventValue(event))
 }
 
 function onFieldInput(key: string, event: Event) {
-  const target = event.target as HTMLInputElement | null
-  setFieldValue(key, target?.value ?? '')
+  setFieldValue(key, readInputEventValue(event))
 }
 
 function getGeneralLinkDraft(key: string): GeneralLinkDraft {
@@ -894,47 +864,8 @@ function onGeneralLinkTargetInput(key: string, event: Event) {
   updateGeneralLinkDraft(key, { target: target?.value ?? '' })
 }
 
-function ensureCreateTemplateSelection(item: ContentItemResponse) {
-  if (availableTemplates.value.length === 0) {
-    return
-  }
-
-  const itemTemplate =
-    availableTemplates.value.find(template => template.id === item.templateId)
-
-  if (itemTemplate?.key === 'folder') {
-    createForm.templateId = getTemplateIdByKey('item') ?? itemTemplate.id
-    return
-  }
-
-  createForm.templateId = itemTemplate?.id ?? getSuggestedTemplateId()
-}
-
-function getSuggestedTemplateId() {
-  return getTemplateIdByKey('item')
-    ?? getTemplateIdByKey('folder')
-    ?? availableTemplates.value[0]?.id
-    ?? ''
-}
-
-function getTemplateIdByKey(key: string) {
-  return availableTemplates.value.find(template => template.key === key)?.id ?? null
-}
-
-function getTemplateKeyById(id: string) {
-  return availableTemplates.value.find(template => template.id === id)?.key ?? null
-}
-
 function getFieldTypeLabel(fieldType: string) {
   return getEditorFieldTypeLabel(fieldType, fieldTypeLookup.value)
-}
-
-function getErrorMessage(error: unknown) {
-  if (error instanceof Error) {
-    return error.message
-  }
-
-  return 'Something went wrong while talking to the authoring API.'
 }
 
 function countNodes(nodes: TreeNode[]): number {
@@ -1618,7 +1549,7 @@ function countNodes(nodes: TreeNode[]): number {
                       </option>
                     </select>
                     <small class="field-meta">
-                      {{ templateDesignerForm.baseTemplateId.length === 0 ? 'Local fields only.' : `Inherits from ${getTemplateKeyById(templateDesignerForm.baseTemplateId)}` }}
+                      {{ templateDesignerForm.baseTemplateId.length === 0 ? 'Local fields only.' : `Inherits from ${getTemplateKeyById(availableTemplates, templateDesignerForm.baseTemplateId)}` }}
                     </small>
                   </label>
                 </div>
