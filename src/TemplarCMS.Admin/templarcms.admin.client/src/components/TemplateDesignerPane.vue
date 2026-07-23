@@ -1,9 +1,15 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { FieldTypeResponse, TemplateSummaryResponse } from '@/types/admin-api'
 import type {
   TemplateDesignerFormState,
   TemplateDraftSection
 } from '@/types/template-designer'
+import {
+  createFieldTypeLookup,
+  getFieldTypeDefinition,
+  getFieldTypeOptions
+} from '@/utils/editor-fields'
 
 const props = defineProps<{
   form: TemplateDesignerFormState
@@ -15,6 +21,7 @@ const props = defineProps<{
   heading: string
   selectedTemplateLoaded: boolean
   baseTemplateKey: string | null
+  validationErrors: string[]
 }>()
 
 const emit = defineEmits<{
@@ -51,6 +58,16 @@ function readNumberValue(event: Event): number {
 function readCheckedValue(event: Event): boolean {
   const target = event.target as HTMLInputElement | null
   return target?.checked ?? false
+}
+
+const fieldTypeLookup = computed(() => createFieldTypeLookup(props.availableFieldTypes))
+
+function getFieldTypeDefinitionFor(value: string): FieldTypeResponse {
+  return getFieldTypeDefinition(value, fieldTypeLookup.value)
+}
+
+function getFieldTypeOptionsFor(value: string): FieldTypeResponse[] {
+  return getFieldTypeOptions(value, props.availableFieldTypes)
 }
 </script>
 
@@ -120,6 +137,13 @@ function readCheckedValue(event: Event): boolean {
           {{ form.baseTemplateId.length === 0 ? 'Local fields only.' : `Inherits from ${baseTemplateKey}` }}
         </small>
       </label>
+    </div>
+
+    <div v-if="validationErrors.length > 0" class="callout callout--danger">
+      <strong>Fix {{ validationErrors.length }} issue{{ validationErrors.length === 1 ? '' : 's' }} before saving.</strong>
+      <ul class="template-validation-list">
+        <li v-for="error in validationErrors" :key="error">{{ error }}</li>
+      </ul>
     </div>
 
     <div class="template-designer-stack">
@@ -216,20 +240,38 @@ function readCheckedValue(event: Event): boolean {
                 <span>Field Type</span>
                 <select
                   :value="field.type"
-                  :disabled="isLoadingFieldTypes || availableFieldTypes.length === 0"
+                  :disabled="isLoadingFieldTypes || getFieldTypeOptionsFor(field.type).length === 0"
                   @change="emit('updateFieldType', section.id, field.id, readTextValue($event))"
                 >
                   <option disabled value="">
                     {{ isLoadingFieldTypes ? 'Loading field types...' : 'Select a field type' }}
                   </option>
                   <option
-                    v-for="fieldType in availableFieldTypes"
+                    v-for="fieldType in getFieldTypeOptionsFor(field.type)"
                     :key="fieldType.value"
                     :value="fieldType.value"
                   >
                     {{ fieldType.label }}
                   </option>
                 </select>
+                <small class="field-meta">
+                  Editor: {{ getFieldTypeDefinitionFor(field.type).editorKind }}
+                  <template v-if="getFieldTypeDefinitionFor(field.type).inputType !== 'text'">
+                    · Input: {{ getFieldTypeDefinitionFor(field.type).inputType }}
+                  </template>
+                </small>
+                <small
+                  v-if="!availableFieldTypes.some(fieldType => fieldType.value === field.type)"
+                  class="field-help"
+                >
+                  This field keeps an existing unsupported type visible so you can preserve it or replace it intentionally.
+                </small>
+                <small
+                  v-else-if="getFieldTypeDefinitionFor(field.type).helpText != null"
+                  class="field-help"
+                >
+                  {{ getFieldTypeDefinitionFor(field.type).helpText }}
+                </small>
               </label>
             </div>
 
@@ -262,7 +304,7 @@ function readCheckedValue(event: Event): boolean {
       <button class="button button--secondary" type="button" @click="emit('addSection')">
         Add Section
       </button>
-      <button class="button" type="submit" :disabled="isSubmitting">
+      <button class="button" type="submit" :disabled="isSubmitting || validationErrors.length > 0">
         {{ form.mode === 'create' ? 'Create Template' : 'Save Template' }}
       </button>
     </div>

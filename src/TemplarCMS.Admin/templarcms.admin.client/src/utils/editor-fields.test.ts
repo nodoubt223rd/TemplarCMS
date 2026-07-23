@@ -4,7 +4,8 @@ import {
   buildEditorFields,
   createFieldTypeLookup,
   getFieldTypeDefinition,
-  getFieldTypeLabel
+  getFieldTypeLabel,
+  getFieldTypeOptions
 } from './editor-fields'
 
 describe('editor field utilities', () => {
@@ -58,6 +59,22 @@ describe('editor field utilities', () => {
 
   it('returns the configured field type label', () => {
     expect(getFieldTypeLabel('GeneralLink', lookup)).toBe('General Link')
+  })
+
+  it('keeps an unknown selected field type visible in designer options', () => {
+    expect(getFieldTypeOptions('LegacyField', fieldTypes)).toEqual([
+      {
+        value: 'LegacyField',
+        label: 'LegacyField',
+        editorKind: 'text',
+        inputType: 'text',
+        placeholder: 'Enter text',
+        rows: null,
+        step: null,
+        helpText: null
+      },
+      ...fieldTypes
+    ])
   })
 
   it('builds editor field models with template metadata and sorts by key', () => {

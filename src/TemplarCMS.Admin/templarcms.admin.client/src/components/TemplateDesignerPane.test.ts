@@ -1,0 +1,153 @@
+import { describe, expect, it } from 'vitest'
+import { mount } from '@vue/test-utils'
+import type { FieldTypeResponse, TemplateSummaryResponse } from '@/types/admin-api'
+import type {
+  TemplateDesignerFormState,
+  TemplateDraftSection
+} from '@/types/template-designer'
+import TemplateDesignerPane from './TemplateDesignerPane.vue'
+
+describe('TemplateDesignerPane', () => {
+  it('shows field type help text for supported field types', () => {
+    const wrapper = mountComponent()
+
+    const helpText = wrapper.text()
+
+    expect(helpText).toContain('General links can point to an internal content item or an external URL.')
+    expect(helpText).toContain('Editor: general-link')
+  })
+
+  it('preserves unsupported field types in the selector with guidance', async () => {
+    const wrapper = mountComponent({
+      sections: [
+        createSection({
+          fields: [
+            createField({
+              type: 'LegacyField'
+            })
+          ]
+        })
+      ]
+    })
+
+    const fieldTypeSelect = wrapper.findAll('select')[1]
+
+    if (fieldTypeSelect == null) {
+      throw new Error('Expected a field type select to be rendered.')
+    }
+
+    const options = fieldTypeSelect.findAll('option').map(option => option.text())
+
+    expect(options).toContain('LegacyField')
+    expect(wrapper.text()).toContain(
+      'This field keeps an existing unsupported type visible so you can preserve it or replace it intentionally.'
+    )
+
+    await fieldTypeSelect.setValue('GeneralLink')
+
+    expect(wrapper.emitted('updateFieldType')).toEqual([['section-1', 'field-1', 'GeneralLink']])
+  })
+
+  it('disables save and shows validation summary when errors are present', () => {
+    const wrapper = mountComponent({
+      validationErrors: ['Template key is required.', 'Every field needs a key.']
+    })
+
+    const submitButton = wrapper.get('button[type="submit"]')
+
+    expect(submitButton.attributes('disabled')).toBeDefined()
+    expect(wrapper.text()).toContain('Fix 2 issues before saving.')
+    expect(wrapper.text()).toContain('Template key is required.')
+    expect(wrapper.text()).toContain('Every field needs a key.')
+  })
+})
+
+function mountComponent(overrides: Partial<ComponentProps> = {}) {
+  return mount(TemplateDesignerPane, {
+    props: {
+      form: createForm(),
+      sections: [createSection()],
+      availableBaseTemplates: [],
+      availableFieldTypes: createFieldTypes(),
+      isLoadingFieldTypes: false,
+      isSubmitting: false,
+      heading: 'Draft a new template',
+      selectedTemplateLoaded: false,
+      baseTemplateKey: null,
+      validationErrors: [],
+      ...overrides
+    }
+  })
+}
+
+function createForm(overrides: Partial<TemplateDesignerFormState> = {}): TemplateDesignerFormState {
+  return {
+    mode: 'create',
+    templateId: '',
+    name: 'Article',
+    key: 'article',
+    baseTemplateId: '',
+    ...overrides
+  }
+}
+
+function createSection(overrides: Partial<TemplateDraftSection> = {}): TemplateDraftSection {
+  return {
+    id: 'section-1',
+    name: 'Content',
+    key: 'content',
+    sortOrder: 100,
+    fields: [createField()],
+    ...overrides
+  }
+}
+
+function createField(overrides: Partial<TemplateDraftSection['fields'][number]> = {}) {
+  return {
+    id: 'field-1',
+    name: 'Hero Link',
+    key: 'heroLink',
+    type: 'GeneralLink',
+    isShared: false,
+    isUnversioned: false,
+    ...overrides
+  }
+}
+
+function createFieldTypes(): FieldTypeResponse[] {
+  return [
+    {
+      value: 'SingleLineText',
+      label: 'Single-Line Text',
+      editorKind: 'text',
+      inputType: 'text',
+      placeholder: 'Enter text',
+      rows: null,
+      step: null,
+      helpText: null
+    },
+    {
+      value: 'GeneralLink',
+      label: 'General Link',
+      editorKind: 'general-link',
+      inputType: 'text',
+      placeholder: null,
+      rows: null,
+      step: null,
+      helpText: 'General links can point to an internal content item or an external URL.'
+    }
+  ]
+}
+
+type ComponentProps = {
+  form: TemplateDesignerFormState
+  sections: TemplateDraftSection[]
+  availableBaseTemplates: TemplateSummaryResponse[]
+  availableFieldTypes: FieldTypeResponse[]
+  isLoadingFieldTypes: boolean
+  isSubmitting: boolean
+  heading: string
+  selectedTemplateLoaded: boolean
+  baseTemplateKey: string | null
+  validationErrors: string[]
+}

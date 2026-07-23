@@ -78,7 +78,8 @@ import {
   createNewTemplateDesignerState,
   mapTemplateToDesignerState,
   removeTemplateDraftField,
-  removeTemplateDraftSection
+  removeTemplateDraftSection,
+  validateTemplateDesignerState
 } from './utils/template-designer'
 
 const language = ref('en')
@@ -141,6 +142,15 @@ const templateDesignerHeading = computed(() =>
   templateDesignerForm.mode === 'create'
     ? 'Draft a new template'
     : `Editing ${templateDesignerForm.name || 'template'}`)
+const selectedBaseTemplateKey = computed(() =>
+  getTemplateKeyById(availableTemplates.value, templateDesignerForm.baseTemplateId))
+const templateDesignerValidationErrors = computed(() =>
+  validateTemplateDesignerState(
+    templateDesignerForm,
+    templateDraftSections.value,
+    availableFieldTypes.value.map(fieldType => fieldType.value),
+    selectedBaseTemplateKey.value
+  ))
 const fieldTypeLookup = computed(() =>
   createFieldTypeLookup(availableFieldTypes.value))
 const selectedItemTemplateName = computed(() => {
@@ -695,10 +705,8 @@ async function submitTemplateDesigner() {
     return
   }
 
-  const baseTemplateKey = getTemplateKeyById(availableTemplates.value, templateDesignerForm.baseTemplateId)
-
-  if (templateDesignerForm.baseTemplateId.length > 0 && baseTemplateKey == null) {
-    pageError.value = 'The selected base template could not be resolved.'
+  if (templateDesignerValidationErrors.value.length > 0) {
+    pageError.value = templateDesignerValidationErrors.value[0] ?? null
     return
   }
 
@@ -710,7 +718,7 @@ async function submitTemplateDesigner() {
     const payload = buildTemplateDesignerPayload(
       templateDesignerForm,
       templateDraftSections.value,
-      baseTemplateKey
+      selectedBaseTemplateKey.value
     )
 
     const isEditing = templateDesignerForm.mode === 'edit' && templateDesignerForm.templateId.length > 0
@@ -1087,7 +1095,8 @@ function countNodes(nodes: TreeNode[]): number {
                 :is-submitting="isSubmitting"
                 :heading="templateDesignerHeading"
                 :selected-template-loaded="selectedTemplateDetail != null"
-                :base-template-key="getTemplateKeyById(availableTemplates, templateDesignerForm.baseTemplateId)"
+                :base-template-key="selectedBaseTemplateKey"
+                :validation-errors="templateDesignerValidationErrors"
                 @submit="submitTemplateDesigner"
                 @reset-new-draft="startNewTemplateDraft"
                 @load-selected-template="loadSelectedTemplateIntoDesigner"
