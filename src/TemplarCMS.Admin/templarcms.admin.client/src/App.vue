@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import ContentInspectorPane from './components/ContentInspectorPane.vue'
+import TemplateCatalogPane from './components/TemplateCatalogPane.vue'
+import TemplateInspectorPane from './components/TemplateInspectorPane.vue'
 import TemplateDesignerPane from './components/TemplateDesignerPane.vue'
 import TreeBranch from './components/TreeBranch.vue'
 import type {
@@ -1052,222 +1054,29 @@ function countNodes(nodes: TreeNode[]): number {
       </section>
 
       <section class="template-grid">
-        <article class="panel template-panel">
-          <div class="panel-header">
-            <div>
-              <p class="eyebrow">Templates</p>
-              <h3>Catalog</h3>
-            </div>
-            <span class="panel-pill">{{ availableTemplates.length }} templates</span>
-          </div>
+        <TemplateCatalogPane
+          :available-templates="availableTemplates"
+          :selected-template-id="selectedTemplateId"
+          :is-loading-templates="isLoadingTemplates"
+          :selected-item-available="selectedItem != null"
+          @start-new-template-draft="startNewTemplateDraft"
+          @inspect-selected-item-template="inspectSelectedItemTemplate"
+          @refresh-template-workspace="refreshTemplateWorkspace"
+          @select-template="selectTemplate"
+        />
 
-          <div class="template-actions">
-            <button
-              class="button"
-              type="button"
-              @click="startNewTemplateDraft"
-            >
-              New Template Draft
-            </button>
-            <button
-              class="button button--secondary"
-              type="button"
-              :disabled="selectedItem == null"
-              @click="inspectSelectedItemTemplate"
-            >
-              Inspect Selected Item Template
-            </button>
-            <button
-              class="button button--secondary"
-              type="button"
-              :disabled="selectedTemplateId == null"
-              @click="refreshTemplateWorkspace"
-            >
-              Refresh Template Detail
-            </button>
-          </div>
-
-          <div v-if="isLoadingTemplates" class="empty-state">
-            Loading templates from `/api/v1/templates`...
-          </div>
-
-          <div v-else-if="availableTemplates.length === 0" class="empty-state">
-            No templates are currently available to inspect.
-          </div>
-
-          <ul v-else class="template-list">
-            <li v-for="template in availableTemplates" :key="template.id">
-              <button
-                type="button"
-                :class="['template-entry', { 'template-entry--selected': selectedTemplateId === template.id }]"
-                @click="selectTemplate(template.id)"
-              >
-                <span class="template-entry__name">{{ template.name }}</span>
-                <span class="template-entry__meta">{{ template.key }}</span>
-              </button>
-            </li>
-          </ul>
-        </article>
-
-        <article class="panel inspector-panel">
-          <div class="panel-header">
-            <div>
-              <p class="eyebrow">Template Inspector</p>
-              <h3>{{ selectedTemplateDetail == null ? 'Select a template' : selectedTemplateDetail.name }}</h3>
-            </div>
-            <span class="panel-pill">
-              {{ selectedTemplateDetail == null ? 'Idle' : `${templateSections.length} sections · ${selectedTemplateFieldCount} fields` }}
-            </span>
-          </div>
-
-          <div
-            v-if="isLoadingTemplateDetail || isLoadingTemplateDependencies"
-            class="empty-state"
-          >
-            Loading template detail and dependency state...
-          </div>
-
-          <div
-            v-else-if="selectedTemplateDetail == null || selectedTemplateDependencies == null"
-            class="empty-state"
-          >
-            Pick a template to inspect its structure, field inventory, and delete blockers.
-          </div>
-
-          <template v-else>
-            <section class="summary-card">
-              <dl class="summary-grid">
-                <div>
-                  <dt>Id</dt>
-                  <dd>{{ selectedTemplateDetail.id }}</dd>
-                </div>
-                <div>
-                  <dt>Key</dt>
-                  <dd>{{ selectedTemplateDetail.key }}</dd>
-                </div>
-                <div>
-                  <dt>Sections</dt>
-                  <dd>{{ templateSections.length }}</dd>
-                </div>
-                <div>
-                  <dt>Fields</dt>
-                  <dd>{{ selectedTemplateFieldCount }}</dd>
-                </div>
-              </dl>
-            </section>
-
-            <section class="form-stack">
-              <div class="editor-card">
-                <div class="editor-card__header">
-                  <div>
-                    <p class="eyebrow">Schema</p>
-                    <h4>Template sections and fields</h4>
-                  </div>
-                  <span class="callout">
-                    {{ selectedItem?.templateId === selectedTemplateDetail.id ? 'Matches current item' : 'Available for create flow' }}
-                  </span>
-                </div>
-
-                <div class="template-action-row">
-                  <button class="button" type="button" @click="applyTemplateToCreate">
-                    Use Template In Create Form
-                  </button>
-                </div>
-
-                <div v-if="templateSections.length === 0" class="empty-state empty-state--compact">
-                  This template does not currently expose any sections or fields.
-                </div>
-
-                <div v-else class="template-section-stack">
-                  <section
-                    v-for="section in templateSections"
-                    :key="section.id"
-                    class="template-section-card"
-                  >
-                    <div class="template-section-card__header">
-                      <div>
-                        <h5>{{ section.name }}</h5>
-                        <p>{{ section.key }}</p>
-                      </div>
-                      <span class="callout">{{ section.fields.length }} fields</span>
-                    </div>
-
-                    <ul class="template-field-list">
-                      <li
-                        v-for="field in section.fields"
-                        :key="field.id"
-                        class="template-field-item"
-                      >
-                        <div>
-                          <strong>{{ field.name }}</strong>
-                          <p>{{ field.key }}</p>
-                        </div>
-                        <span class="template-field-item__meta">{{ field.type }} · {{ field.scopeLabel }}</span>
-                      </li>
-                    </ul>
-                  </section>
-                </div>
-              </div>
-
-              <div class="editor-card">
-                <div class="editor-card__header">
-                  <div>
-                    <p class="eyebrow">Dependencies</p>
-                    <h4>Safe delete preflight</h4>
-                  </div>
-                  <span :class="['callout', selectedTemplateDependencies.canDelete ? 'callout--success' : 'callout--danger']">
-                    {{ selectedTemplateDependencies.canDelete ? 'Delete ready' : 'Delete blocked' }}
-                  </span>
-                </div>
-
-                <div class="dependency-summary">
-                  <div class="dependency-stat">
-                    <strong>{{ selectedTemplateDependencies.summary.dependentTemplateCount }}</strong>
-                    <span>dependent templates</span>
-                  </div>
-                  <div class="dependency-stat">
-                    <strong>{{ selectedTemplateDependencies.summary.dependentContentItemCount }}</strong>
-                    <span>content items</span>
-                  </div>
-                </div>
-
-                <div class="template-dependency-grid">
-                  <section class="dependency-card">
-                    <h5>Dependent templates</h5>
-                    <ul v-if="selectedTemplateDependencies.embedded.templates.length > 0" class="dependency-list">
-                      <li
-                        v-for="dependency in selectedTemplateDependencies.embedded.templates"
-                        :key="dependency.id"
-                      >
-                        {{ dependency.name }} ({{ dependency.key }})
-                      </li>
-                    </ul>
-                    <p v-else class="dependency-empty">No authored templates inherit from this one.</p>
-                  </section>
-
-                  <section class="dependency-card">
-                    <h5>Assigned content items</h5>
-                    <ul v-if="selectedTemplateDependencies.embedded.contentItems.length > 0" class="dependency-list">
-                      <li
-                        v-for="item in selectedTemplateDependencies.embedded.contentItems"
-                        :key="item.id"
-                      >
-                        {{ item.name }} · {{ item.path }}
-                      </li>
-                    </ul>
-                    <p v-else class="dependency-empty">No content items currently use this template.</p>
-                  </section>
-                </div>
-
-                <button
-                  class="button button--danger"
-                  type="button"
-                  :disabled="isSubmitting || !selectedTemplateDependencies.canDelete"
-                  @click="submitTemplateDelete"
-                >
-                  Delete Template
-                </button>
-              </div>
+        <TemplateInspectorPane
+          :selected-template-detail="selectedTemplateDetail"
+          :selected-template-dependencies="selectedTemplateDependencies"
+          :template-sections="templateSections"
+          :selected-template-field-count="selectedTemplateFieldCount"
+          :selected-item-template-id="selectedItem?.templateId ?? null"
+          :is-loading-template-detail="isLoadingTemplateDetail"
+          :is-loading-template-dependencies="isLoadingTemplateDependencies"
+          :is-submitting="isSubmitting"
+          @apply-template-to-create="applyTemplateToCreate"
+          @submit-template-delete="submitTemplateDelete"
+        />
 
               <TemplateDesignerPane
                 :form="templateDesignerForm"
