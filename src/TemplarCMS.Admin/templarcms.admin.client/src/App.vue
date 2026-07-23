@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { computed, defineComponent, onMounted, reactive, ref } from 'vue'
-import type { PropType } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
+import ContentInspectorPane from './components/ContentInspectorPane.vue'
+import TemplateDesignerPane from './components/TemplateDesignerPane.vue'
+import TreeBranch from './components/TreeBranch.vue'
 import type {
   ContentBranchResponse,
   FieldTypeCollectionResponse,
@@ -150,73 +152,6 @@ const selectedItemTemplateName = computed(() => {
 })
 const editorFields = computed<EditorFieldModel[]>(() =>
   buildEditorFields(fieldForm, templateFields.value, fieldTypeLookup.value))
-
-const TreeBranch = defineComponent({
-  name: 'TreeBranch',
-  props: {
-    node: {
-      type: Object as PropType<TreeNode>,
-      required: true
-    },
-    selectedItemId: {
-      type: String as PropType<string | null>,
-      required: true
-    }
-  },
-  emits: ['toggle', 'select'],
-  setup(props, { emit }) {
-    const isSelected = computed(() => props.selectedItemId === props.node.item.id)
-
-    function onToggle() {
-      emit('toggle', props.node)
-    }
-
-    function onSelect() {
-      emit('select', props.node)
-    }
-
-    return {
-      isSelected,
-      onToggle,
-      onSelect
-    }
-  },
-  template: `
-    <li class="tree-item">
-      <div :class="['tree-row', { 'tree-row--selected': isSelected }]">
-        <button class="tree-toggle" type="button" @click="onToggle">
-          {{ node.isExpanded ? '−' : '+' }}
-        </button>
-        <button class="tree-entry" type="button" @click="onSelect">
-          <span class="tree-entry__title">{{ node.item.name }}</span>
-          <span class="tree-entry__path">{{ node.item.path }}</span>
-        </button>
-      </div>
-
-      <div v-if="node.isExpanded && node.isBranchLoading" class="tree-status">
-        Loading branch...
-      </div>
-
-      <ul v-if="node.isExpanded && node.children.length > 0" class="tree-list tree-list--nested">
-        <TreeBranch
-          v-for="child in node.children"
-          :key="child.item.id"
-          :node="child"
-          :selected-item-id="selectedItemId"
-          @toggle="$emit('toggle', $event)"
-          @select="$emit('select', $event)"
-        />
-      </ul>
-
-      <div
-        v-else-if="node.isExpanded && node.isBranchLoaded && node.children.length === 0"
-        class="tree-status"
-      >
-        No direct children.
-      </div>
-    </li>
-  `
-})
 
 onMounted(async () => {
   startNewTemplateDraft()
@@ -688,6 +623,71 @@ function removeDraftField(sectionId: string, fieldId: string) {
   templateDraftSections.value = removeTemplateDraftField(templateDraftSections.value, sectionId, fieldId)
 }
 
+function updateTemplateSection(
+  sectionId: string,
+  update: Partial<TemplateDraftSection>
+) {
+  templateDraftSections.value = templateDraftSections.value.map(section =>
+    section.id === sectionId
+      ? {
+          ...section,
+          ...update
+        }
+      : section)
+}
+
+function updateTemplateField(
+  sectionId: string,
+  fieldId: string,
+  update: Partial<TemplateDraftSection['fields'][number]>
+) {
+  templateDraftSections.value = templateDraftSections.value.map(section =>
+    section.id !== sectionId
+      ? section
+      : {
+          ...section,
+          fields: section.fields.map(field =>
+            field.id === fieldId
+              ? {
+                  ...field,
+                  ...update
+                }
+              : field)
+        })
+}
+
+function onTemplateSectionNameUpdate(sectionId: string, value: string) {
+  updateTemplateSection(sectionId, { name: value })
+}
+
+function onTemplateSectionKeyUpdate(sectionId: string, value: string) {
+  updateTemplateSection(sectionId, { key: value })
+}
+
+function onTemplateSectionSortOrderUpdate(sectionId: string, value: number) {
+  updateTemplateSection(sectionId, { sortOrder: value })
+}
+
+function onTemplateFieldNameUpdate(sectionId: string, fieldId: string, value: string) {
+  updateTemplateField(sectionId, fieldId, { name: value })
+}
+
+function onTemplateFieldKeyUpdate(sectionId: string, fieldId: string, value: string) {
+  updateTemplateField(sectionId, fieldId, { key: value })
+}
+
+function onTemplateFieldTypeUpdate(sectionId: string, fieldId: string, value: string) {
+  updateTemplateField(sectionId, fieldId, { type: value })
+}
+
+function onTemplateFieldSharedUpdate(sectionId: string, fieldId: string, value: boolean) {
+  updateTemplateField(sectionId, fieldId, { isShared: value })
+}
+
+function onTemplateFieldUnversionedUpdate(sectionId: string, fieldId: string, value: boolean) {
+  updateTemplateField(sectionId, fieldId, { isUnversioned: value })
+}
+
 async function submitTemplateDesigner() {
   if (isSubmitting.value) {
     return
@@ -819,12 +819,12 @@ function setFieldValue(key: string, value: string | number | null | undefined) {
   setFieldFormValue(fieldForm, key, value)
 }
 
-function onCheckboxInput(key: string, event: Event) {
-  setCheckboxValue(key, readCheckboxEventValue(event))
+function onCheckboxInput(key: string, checked: boolean) {
+  setCheckboxValue(key, checked)
 }
 
-function onFieldInput(key: string, event: Event) {
-  setFieldValue(key, readInputEventValue(event))
+function onFieldInput(key: string, value: string) {
+  setFieldValue(key, value)
 }
 
 function getGeneralLinkDraft(key: string): GeneralLinkDraft {
@@ -838,30 +838,25 @@ function updateGeneralLinkDraft(
   fieldForm[key] = updateGeneralLinkDraftValue(fieldForm[key], update)
 }
 
-function onGeneralLinkKindInput(key: string, event: Event) {
-  const target = event.target as HTMLSelectElement | null
-  const kind = normalizeGeneralLinkKind(target?.value)
+function onGeneralLinkKindInput(key: string, value: string) {
+  const kind = normalizeGeneralLinkKind(value)
   updateGeneralLinkDraft(key, { kind })
 }
 
-function onGeneralLinkItemIdInput(key: string, event: Event) {
-  const target = event.target as HTMLInputElement | null
-  updateGeneralLinkDraft(key, { itemId: target?.value ?? '' })
+function onGeneralLinkItemIdInput(key: string, value: string) {
+  updateGeneralLinkDraft(key, { itemId: value })
 }
 
-function onGeneralLinkUrlInput(key: string, event: Event) {
-  const target = event.target as HTMLInputElement | null
-  updateGeneralLinkDraft(key, { url: target?.value ?? '' })
+function onGeneralLinkUrlInput(key: string, value: string) {
+  updateGeneralLinkDraft(key, { url: value })
 }
 
-function onGeneralLinkTextInput(key: string, event: Event) {
-  const target = event.target as HTMLInputElement | null
-  updateGeneralLinkDraft(key, { text: target?.value ?? '' })
+function onGeneralLinkTextInput(key: string, value: string) {
+  updateGeneralLinkDraft(key, { text: value })
 }
 
-function onGeneralLinkTargetInput(key: string, event: Event) {
-  const target = event.target as HTMLInputElement | null
-  updateGeneralLinkDraft(key, { target: target?.value ?? '' })
+function onGeneralLinkTargetInput(key: string, value: string) {
+  updateGeneralLinkDraft(key, { target: value })
 }
 
 function getFieldTypeLabel(fieldType: string) {
@@ -970,259 +965,33 @@ function countNodes(nodes: TreeNode[]): number {
           </ul>
         </article>
 
-        <article class="panel inspector-panel">
-          <div class="panel-header">
-            <div>
-              <p class="eyebrow">Inspector</p>
-              <h3>{{ selectedItem == null ? 'Select an item' : selectedItem.name }}</h3>
-            </div>
-            <span class="panel-pill">{{ selectedItem == null ? 'Idle' : selectedItem.path }}</span>
-          </div>
-
-          <div v-if="selectedItem == null" class="empty-state">
-            Pick a content item from the tree to inspect it, rename it, or move it.
-          </div>
-
-          <template v-else>
-            <section class="summary-card">
-              <dl class="summary-grid">
-                <div>
-                  <dt>Id</dt>
-                  <dd>{{ selectedItem.id }}</dd>
-                </div>
-                <div>
-                  <dt>Template</dt>
-                  <dd>{{ selectedItemTemplateName == null ? selectedItem.templateId : `${selectedItemTemplateName} (${selectedItem.templateId})` }}</dd>
-                </div>
-                <div>
-                  <dt>Path</dt>
-                  <dd>{{ selectedItem.path }}</dd>
-                </div>
-                <div>
-                  <dt>Parent Link</dt>
-                  <dd>{{ selectedItem._links.parent?.href ?? 'Root item' }}</dd>
-                </div>
-              </dl>
-            </section>
-
-            <section class="form-stack">
-              <form class="editor-card" @submit.prevent="submitValues">
-                <div class="editor-card__header">
-                  <div>
-                    <p class="eyebrow">Fields</p>
-                    <h4>Edit resolved field values</h4>
-                  </div>
-                  <span class="callout">Uses the language/version value contract</span>
-                </div>
-
-                <div v-if="isLoadingTemplateFields" class="empty-state empty-state--compact">
-                  Loading template field metadata...
-                </div>
-
-                <div v-else-if="editorFields.length === 0" class="empty-state empty-state--compact">
-                  No editable fields were returned for this item in the current context.
-                </div>
-
-                <template v-else>
-                  <div
-                    v-for="field in editorFields"
-                    :key="field.key"
-                    class="field-editor"
-                  >
-                    <label class="field">
-                      <span>{{ field.label }}</span>
-                      <small class="field-meta">
-                        {{ field.sectionName }} · {{ field.type }} · {{ field.scopeLabel }}
-                      </small>
-                      <small v-if="field.helpText != null" class="field-help">
-                        {{ field.helpText }}
-                      </small>
-                      <div v-if="field.editorKind === 'general-link'" class="general-link-editor">
-                        <label class="field">
-                          <span>Link Kind</span>
-                          <select
-                            :value="getGeneralLinkDraft(field.key).kind"
-                            @change="onGeneralLinkKindInput(field.key, $event)"
-                          >
-                            <option value="external">External URL</option>
-                            <option value="internal">Internal Content Item</option>
-                          </select>
-                        </label>
-
-                        <label v-if="getGeneralLinkDraft(field.key).kind === 'internal'" class="field">
-                          <span>Content Item Id</span>
-                          <input
-                            :value="getGeneralLinkDraft(field.key).itemId"
-                            type="text"
-                            placeholder="Enter content item GUID"
-                            @input="onGeneralLinkItemIdInput(field.key, $event)"
-                          />
-                        </label>
-
-                        <label v-else class="field">
-                          <span>External URL</span>
-                          <input
-                            :value="getGeneralLinkDraft(field.key).url"
-                            type="url"
-                            placeholder="https://example.com"
-                            @input="onGeneralLinkUrlInput(field.key, $event)"
-                          />
-                        </label>
-
-                        <label class="field">
-                          <span>Link Text</span>
-                          <input
-                            :value="getGeneralLinkDraft(field.key).text"
-                            type="text"
-                            placeholder="Optional label"
-                            @input="onGeneralLinkTextInput(field.key, $event)"
-                          />
-                        </label>
-
-                        <label class="field">
-                          <span>Target</span>
-                          <input
-                            :value="getGeneralLinkDraft(field.key).target"
-                            type="text"
-                            placeholder="_self or _blank"
-                            @input="onGeneralLinkTargetInput(field.key, $event)"
-                          />
-                        </label>
-
-                        <small
-                          v-if="getGeneralLinkDraft(field.key).parseWarning != null"
-                          class="field-help"
-                        >
-                          {{ getGeneralLinkDraft(field.key).parseWarning }}
-                        </small>
-                      </div>
-                      <label v-if="field.editorKind === 'checkbox'" class="checkbox-field checkbox-field--editor">
-                        <input
-                          :checked="getCheckboxValue(field.key)"
-                          type="checkbox"
-                          @change="onCheckboxInput(field.key, $event)"
-                        />
-                        <span>Enabled</span>
-                      </label>
-                      <textarea
-                        v-else-if="field.editorKind === 'textarea'"
-                        v-model="fieldForm[field.key]"
-                        class="field-textarea"
-                        :placeholder="field.placeholder ?? undefined"
-                        :rows="field.rows ?? 3"
-                      />
-                      <input
-                        v-else-if="field.editorKind !== 'general-link'"
-                        :value="fieldForm[field.key]"
-                        :type="field.inputType"
-                        :placeholder="field.placeholder ?? undefined"
-                        :step="field.step ?? undefined"
-                        @input="onFieldInput(field.key, $event)"
-                      />
-                    </label>
-                  </div>
-
-                  <button class="button" type="submit" :disabled="isSubmitting">
-                    Save Values
-                  </button>
-                </template>
-              </form>
-
-              <form class="editor-card" @submit.prevent="submitRename">
-                <div class="editor-card__header">
-                  <div>
-                    <p class="eyebrow">Rename</p>
-                    <h4>Update display name</h4>
-                  </div>
-                  <span class="callout">Key is generated from the name</span>
-                </div>
-
-                <label class="field">
-                  <span>Name</span>
-                  <input v-model="renameForm.name" type="text" required />
-                </label>
-
-                <label class="field">
-                  <span>Key</span>
-                  <small class="field-meta">The server generates an SEO-friendly key from the current name.</small>
-                </label>
-
-                <button class="button" type="submit" :disabled="isSubmitting">
-                  Rename Item
-                </button>
-              </form>
-
-              <form class="editor-card" @submit.prevent="submitMove">
-                <div class="editor-card__header">
-                  <div>
-                    <p class="eyebrow">Move</p>
-                    <h4>Re-parent the current item</h4>
-                  </div>
-                  <span class="callout">Blank parent means move to root</span>
-                </div>
-
-                <label class="field">
-                  <span>New Parent Id</span>
-                  <input v-model="moveForm.parentId" type="text" placeholder="Leave blank for root" />
-                </label>
-
-                <button class="button" type="submit" :disabled="isSubmitting">
-                  Move Item
-                </button>
-              </form>
-
-              <form class="editor-card" @submit.prevent="submitDelete">
-                <div class="editor-card__header">
-                  <div>
-                    <p class="eyebrow">Delete</p>
-                    <h4>Safe delete preflight</h4>
-                  </div>
-                  <span
-                    v-if="selectedItemDependencies != null"
-                    :class="['callout', selectedItemDependencies.canDelete ? 'callout--success' : 'callout--danger']"
-                  >
-                    {{ selectedItemDependencies.canDelete ? 'Delete ready' : 'Delete blocked' }}
-                  </span>
-                  <span v-else class="callout">Checks child dependencies</span>
-                </div>
-
-                <div v-if="isLoadingItemDependencies" class="empty-state empty-state--compact">
-                  Loading child dependency state...
-                </div>
-
-                <template v-else-if="selectedItemDependencies != null">
-                  <div class="dependency-summary">
-                    <div class="dependency-stat">
-                      <strong>{{ selectedItemDependencies.summary.directChildCount }}</strong>
-                      <span>direct children</span>
-                    </div>
-                  </div>
-
-                  <section class="dependency-card">
-                    <h5>Direct children</h5>
-                    <ul v-if="selectedItemDependencies.embedded.children.length > 0" class="dependency-list">
-                      <li
-                        v-for="child in selectedItemDependencies.embedded.children"
-                        :key="child.id"
-                      >
-                        {{ child.name }} · {{ child.path }}
-                      </li>
-                    </ul>
-                    <p v-else class="dependency-empty">This item does not currently have any direct children.</p>
-                  </section>
-                </template>
-
-                <button
-                  class="button button--danger"
-                  type="submit"
-                  :disabled="isSubmitting || isLoadingItemDependencies || selectedItemDependencies?.canDelete !== true"
-                >
-                  Delete Item
-                </button>
-              </form>
-            </section>
-          </template>
-        </article>
+        <ContentInspectorPane
+          :selected-item="selectedItem"
+          :selected-item-template-name="selectedItemTemplateName"
+          :is-loading-template-fields="isLoadingTemplateFields"
+          :editor-fields="editorFields"
+          :field-form="fieldForm"
+          :is-submitting="isSubmitting"
+          :rename-name="renameForm.name"
+          :move-parent-id="moveForm.parentId"
+          :selected-item-dependencies="selectedItemDependencies"
+          :is-loading-item-dependencies="isLoadingItemDependencies"
+          :get-general-link-draft="getGeneralLinkDraft"
+          :get-checkbox-value="getCheckboxValue"
+          @submit-values="submitValues"
+          @submit-rename="submitRename"
+          @submit-move="submitMove"
+          @submit-delete="submitDelete"
+          @update-rename-name="renameForm.name = $event"
+          @update-move-parent-id="moveForm.parentId = $event"
+          @field-input="onFieldInput"
+          @checkbox-input="onCheckboxInput"
+          @general-link-kind-input="onGeneralLinkKindInput"
+          @general-link-item-id-input="onGeneralLinkItemIdInput"
+          @general-link-url-input="onGeneralLinkUrlInput"
+          @general-link-text-input="onGeneralLinkTextInput"
+          @general-link-target-input="onGeneralLinkTargetInput"
+        />
       </section>
 
       <section class="panel composer-panel">
@@ -1500,167 +1269,35 @@ function countNodes(nodes: TreeNode[]): number {
                 </button>
               </div>
 
-              <form class="editor-card" @submit.prevent="submitTemplateDesigner">
-                <div class="editor-card__header">
-                  <div>
-                    <p class="eyebrow">Designer</p>
-                    <h4>{{ templateDesignerHeading }}</h4>
-                  </div>
-                  <span class="callout">
-                    {{ templateDesignerForm.mode === 'create' ? 'POST /api/v1/templates' : 'PUT selected template' }}
-                  </span>
-                </div>
-
-                <div class="template-actions">
-                  <button class="button button--secondary" type="button" @click="startNewTemplateDraft">
-                    Reset To New Draft
-                  </button>
-                  <button
-                    class="button button--secondary"
-                    type="button"
-                    :disabled="selectedTemplateDetail == null"
-                    @click="loadSelectedTemplateIntoDesigner"
-                  >
-                    Load Selected Template
-                  </button>
-                </div>
-
-                <div class="create-grid">
-                  <label class="field">
-                    <span>Name</span>
-                    <input v-model="templateDesignerForm.name" type="text" required />
-                  </label>
-
-                  <label class="field">
-                    <span>Key</span>
-                    <input v-model="templateDesignerForm.key" type="text" required />
-                  </label>
-
-                  <label class="field">
-                    <span>Base Template</span>
-                    <select v-model="templateDesignerForm.baseTemplateId">
-                      <option value="">No base template</option>
-                      <option
-                        v-for="template in availableBaseTemplates"
-                        :key="template.id"
-                        :value="template.id"
-                      >
-                        {{ template.name }} ({{ template.key }})
-                      </option>
-                    </select>
-                    <small class="field-meta">
-                      {{ templateDesignerForm.baseTemplateId.length === 0 ? 'Local fields only.' : `Inherits from ${getTemplateKeyById(availableTemplates, templateDesignerForm.baseTemplateId)}` }}
-                    </small>
-                  </label>
-                </div>
-
-                <div class="template-designer-stack">
-                  <section
-                    v-for="(section, sectionIndex) in templateDraftSections"
-                    :key="section.id"
-                    class="template-section-card"
-                  >
-                    <div class="template-section-card__header">
-                      <div>
-                        <h5>Section {{ sectionIndex + 1 }}</h5>
-                        <p>Local authored section</p>
-                      </div>
-                      <div class="template-inline-actions">
-                        <button class="button button--secondary" type="button" @click="addDraftField(section.id)">
-                          Add Field
-                        </button>
-                        <button class="button button--secondary" type="button" @click="removeDraftSection(section.id)">
-                          Remove Section
-                        </button>
-                      </div>
-                    </div>
-
-                    <div class="template-section-form">
-                      <label class="field">
-                        <span>Section Name</span>
-                        <input v-model="section.name" type="text" required />
-                      </label>
-
-                      <label class="field">
-                        <span>Section Key</span>
-                        <input v-model="section.key" type="text" required />
-                      </label>
-
-                      <label class="field">
-                        <span>Sort Order</span>
-                        <input v-model.number="section.sortOrder" type="number" required />
-                      </label>
-                    </div>
-
-                    <div class="template-field-stack">
-                      <article
-                        v-for="(field, fieldIndex) in section.fields"
-                        :key="field.id"
-                        class="template-field-editor"
-                      >
-                        <div class="template-section-card__header">
-                          <div>
-                            <h5>Field {{ fieldIndex + 1 }}</h5>
-                            <p>Author-facing field definition</p>
-                          </div>
-                          <button class="button button--secondary" type="button" @click="removeDraftField(section.id, field.id)">
-                            Remove Field
-                          </button>
-                        </div>
-
-                        <div class="template-field-form">
-                          <label class="field">
-                            <span>Field Name</span>
-                            <input v-model="field.name" type="text" required />
-                          </label>
-
-                          <label class="field">
-                            <span>Field Key</span>
-                            <input v-model="field.key" type="text" required />
-                          </label>
-
-                          <label class="field">
-                            <span>Field Type</span>
-                            <select v-model="field.type" :disabled="isLoadingFieldTypes || availableFieldTypes.length === 0">
-                              <option disabled value="">
-                                {{ isLoadingFieldTypes ? 'Loading field types...' : 'Select a field type' }}
-                              </option>
-                              <option
-                                v-for="fieldType in availableFieldTypes"
-                                :key="fieldType.value"
-                                :value="fieldType.value"
-                              >
-                                {{ fieldType.label }}
-                              </option>
-                            </select>
-                          </label>
-                        </div>
-
-                        <div class="template-field-toggles">
-                          <label class="checkbox-field">
-                            <input v-model="field.isShared" type="checkbox" />
-                            <span>Shared across languages and versions</span>
-                          </label>
-
-                          <label class="checkbox-field">
-                            <input v-model="field.isUnversioned" :disabled="field.isShared" type="checkbox" />
-                            <span>Language-specific but not version-specific</span>
-                          </label>
-                        </div>
-                      </article>
-                    </div>
-                  </section>
-                </div>
-
-                <div class="template-actions">
-                  <button class="button button--secondary" type="button" @click="addDraftSection">
-                    Add Section
-                  </button>
-                  <button class="button" type="submit" :disabled="isSubmitting">
-                    {{ templateDesignerForm.mode === 'create' ? 'Create Template' : 'Save Template' }}
-                  </button>
-                </div>
-              </form>
+              <TemplateDesignerPane
+                :form="templateDesignerForm"
+                :sections="templateDraftSections"
+                :available-base-templates="availableBaseTemplates"
+                :available-field-types="availableFieldTypes"
+                :is-loading-field-types="isLoadingFieldTypes"
+                :is-submitting="isSubmitting"
+                :heading="templateDesignerHeading"
+                :selected-template-loaded="selectedTemplateDetail != null"
+                :base-template-key="getTemplateKeyById(availableTemplates, templateDesignerForm.baseTemplateId)"
+                @submit="submitTemplateDesigner"
+                @reset-new-draft="startNewTemplateDraft"
+                @load-selected-template="loadSelectedTemplateIntoDesigner"
+                @update-name="templateDesignerForm.name = $event"
+                @update-key="templateDesignerForm.key = $event"
+                @update-base-template-id="templateDesignerForm.baseTemplateId = $event"
+                @add-section="addDraftSection"
+                @remove-section="removeDraftSection"
+                @update-section-name="onTemplateSectionNameUpdate"
+                @update-section-key="onTemplateSectionKeyUpdate"
+                @update-section-sort-order="onTemplateSectionSortOrderUpdate"
+                @add-field="addDraftField"
+                @remove-field="removeDraftField"
+                @update-field-name="onTemplateFieldNameUpdate"
+                @update-field-key="onTemplateFieldKeyUpdate"
+                @update-field-type="onTemplateFieldTypeUpdate"
+                @update-field-shared="onTemplateFieldSharedUpdate"
+                @update-field-unversioned="onTemplateFieldUnversionedUpdate"
+              />
             </section>
           </template>
         </article>
