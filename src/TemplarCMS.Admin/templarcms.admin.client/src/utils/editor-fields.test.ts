@@ -39,6 +39,36 @@ describe('editor field utilities', () => {
       rows: null,
       step: null,
       helpText: 'Structured link editor.'
+    },
+    {
+      value: 'DateTime',
+      label: 'Date/Time',
+      editorKind: 'date-time',
+      inputType: 'datetime-local',
+      placeholder: null,
+      rows: null,
+      step: null,
+      helpText: 'Use local date and time.'
+    },
+    {
+      value: 'Decimal',
+      label: 'Decimal',
+      editorKind: 'number',
+      inputType: 'number',
+      placeholder: '0.00',
+      rows: null,
+      step: '0.01',
+      helpText: 'Decimal numbers are validated by the API.'
+    },
+    {
+      value: 'Json',
+      label: 'JSON',
+      editorKind: 'textarea',
+      inputType: 'text',
+      placeholder: '{ }',
+      rows: 6,
+      step: null,
+      helpText: 'JSON is not schema-aware yet.'
     }
   ]
 
@@ -75,6 +105,10 @@ describe('editor field utilities', () => {
       },
       ...fieldTypes
     ])
+  })
+
+  it('returns the configured options unchanged when the selected type is supported', () => {
+    expect(getFieldTypeOptions('GeneralLink', fieldTypes)).toEqual(fieldTypes)
   })
 
   it('builds editor field models with template metadata and sorts by key', () => {
@@ -132,6 +166,81 @@ describe('editor field utilities', () => {
         rows: null,
         step: null,
         helpText: 'True or false.'
+      }
+    ])
+  })
+
+  it('carries field-type-specific metadata into editor models for distinct editor kinds', () => {
+    const templateFields: TemplateFieldItemResponse[] = [
+      createTemplateField({
+        key: 'publishAt',
+        name: 'Publish At',
+        type: 'DateTime'
+      }),
+      createTemplateField({
+        key: 'price',
+        name: 'Price',
+        type: 'Decimal'
+      }),
+      createTemplateField({
+        key: 'schema',
+        name: 'Schema',
+        type: 'Json'
+      })
+    ]
+
+    const result = buildEditorFields(
+      {
+        schema: '{ }',
+        price: '19.99',
+        publishAt: '2026-07-25T08:30'
+      },
+      templateFields,
+      lookup
+    )
+
+    expect(result).toEqual([
+      {
+        key: 'price',
+        label: 'Price',
+        value: '19.99',
+        type: 'Decimal',
+        sectionName: 'Fields',
+        scopeLabel: 'Versioned',
+        editorKind: 'number',
+        inputType: 'number',
+        placeholder: '0.00',
+        rows: null,
+        step: '0.01',
+        helpText: 'Decimal numbers are validated by the API.'
+      },
+      {
+        key: 'publishAt',
+        label: 'Publish At',
+        value: '2026-07-25T08:30',
+        type: 'Date/Time',
+        sectionName: 'Fields',
+        scopeLabel: 'Versioned',
+        editorKind: 'date-time',
+        inputType: 'datetime-local',
+        placeholder: null,
+        rows: null,
+        step: null,
+        helpText: 'Use local date and time.'
+      },
+      {
+        key: 'schema',
+        label: 'Schema',
+        value: '{ }',
+        type: 'JSON',
+        sectionName: 'Fields',
+        scopeLabel: 'Versioned',
+        editorKind: 'textarea',
+        inputType: 'text',
+        placeholder: '{ }',
+        rows: 6,
+        step: null,
+        helpText: 'JSON is not schema-aware yet.'
       }
     ])
   })
