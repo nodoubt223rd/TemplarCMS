@@ -205,7 +205,11 @@ verification and build-time type checks.
 
 Goals:
 - Add frontend unit tests around the admin field editor registry
-- Cover structured `General Link` internal/external editing behavior
-- Cover legacy value upgrade behavior in the `General Link` editor
-- Add confidence around template designer field-type selection and
+- Expand component-level coverage beyond `General Link` and template
+  designer interactions
+
+Completed:
+- Covered structured `General Link` internal/external editing behavior
+- Covered legacy value upgrade behavior in the `General Link` editor
+- Added confidence around template designer field-type selection and
   editor rendering decisions
