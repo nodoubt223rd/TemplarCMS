@@ -925,10 +925,10 @@ function countNodes(nodes: TreeNode[]): number {
 
       <section class="context-panel">
         <p class="eyebrow">Tree-Aware Flow</p>
-        <h2>Client refreshes only the branches that changed.</h2>
+        <h2>Patch only the branches that changed.</h2>
         <p>
-          This screen consumes the branch and mutation contracts so create, rename,
-          and move can patch the tree without a full explorer reload.
+          Create, rename, move, and delete actions refresh the affected tree edges
+          instead of forcing a full explorer reload.
         </p>
       </section>
 
@@ -962,12 +962,12 @@ function countNodes(nodes: TreeNode[]): number {
     <main class="workspace-main">
       <header class="top-panel">
         <div>
-          <p class="eyebrow">Content Tree Explorer</p>
-          <h2>Branch refreshes driven by the API we just designed.</h2>
+          <p class="eyebrow">Workspace</p>
+          <h2>Content, schema, and authoring in one view.</h2>
         </div>
         <p class="top-panel__copy">
-          Expand a node to load its branch, select an item to rename, move, or delete it,
-          and create new items beneath the current selection or root.
+          The navigator stays anchored on the left while the inspector and template tools
+          stay within reach on the right.
         </p>
       </header>
 
@@ -1150,14 +1150,11 @@ function countNodes(nodes: TreeNode[]): number {
                 @remove-field="removeDraftField"
                 @update-field-name="onTemplateFieldNameUpdate"
                 @update-field-key="onTemplateFieldKeyUpdate"
-                @update-field-type="onTemplateFieldTypeUpdate"
-                @update-field-shared="onTemplateFieldSharedUpdate"
-                @update-field-unversioned="onTemplateFieldUnversionedUpdate"
-              />
-            </section>
-          </template>
-        </article>
-      </section>
-    </main>
-  </div>
-</template>
+	                @update-field-type="onTemplateFieldTypeUpdate"
+	                @update-field-shared="onTemplateFieldSharedUpdate"
+	                @update-field-unversioned="onTemplateFieldUnversionedUpdate"
+	              />
+	      </section>
+	    </main>
+	  </div>
+	</template>

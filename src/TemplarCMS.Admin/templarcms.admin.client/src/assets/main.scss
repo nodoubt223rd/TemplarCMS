@@ -56,26 +56,30 @@ button {
 
 .workspace-shell {
   display: grid;
-  grid-template-columns: minmax(280px, 330px) minmax(0, 1fr);
+  grid-template-columns: minmax(248px, 282px) minmax(0, 1fr);
   min-height: 100vh;
 }
 
 .workspace-sidebar {
-  padding: 2rem 1.4rem;
+  position: sticky;
+  top: 0;
+  align-self: start;
+  min-height: 100vh;
+  padding: 1.35rem 1rem;
   border-right: 1px solid var(--surface-border);
   background: rgba(248, 244, 235, 0.92);
   backdrop-filter: blur(18px);
 }
 
 .workspace-main {
-  padding: 2rem;
+  padding: 1rem 1.2rem 1.5rem 0.85rem;
 }
 
 .brand {
   display: flex;
   gap: 1rem;
   align-items: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.95rem;
 }
 
 .brand-mark {
@@ -123,7 +127,7 @@ button {
 
 .context-panel {
   margin-bottom: 1rem;
-  padding: 1.15rem;
+  padding: 0.9rem;
   color: var(--ink-soft);
 }
 
@@ -140,24 +144,27 @@ button {
 
 .top-panel {
   display: grid;
-  gap: 0.9rem;
-  padding: 1.5rem;
-  margin-bottom: 1.25rem;
+  grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.85fr);
+  gap: 0.9rem 1rem;
+  align-items: end;
+  padding: 1rem 1.15rem;
+  margin-bottom: 1rem;
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(246, 241, 228, 0.92)),
     linear-gradient(90deg, rgba(109, 127, 56, 0.08), transparent);
 }
 
 .top-panel h2 {
-  max-width: 14ch;
-  font-size: clamp(2rem, 4vw, 3.3rem);
-  line-height: 1.02;
+  max-width: 10.5ch;
+  font-size: clamp(1.55rem, 2.8vw, 2.35rem);
+  line-height: 0.98;
 }
 
 .top-panel__copy {
   margin: 0;
-  max-width: 58rem;
+  max-width: 33rem;
   color: var(--ink-soft);
+  justify-self: end;
 }
 
 .banner {
@@ -179,7 +186,7 @@ button {
 
 .content-grid {
   display: grid;
-  grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
+  grid-template-columns: minmax(300px, 356px) minmax(0, 1fr);
   gap: 1rem;
   margin-bottom: 1rem;
 }
@@ -193,6 +200,12 @@ button {
 .panel {
   padding: 1.2rem;
   background: var(--surface-strong);
+}
+
+.tree-panel {
+  position: sticky;
+  top: 1rem;
+  align-self: start;
 }
 
 .panel-header {
@@ -653,6 +666,18 @@ button {
   .template-dependency-grid {
     grid-template-columns: 1fr;
   }
+
+  .top-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .top-panel__copy {
+    justify-self: start;
+  }
+
+  .tree-panel {
+    position: static;
+  }
 }
 
 @media (max-width: 960px) {
@@ -661,6 +686,9 @@ button {
   }
 
   .workspace-sidebar {
+    position: static;
+    min-height: auto;
+    padding: 1.2rem;
     border-right: 0;
     border-bottom: 1px solid var(--surface-border);
   }
