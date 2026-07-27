@@ -21,6 +21,10 @@ import {
   findInheritedSectionMatch
 } from '@/utils/template-designer-inheritance'
 import { buildTemplateDesignerPreviewWorkspace } from '@/utils/template-designer-preview'
+import {
+  buildTemplateDesignerKeyDraft,
+  isTemplateDesignerKeyFollowingName
+} from '@/utils/template-designer-keys'
 
 const props = defineProps<{
   form: TemplateDesignerFormState
@@ -105,6 +109,22 @@ function getInheritedFieldMatchFor(
 ): { section: TemplateSectionViewModel; field: TemplateFieldViewModel } | null {
   return findInheritedFieldMatch(sectionKey, fieldKey, props.inheritedTemplateSections)
 }
+
+function getKeyGuidance(name: string, key: string): string {
+  const draftKey = buildTemplateDesignerKeyDraft(name)
+
+  if (name.trim().length === 0) {
+    return 'Enter a name to draft a stable key.'
+  }
+
+  if (draftKey.length === 0) {
+    return 'Use letters or numbers in the name to generate a stable key.'
+  }
+
+  return isTemplateDesignerKeyFollowingName(key, name)
+    ? `Auto-drafting key from the name as ${draftKey}.`
+    : `Custom key. Suggested draft is ${draftKey}.`
+}
 </script>
 
 <template>
@@ -152,6 +172,7 @@ function getInheritedFieldMatchFor(
           required
           @input="emit('updateKey', readTextValue($event))"
         />
+        <small class="field-help">{{ getKeyGuidance(form.name, form.key) }}</small>
       </label>
 
       <label class="field">
@@ -333,6 +354,7 @@ function getInheritedFieldMatchFor(
               required
               @input="emit('updateSectionKey', section.id, readTextValue($event))"
             />
+            <small class="field-help">{{ getKeyGuidance(section.name, section.key) }}</small>
           </label>
 
           <label class="field">
@@ -381,6 +403,7 @@ function getInheritedFieldMatchFor(
                   required
                   @input="emit('updateFieldKey', section.id, field.id, readTextValue($event))"
                 />
+                <small class="field-help">{{ getKeyGuidance(field.name, field.key) }}</small>
               </label>
 
               <label class="field">

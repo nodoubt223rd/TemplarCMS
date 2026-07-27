@@ -7,6 +7,8 @@ import type {
 } from '@/types/template-designer'
 
 type IdFactory = () => string
+const defaultSectionSortOrder = 100
+const sectionSortOrderStep = 100
 
 export function createTemplateDesignerFormState(): TemplateDesignerFormState {
   return {
@@ -29,12 +31,15 @@ export function createTemplateDraftField(idFactory: IdFactory = defaultIdFactory
   }
 }
 
-export function createTemplateDraftSection(idFactory: IdFactory = defaultIdFactory): TemplateDraftSection {
+export function createTemplateDraftSection(
+  idFactory: IdFactory = defaultIdFactory,
+  sortOrder: number = defaultSectionSortOrder
+): TemplateDraftSection {
   return {
     id: idFactory(),
     name: '',
     key: '',
-    sortOrder: 100,
+    sortOrder,
     fields: [createTemplateDraftField(idFactory)]
   }
 }
@@ -83,7 +88,7 @@ export function addTemplateDraftSection(
   sections: TemplateDraftSection[],
   idFactory: IdFactory = defaultIdFactory
 ): TemplateDraftSection[] {
-  return [...sections, createTemplateDraftSection(idFactory)]
+  return [...sections, createTemplateDraftSection(idFactory, getNextTemplateSectionSortOrder(sections))]
 }
 
 export function removeTemplateDraftSection(
@@ -245,4 +250,12 @@ export function validateTemplateDesignerState(
 
 function defaultIdFactory(): string {
   return crypto.randomUUID()
+}
+
+function getNextTemplateSectionSortOrder(sections: readonly TemplateDraftSection[]): number {
+  if (sections.length === 0) {
+    return defaultSectionSortOrder
+  }
+
+  return Math.max(...sections.map(section => section.sortOrder)) + sectionSortOrderStep
 }

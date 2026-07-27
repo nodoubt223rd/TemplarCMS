@@ -19,6 +19,7 @@ import {
 } from './template-designer-fields'
 import {
   buildTemplateDesignerKeyDraft,
+  isTemplateDesignerKeyFollowingName,
   syncTemplateDesignerDraftKey
 } from './template-designer-keys'
 
@@ -147,6 +148,7 @@ describe('template designer utilities', () => {
 
     const added = addTemplateDraftSection(start, () => ids.shift() ?? 'fallback')
     expect(added).toHaveLength(2)
+    expect(added[1]?.sortOrder).toBe(200)
 
     const removed = removeTemplateDraftSection(
       start,
@@ -155,7 +157,50 @@ describe('template designer utilities', () => {
     )
 
     expect(removed).toHaveLength(1)
+    expect(removed[0]?.sortOrder).toBe(100)
     expect(removed[0]?.fields).toHaveLength(1)
+  })
+
+  it('adds sections after the highest current sort order', () => {
+    const added = addTemplateDraftSection(
+      [
+        {
+          id: 'section-1',
+          name: 'Hero',
+          key: 'hero',
+          sortOrder: 100,
+          fields: [
+            {
+              id: 'field-1',
+              name: 'Title',
+              key: 'title',
+              type: 'SingleLineText',
+              isShared: false,
+              isUnversioned: false
+            }
+          ]
+        },
+        {
+          id: 'section-2',
+          name: 'Content',
+          key: 'content',
+          sortOrder: 350,
+          fields: [
+            {
+              id: 'field-2',
+              name: 'Body',
+              key: 'body',
+              type: 'SingleLineText',
+              isShared: false,
+              isUnversioned: false
+            }
+          ]
+        }
+      ],
+      () => 'section-3'
+    )
+
+    expect(added[2]?.sortOrder).toBe(450)
   })
 
   it('adds and removes fields while keeping at least one field per section', () => {
@@ -317,6 +362,11 @@ describe('template designer utilities', () => {
     expect(syncTemplateDesignerDraftKey('', '', 'Hero Banner')).toBe('hero-banner')
     expect(syncTemplateDesignerDraftKey('hero-banner', 'Hero Banner', 'Hero Banner CTA')).toBe('hero-banner-cta')
     expect(syncTemplateDesignerDraftKey('custom-key', 'Hero Banner', 'Hero Banner CTA')).toBe('custom-key')
+  })
+
+  it('recognizes when a key is still following the authored name', () => {
+    expect(isTemplateDesignerKeyFollowingName('hero-banner', 'Hero Banner')).toBe(true)
+    expect(isTemplateDesignerKeyFollowingName('custom-key', 'Hero Banner')).toBe(false)
   })
 
   it('validates duplicate keys and unresolved base template selections', () => {
