@@ -17,6 +17,10 @@ import {
   getTemplateDesignerFieldBehaviorHints,
   getTemplateDesignerFieldStorageLabel
 } from './template-designer-fields'
+import {
+  buildTemplateDesignerKeyDraft,
+  syncTemplateDesignerDraftKey
+} from './template-designer-keys'
 
 describe('template designer utilities', () => {
   it('creates a new designer state with one empty section and field', () => {
@@ -302,6 +306,17 @@ describe('template designer utilities', () => {
         isUnversioned: false
       })
     ).toBe('Version-specific per language')
+  })
+
+  it('builds normalized template designer draft keys from names', () => {
+    expect(buildTemplateDesignerKeyDraft('  Hero Banner CTA  ')).toBe('hero-banner-cta')
+    expect(buildTemplateDesignerKeyDraft('Meta/Description')).toBe('meta-description')
+  })
+
+  it('keeps draft keys in sync until the author customizes them', () => {
+    expect(syncTemplateDesignerDraftKey('', '', 'Hero Banner')).toBe('hero-banner')
+    expect(syncTemplateDesignerDraftKey('hero-banner', 'Hero Banner', 'Hero Banner CTA')).toBe('hero-banner-cta')
+    expect(syncTemplateDesignerDraftKey('custom-key', 'Hero Banner', 'Hero Banner CTA')).toBe('custom-key')
   })
 
   it('validates duplicate keys and unresolved base template selections', () => {

@@ -82,6 +82,7 @@ import {
   validateTemplateDesignerState
 } from './utils/template-designer'
 import { applyTemplateDraftFieldUpdate } from './utils/template-designer-fields'
+import { syncTemplateDesignerDraftKey } from './utils/template-designer-keys'
 
 const language = ref('en')
 const version = ref(1)
@@ -579,6 +580,17 @@ async function loadTemplateWorkspace(templateId: string) {
   ])
 }
 
+function onTemplateDesignerNameUpdate(value: string) {
+  const nextKey = syncTemplateDesignerDraftKey(
+    templateDesignerForm.key,
+    templateDesignerForm.name,
+    value
+  )
+
+  templateDesignerForm.name = value
+  templateDesignerForm.key = nextKey
+}
+
 async function loadTemplateDetail(templateId: string) {
   isLoadingTemplateDetail.value = true
 
@@ -701,7 +713,14 @@ function updateTemplateField(
 }
 
 function onTemplateSectionNameUpdate(sectionId: string, value: string) {
-  updateTemplateSection(sectionId, { name: value })
+  const currentSection = templateDraftSections.value.find(section => section.id === sectionId)
+
+  updateTemplateSection(sectionId, {
+    name: value,
+    key: currentSection == null
+      ? ''
+      : syncTemplateDesignerDraftKey(currentSection.key, currentSection.name, value)
+  })
 }
 
 function onTemplateSectionKeyUpdate(sectionId: string, value: string) {
@@ -713,7 +732,16 @@ function onTemplateSectionSortOrderUpdate(sectionId: string, value: number) {
 }
 
 function onTemplateFieldNameUpdate(sectionId: string, fieldId: string, value: string) {
-  updateTemplateField(sectionId, fieldId, { name: value })
+  const currentField = templateDraftSections.value
+    .find(section => section.id === sectionId)
+    ?.fields.find(field => field.id === fieldId)
+
+  updateTemplateField(sectionId, fieldId, {
+    name: value,
+    key: currentField == null
+      ? ''
+      : syncTemplateDesignerDraftKey(currentField.key, currentField.name, value)
+  })
 }
 
 function onTemplateFieldKeyUpdate(sectionId: string, fieldId: string, value: string) {
@@ -1136,7 +1164,7 @@ function countNodes(nodes: TreeNode[]): number {
                 @submit="submitTemplateDesigner"
                 @reset-new-draft="startNewTemplateDraft"
                 @load-selected-template="loadSelectedTemplateIntoDesigner"
-                @update-name="templateDesignerForm.name = $event"
+                @update-name="onTemplateDesignerNameUpdate"
                 @update-key="templateDesignerForm.key = $event"
                 @update-base-template-id="templateDesignerForm.baseTemplateId = $event"
                 @add-section="addDraftSection"
