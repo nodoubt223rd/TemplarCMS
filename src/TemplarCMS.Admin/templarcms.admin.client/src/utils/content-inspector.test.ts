@@ -3,6 +3,7 @@ import type { ContentItemResponse, TemplateSummaryResponse } from '@/types/admin
 import type { CreateFormState, MoveFormState, RenameFormState } from '@/types/content-inspector'
 import {
   clearFieldFormValues,
+  getCreatableTemplates,
   getSuggestedCreateTemplateId,
   getSuggestedTemplateId,
   getTemplateIdByKey,
@@ -15,6 +16,7 @@ import {
 
 describe('content inspector utilities', () => {
   const templates: TemplateSummaryResponse[] = [
+    createTemplate({ id: 'standard-id', key: 'standard', name: 'Standard' }),
     createTemplate({ id: 'folder-id', key: 'folder', name: 'Folder' }),
     createTemplate({ id: 'item-id', key: 'item', name: 'Item' }),
     createTemplate({ id: 'article-id', key: 'article', name: 'Article' })
@@ -26,7 +28,18 @@ describe('content inspector utilities', () => {
 
   it('falls back to item, folder, then first template for suggested ids', () => {
     expect(getSuggestedTemplateId(templates)).toBe('item-id')
-    expect(getSuggestedTemplateId([templates[0]!])).toBe('folder-id')
+    expect(getSuggestedTemplateId([templates[1]!])).toBe('folder-id')
+  })
+
+  it('excludes standard from creatable templates and suggested defaults', () => {
+    expect(getCreatableTemplates(templates).map(template => template.key)).toEqual([
+      'folder',
+      'item',
+      'article'
+    ])
+
+    expect(getSuggestedTemplateId([templates[0]!])).toBe('')
+    expect(getSuggestedCreateTemplateId(templates, 'standard-id')).toBe('item-id')
   })
 
   it('gets template ids and keys by lookup', () => {
