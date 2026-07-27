@@ -11,6 +11,11 @@ import {
   removeTemplateDraftSection,
   validateTemplateDesignerState
 } from './template-designer'
+import {
+  applyTemplateDraftFieldUpdate,
+  getTemplateDesignerFieldBehaviorHints,
+  getTemplateDesignerFieldStorageLabel
+} from './template-designer-fields'
 
 describe('template designer utilities', () => {
   it('creates a new designer state with one empty section and field', () => {
@@ -227,6 +232,75 @@ describe('template designer utilities', () => {
         }
       ]
     })
+  })
+
+  it('normalizes draft field updates when shared storage is enabled', () => {
+    expect(
+      applyTemplateDraftFieldUpdate(
+        {
+          id: 'field-1',
+          name: 'Visible',
+          key: 'visible',
+          type: 'Checkbox',
+          isShared: false,
+          isUnversioned: true
+        },
+        {
+          isShared: true
+        }
+      )
+    ).toEqual({
+      id: 'field-1',
+      name: 'Visible',
+      key: 'visible',
+      type: 'Checkbox',
+      isShared: true,
+      isUnversioned: false
+    })
+  })
+
+  it('builds template designer field behavior hints from metadata', () => {
+    expect(
+      getTemplateDesignerFieldBehaviorHints({
+        value: 'DecimalNumber',
+        label: 'Decimal Number',
+        editorKind: 'number',
+        inputType: 'number',
+        placeholder: '0.00',
+        rows: null,
+        step: '0.01',
+        helpText: 'Decimal numbers are validated by the API.'
+      })
+    ).toEqual([
+      'Editor: number',
+      'Authors enter numeric values with browser-level number controls.',
+      'HTML input: number',
+      'Suggested placeholder: 0.00',
+      'Validation step: 0.01'
+    ])
+  })
+
+  it('describes the effective storage scope for template designer fields', () => {
+    expect(
+      getTemplateDesignerFieldStorageLabel({
+        isShared: true,
+        isUnversioned: false
+      })
+    ).toBe('Shared across languages and versions')
+
+    expect(
+      getTemplateDesignerFieldStorageLabel({
+        isShared: false,
+        isUnversioned: true
+      })
+    ).toBe('Language-specific, shared across versions')
+
+    expect(
+      getTemplateDesignerFieldStorageLabel({
+        isShared: false,
+        isUnversioned: false
+      })
+    ).toBe('Version-specific per language')
   })
 
   it('validates duplicate keys and unresolved base template selections', () => {
