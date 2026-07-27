@@ -81,8 +81,13 @@ import {
   removeTemplateDraftSection,
   validateTemplateDesignerState
 } from './utils/template-designer'
-import { applyTemplateDraftFieldUpdate } from './utils/template-designer-fields'
-import { syncTemplateDesignerDraftKey } from './utils/template-designer-keys'
+import {
+  updateTemplateDesignerFormName,
+  updateTemplateDraftField,
+  updateTemplateDraftFieldName,
+  updateTemplateDraftSection,
+  updateTemplateDraftSectionName
+} from './utils/template-designer-state'
 
 const language = ref('en')
 const version = ref(1)
@@ -581,14 +586,10 @@ async function loadTemplateWorkspace(templateId: string) {
 }
 
 function onTemplateDesignerNameUpdate(value: string) {
-  const nextKey = syncTemplateDesignerDraftKey(
-    templateDesignerForm.key,
-    templateDesignerForm.name,
-    value
+  Object.assign(
+    templateDesignerForm,
+    updateTemplateDesignerFormName(templateDesignerForm, value)
   )
-
-  templateDesignerForm.name = value
-  templateDesignerForm.key = nextKey
 }
 
 async function loadTemplateDetail(templateId: string) {
@@ -686,13 +687,11 @@ function updateTemplateSection(
   sectionId: string,
   update: Partial<TemplateDraftSection>
 ) {
-  templateDraftSections.value = templateDraftSections.value.map(section =>
-    section.id === sectionId
-      ? {
-          ...section,
-          ...update
-        }
-      : section)
+  templateDraftSections.value = updateTemplateDraftSection(
+    templateDraftSections.value,
+    sectionId,
+    update
+  )
 }
 
 function updateTemplateField(
@@ -700,27 +699,20 @@ function updateTemplateField(
   fieldId: string,
   update: Partial<TemplateDraftSection['fields'][number]>
 ) {
-  templateDraftSections.value = templateDraftSections.value.map(section =>
-    section.id !== sectionId
-      ? section
-      : {
-          ...section,
-          fields: section.fields.map(field =>
-            field.id === fieldId
-              ? applyTemplateDraftFieldUpdate(field, update)
-              : field)
-        })
+  templateDraftSections.value = updateTemplateDraftField(
+    templateDraftSections.value,
+    sectionId,
+    fieldId,
+    update
+  )
 }
 
 function onTemplateSectionNameUpdate(sectionId: string, value: string) {
-  const currentSection = templateDraftSections.value.find(section => section.id === sectionId)
-
-  updateTemplateSection(sectionId, {
-    name: value,
-    key: currentSection == null
-      ? ''
-      : syncTemplateDesignerDraftKey(currentSection.key, currentSection.name, value)
-  })
+  templateDraftSections.value = updateTemplateDraftSectionName(
+    templateDraftSections.value,
+    sectionId,
+    value
+  )
 }
 
 function onTemplateSectionKeyUpdate(sectionId: string, value: string) {
@@ -732,16 +724,12 @@ function onTemplateSectionSortOrderUpdate(sectionId: string, value: number) {
 }
 
 function onTemplateFieldNameUpdate(sectionId: string, fieldId: string, value: string) {
-  const currentField = templateDraftSections.value
-    .find(section => section.id === sectionId)
-    ?.fields.find(field => field.id === fieldId)
-
-  updateTemplateField(sectionId, fieldId, {
-    name: value,
-    key: currentField == null
-      ? ''
-      : syncTemplateDesignerDraftKey(currentField.key, currentField.name, value)
-  })
+  templateDraftSections.value = updateTemplateDraftFieldName(
+    templateDraftSections.value,
+    sectionId,
+    fieldId,
+    value
+  )
 }
 
 function onTemplateFieldKeyUpdate(sectionId: string, fieldId: string, value: string) {

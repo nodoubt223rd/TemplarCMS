@@ -22,6 +22,13 @@ import {
   isTemplateDesignerKeyFollowingName,
   syncTemplateDesignerDraftKey
 } from './template-designer-keys'
+import {
+  updateTemplateDesignerFormName,
+  updateTemplateDraftField,
+  updateTemplateDraftFieldName,
+  updateTemplateDraftSection,
+  updateTemplateDraftSectionName
+} from './template-designer-state'
 
 describe('template designer utilities', () => {
   it('creates a new designer state with one empty section and field', () => {
@@ -367,6 +374,147 @@ describe('template designer utilities', () => {
   it('recognizes when a key is still following the authored name', () => {
     expect(isTemplateDesignerKeyFollowingName('hero-banner', 'Hero Banner')).toBe(true)
     expect(isTemplateDesignerKeyFollowingName('custom-key', 'Hero Banner')).toBe(false)
+  })
+
+  it('updates template designer form names while preserving custom keys', () => {
+    expect(
+      updateTemplateDesignerFormName(
+        {
+          mode: 'create',
+          templateId: '',
+          name: 'Article Page',
+          key: 'article-page',
+          baseTemplateId: ''
+        },
+        'Landing Page'
+      )
+    ).toEqual({
+      mode: 'create',
+      templateId: '',
+      name: 'Landing Page',
+      key: 'landing-page',
+      baseTemplateId: ''
+    })
+
+    expect(
+      updateTemplateDesignerFormName(
+        {
+          mode: 'create',
+          templateId: '',
+          name: 'Article Page',
+          key: 'marketing-page',
+          baseTemplateId: ''
+        },
+        'Landing Page'
+      ).key
+    ).toBe('marketing-page')
+  })
+
+  it('updates section names and keys through the draft-state helper', () => {
+    expect(
+      updateTemplateDraftSectionName(
+        [
+          {
+            id: 'section-1',
+            name: 'Hero Banner',
+            key: 'hero-banner',
+            sortOrder: 100,
+            fields: []
+          }
+        ],
+        'section-1',
+        'Landing Hero'
+      )
+    ).toEqual([
+      {
+        id: 'section-1',
+        name: 'Landing Hero',
+        key: 'landing-hero',
+        sortOrder: 100,
+        fields: []
+      }
+    ])
+
+    expect(
+      updateTemplateDraftSection(
+        [
+          {
+            id: 'section-1',
+            name: 'Hero Banner',
+            key: 'marketing-hero',
+            sortOrder: 100,
+            fields: []
+          }
+        ],
+        'section-1',
+        {
+          sortOrder: 250
+        }
+      )[0]?.sortOrder
+    ).toBe(250)
+  })
+
+  it('updates field names, keys, and storage normalization through the draft-state helper', () => {
+    expect(
+      updateTemplateDraftFieldName(
+        [
+          {
+            id: 'section-1',
+            name: 'Content',
+            key: 'content',
+            sortOrder: 100,
+            fields: [
+              {
+                id: 'field-1',
+                name: 'CTA Link',
+                key: 'cta-link',
+                type: 'GeneralLink',
+                isShared: false,
+                isUnversioned: false
+              }
+            ]
+          }
+        ],
+        'section-1',
+        'field-1',
+        'Primary CTA'
+      )[0]?.fields[0]
+    ).toEqual({
+      id: 'field-1',
+      name: 'Primary CTA',
+      key: 'primary-cta',
+      type: 'GeneralLink',
+      isShared: false,
+      isUnversioned: false
+    })
+
+    expect(
+      updateTemplateDraftField(
+        [
+          {
+            id: 'section-1',
+            name: 'Content',
+            key: 'content',
+            sortOrder: 100,
+            fields: [
+              {
+                id: 'field-1',
+                name: 'Visible',
+                key: 'visible',
+                type: 'Checkbox',
+                isShared: false,
+                isUnversioned: true
+              }
+            ]
+          }
+        ],
+        'section-1',
+        'field-1',
+        {
+          isShared: true
+        }
+      )[0]?.fields[0]?.isUnversioned
+    ).toBe(false)
   })
 
   it('validates duplicate keys and unresolved base template selections', () => {
