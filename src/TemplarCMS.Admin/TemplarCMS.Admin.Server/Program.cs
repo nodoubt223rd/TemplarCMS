@@ -4,7 +4,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 var apiBaseUrl =
     builder.Configuration["TemplarApi:BaseUrl"]
-    ?? "https://localhost:7089";
+    ?? "https://templarcms.api";
 
 builder.Services.AddHttpClient(
     "TemplarApiProxy",

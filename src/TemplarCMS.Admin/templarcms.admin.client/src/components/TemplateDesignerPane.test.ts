@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
 import type { FieldTypeResponse, TemplateSummaryResponse } from '@/types/admin-api'
+import type { TemplateSectionViewModel } from '@/types/admin-ui'
 import type {
   TemplateDesignerFormState,
   TemplateDraftSection
@@ -60,6 +61,39 @@ describe('TemplateDesignerPane', () => {
     expect(wrapper.text()).toContain('Template key is required.')
     expect(wrapper.text()).toContain('Every field needs a key.')
   })
+
+  it('shows inherited base template sections when a base template is selected', () => {
+    const wrapper = mountComponent({
+      form: createForm({
+        baseTemplateId: 'base-template-id'
+      }),
+      baseTemplateKey: 'base-page',
+      inheritedTemplateSections: [
+        {
+          id: 'section-base',
+          name: 'SEO',
+          key: 'seo',
+          sortOrder: 100,
+          fields: [
+            {
+              id: 'field-base',
+              name: 'Meta Description',
+              key: 'metaDescription',
+              type: 'Single-Line Text',
+              scopeLabel: 'Versioned'
+            }
+          ]
+        }
+      ],
+      inheritedFieldCount: 1
+    })
+
+    expect(wrapper.text()).toContain('Inherited Base Template')
+    expect(wrapper.text()).toContain('base-page')
+    expect(wrapper.text()).toContain('SEO')
+    expect(wrapper.text()).toContain('Meta Description')
+    expect(wrapper.text()).toContain('1 sections · 1 fields')
+  })
 })
 
 function mountComponent(overrides: Partial<ComponentProps> = {}) {
@@ -75,6 +109,10 @@ function mountComponent(overrides: Partial<ComponentProps> = {}) {
       selectedTemplateLoaded: false,
       baseTemplateKey: null,
       validationErrors: [],
+      inheritedTemplateSections: [],
+      inheritedFieldCount: 0,
+      isLoadingBaseTemplatePreview: false,
+      baseTemplatePreviewError: null,
       ...overrides
     }
   })
@@ -150,4 +188,8 @@ type ComponentProps = {
   selectedTemplateLoaded: boolean
   baseTemplateKey: string | null
   validationErrors: string[]
+  inheritedTemplateSections: TemplateSectionViewModel[]
+  inheritedFieldCount: number
+  isLoadingBaseTemplatePreview: boolean
+  baseTemplatePreviewError: string | null
 }

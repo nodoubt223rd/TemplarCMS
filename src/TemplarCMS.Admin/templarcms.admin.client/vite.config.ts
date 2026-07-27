@@ -43,11 +43,13 @@ export default defineConfig(({ command }) => {
         }
     }
 
-    const target = env.ASPNETCORE_HTTPS_PORT
+    const target = env.TEMPLAR_API_BASE_URL
+        ? env.TEMPLAR_API_BASE_URL
+        : env.ASPNETCORE_HTTPS_PORT
         ? `https://localhost:${env.ASPNETCORE_HTTPS_PORT}`
         : env.ASPNETCORE_URLS
             ? env.ASPNETCORE_URLS.split(';')[0]
-            : 'https://localhost:55686';
+            : 'https://templarcms.api';
 
     return {
         ...config,
