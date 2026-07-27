@@ -2,6 +2,8 @@ import type { ContentItemResponse, TemplateSummaryResponse } from '@/types/admin
 import type { CreateFormState, MoveFormState, RenameFormState } from '@/types/content-inspector'
 import { extractParentIdFromHref } from './content-tree'
 
+const excludedCreateTemplateKeys = new Set(['standard'])
+
 export function syncInspectorFormsFromItem(
   item: ContentItemResponse,
   renameForm: RenameFormState,
@@ -54,23 +56,27 @@ export function getSuggestedCreateTemplateId(
   availableTemplates: TemplateSummaryResponse[],
   itemTemplateId: string
 ): string {
-  if (availableTemplates.length === 0) {
+  const creatableTemplates = getCreatableTemplates(availableTemplates)
+
+  if (creatableTemplates.length === 0) {
     return ''
   }
 
-  const itemTemplate = availableTemplates.find(template => template.id === itemTemplateId)
+  const itemTemplate = creatableTemplates.find(template => template.id === itemTemplateId)
 
   if (itemTemplate?.key === 'folder') {
-    return getTemplateIdByKey(availableTemplates, 'item') ?? itemTemplate.id
+    return getTemplateIdByKey(creatableTemplates, 'item') ?? itemTemplate.id
   }
 
-  return itemTemplate?.id ?? getSuggestedTemplateId(availableTemplates)
+  return itemTemplate?.id ?? getSuggestedTemplateId(creatableTemplates)
 }
 
 export function getSuggestedTemplateId(availableTemplates: TemplateSummaryResponse[]): string {
-  return getTemplateIdByKey(availableTemplates, 'item')
-    ?? getTemplateIdByKey(availableTemplates, 'folder')
-    ?? availableTemplates[0]?.id
+  const creatableTemplates = getCreatableTemplates(availableTemplates)
+
+  return getTemplateIdByKey(creatableTemplates, 'item')
+    ?? getTemplateIdByKey(creatableTemplates, 'folder')
+    ?? creatableTemplates[0]?.id
     ?? ''
 }
 
@@ -86,4 +92,10 @@ export function getTemplateKeyById(
   id: string
 ): string | null {
   return availableTemplates.find(template => template.id === id)?.key ?? null
+}
+
+export function getCreatableTemplates(
+  availableTemplates: TemplateSummaryResponse[]
+): TemplateSummaryResponse[] {
+  return availableTemplates.filter(template => !excludedCreateTemplateKeys.has(template.key.toLowerCase()))
 }

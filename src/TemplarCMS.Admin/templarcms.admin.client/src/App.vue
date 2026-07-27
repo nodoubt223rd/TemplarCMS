@@ -27,6 +27,7 @@ import type {
 import type { EditorFieldModel, TreeNode } from './types/admin-ui'
 import {
   clearFieldFormValues,
+  getCreatableTemplates,
   getSuggestedCreateTemplateId,
   getSuggestedTemplateId,
   getTemplateIdByKey,
@@ -137,7 +138,9 @@ const templateDraftSections = ref<TemplateDraftSection[]>([])
 
 const treeCount = computed(() => countNodes(rootNodes.value))
 const selectedCreateTemplate = computed(() =>
-  availableTemplates.value.find(template => template.id === createForm.templateId) ?? null)
+  creatableTemplates.value.find(template => template.id === createForm.templateId) ?? null)
+const creatableTemplates = computed(() =>
+  getCreatableTemplates(availableTemplates.value))
 const selectedTemplateSummary = computed(() =>
   selectedTemplateId.value == null
     ? null
@@ -1076,12 +1079,12 @@ function countNodes(nodes: TreeNode[]): number {
 
           <label class="field">
             <span>Template</span>
-            <select v-model="createForm.templateId" :disabled="isLoadingTemplates || availableTemplates.length === 0" required>
+            <select v-model="createForm.templateId" :disabled="isLoadingTemplates || creatableTemplates.length === 0" required>
               <option disabled value="">
                 {{ isLoadingTemplates ? 'Loading templates...' : 'Select a template' }}
               </option>
               <option
-                v-for="template in availableTemplates"
+                v-for="template in creatableTemplates"
                 :key="template.id"
                 :value="template.id"
               >
@@ -1089,7 +1092,11 @@ function countNodes(nodes: TreeNode[]): number {
               </option>
             </select>
             <small class="field-meta">
-              {{ selectedCreateTemplate == null ? 'Template ids are loaded from /api/v1/templates.' : `Selected id: ${selectedCreateTemplate.id}` }}
+              {{
+                selectedCreateTemplate == null
+                  ? 'Creatable template ids are loaded from /api/v1/templates.'
+                  : `Selected id: ${selectedCreateTemplate.id}`
+              }}
             </small>
           </label>
 
