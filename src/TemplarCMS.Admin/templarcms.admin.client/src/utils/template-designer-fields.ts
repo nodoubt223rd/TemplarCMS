@@ -30,6 +30,16 @@ export function getTemplateDesignerFieldStorageLabel(
     : 'Version-specific per language'
 }
 
+export function getTemplateDesignerFieldScopeLabel(
+  field: Pick<TemplateDraftField, 'isShared' | 'isUnversioned'>
+): string {
+  if (field.isShared) {
+    return 'Shared'
+  }
+
+  return field.isUnversioned ? 'Unversioned' : 'Versioned'
+}
+
 export function getTemplateDesignerFieldBehaviorHints(fieldType: FieldTypeResponse): string[] {
   const hints = [`Editor: ${fieldType.editorKind}`]
 
