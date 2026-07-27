@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { FieldTypeResponse, TemplateSummaryResponse } from '@/types/admin-api'
+import type { TemplateSectionViewModel } from '@/types/admin-ui'
 import type {
   TemplateDesignerFormState,
   TemplateDraftSection
@@ -22,6 +23,10 @@ const props = defineProps<{
   selectedTemplateLoaded: boolean
   baseTemplateKey: string | null
   validationErrors: string[]
+  inheritedTemplateSections: TemplateSectionViewModel[]
+  inheritedFieldCount: number
+  isLoadingBaseTemplatePreview: boolean
+  baseTemplatePreviewError: string | null
 }>()
 
 const emit = defineEmits<{
@@ -145,6 +150,62 @@ function getFieldTypeOptionsFor(value: string): FieldTypeResponse[] {
         <li v-for="error in validationErrors" :key="error">{{ error }}</li>
       </ul>
     </div>
+
+    <section v-if="form.baseTemplateId.length > 0" class="template-section-card">
+      <div class="template-section-card__header">
+        <div>
+          <h5>Inherited Base Template</h5>
+          <p>
+            {{ baseTemplateKey == null ? 'Selected base template' : baseTemplateKey }}
+          </p>
+        </div>
+        <span class="callout">
+          {{ inheritedTemplateSections.length }} sections · {{ inheritedFieldCount }} fields
+        </span>
+      </div>
+
+      <div v-if="isLoadingBaseTemplatePreview" class="empty-state empty-state--compact">
+        Loading inherited sections and fields...
+      </div>
+
+      <div v-else-if="baseTemplatePreviewError != null" class="callout callout--danger">
+        {{ baseTemplatePreviewError }}
+      </div>
+
+      <div v-else-if="inheritedTemplateSections.length === 0" class="empty-state empty-state--compact">
+        This base template does not currently expose authored sections or fields.
+      </div>
+
+      <div v-else class="template-section-stack">
+        <section
+          v-for="section in inheritedTemplateSections"
+          :key="section.id"
+          class="template-field-editor"
+        >
+          <div class="template-section-card__header">
+            <div>
+              <h5>{{ section.name }}</h5>
+              <p>{{ section.key }}</p>
+            </div>
+            <span class="callout">{{ section.fields.length }} fields</span>
+          </div>
+
+          <ul class="template-field-list">
+            <li
+              v-for="field in section.fields"
+              :key="field.id"
+              class="template-field-item"
+            >
+              <div>
+                <strong>{{ field.name }}</strong>
+                <p>{{ field.key }}</p>
+              </div>
+              <span class="template-field-item__meta">{{ field.type }} · {{ field.scopeLabel }}</span>
+            </li>
+          </ul>
+        </section>
+      </div>
+    </section>
 
     <div class="template-designer-stack">
       <section

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import ContentInspectorPane from './components/ContentInspectorPane.vue'
 import TemplateCatalogPane from './components/TemplateCatalogPane.vue'
 import TemplateInspectorPane from './components/TemplateInspectorPane.vue'
@@ -122,6 +122,9 @@ const selectedTemplateDetail = ref<TemplateResponse | null>(null)
 const selectedTemplateDependencies = ref<TemplateDependencyResponse | null>(null)
 const isLoadingTemplateDetail = ref(false)
 const isLoadingTemplateDependencies = ref(false)
+const selectedBaseTemplateDetail = ref<TemplateResponse | null>(null)
+const isLoadingBaseTemplatePreview = ref(false)
+const baseTemplatePreviewError = ref<string | null>(null)
 const templateDesignerForm = reactive<TemplateDesignerFormState>(createNewTemplateDesignerState().form)
 const templateDraftSections = ref<TemplateDraftSection[]>([])
 
@@ -144,6 +147,8 @@ const templateDesignerHeading = computed(() =>
     : `Editing ${templateDesignerForm.name || 'template'}`)
 const selectedBaseTemplateKey = computed(() =>
   getTemplateKeyById(availableTemplates.value, templateDesignerForm.baseTemplateId))
+const inheritedTemplateWorkspace = computed(() =>
+  buildTemplateWorkspaceViewModel(selectedBaseTemplateDetail.value, fieldTypeLookup.value))
 const templateDesignerValidationErrors = computed(() =>
   validateTemplateDesignerState(
     templateDesignerForm,
@@ -175,6 +180,13 @@ onMounted(async () => {
     await loadTemplateWorkspace(selectedTemplateId.value)
   }
 })
+
+watch(
+  () => templateDesignerForm.baseTemplateId,
+  async baseTemplateId => {
+    await loadBaseTemplatePreview(baseTemplateId)
+  }
+)
 
 async function refreshRootBranch() {
   isBootstrapping.value = true
@@ -617,6 +629,28 @@ function loadSelectedTemplateIntoDesigner() {
   const state = mapTemplateToDesignerState(selectedTemplateDetail.value)
   Object.assign(templateDesignerForm, state.form)
   templateDraftSections.value = state.sections
+}
+
+async function loadBaseTemplatePreview(templateId: string) {
+  if (templateId.trim().length === 0) {
+    selectedBaseTemplateDetail.value = null
+    baseTemplatePreviewError.value = null
+    isLoadingBaseTemplatePreview.value = false
+    return
+  }
+
+  isLoadingBaseTemplatePreview.value = true
+  baseTemplatePreviewError.value = null
+
+  try {
+    selectedBaseTemplateDetail.value =
+      await fetchJson<TemplateResponse>(`/api/v1/templates/${templateId}`)
+  } catch (error) {
+    selectedBaseTemplateDetail.value = null
+    baseTemplatePreviewError.value = getErrorMessage(error)
+  } finally {
+    isLoadingBaseTemplatePreview.value = false
+  }
 }
 
 function addDraftSection() {
@@ -1097,6 +1131,10 @@ function countNodes(nodes: TreeNode[]): number {
                 :selected-template-loaded="selectedTemplateDetail != null"
                 :base-template-key="selectedBaseTemplateKey"
                 :validation-errors="templateDesignerValidationErrors"
+                :inherited-template-sections="inheritedTemplateWorkspace.sections"
+                :inherited-field-count="inheritedTemplateWorkspace.fieldCount"
+                :is-loading-base-template-preview="isLoadingBaseTemplatePreview"
+                :base-template-preview-error="baseTemplatePreviewError"
                 @submit="submitTemplateDesigner"
                 @reset-new-draft="startNewTemplateDraft"
                 @load-selected-template="loadSelectedTemplateIntoDesigner"
