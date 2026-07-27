@@ -77,6 +77,7 @@ import {
   addTemplateDraftSection,
   buildTemplateDesignerPayload,
   createNewTemplateDesignerState,
+  getDefaultTemplateDesignerBaseTemplateId,
   mapTemplateToDesignerState,
   removeTemplateDraftField,
   removeTemplateDraftSection,
@@ -494,6 +495,10 @@ async function loadTemplates() {
       createForm.templateId = getSuggestedTemplateId(availableTemplates.value)
     }
 
+    if (templateDesignerForm.mode === 'create' && templateDesignerForm.baseTemplateId.length === 0) {
+      templateDesignerForm.baseTemplateId = getDefaultTemplateDesignerBaseTemplateId(availableTemplates.value)
+    }
+
     if (selectedTemplateId.value == null) {
       selectedTemplateId.value = availableTemplates.value[0]?.id ?? null
     }
@@ -633,7 +638,9 @@ async function applyTemplateToCreate() {
 }
 
 function startNewTemplateDraft() {
-  const state = createNewTemplateDesignerState()
+  const state = createNewTemplateDesignerState(
+    getDefaultTemplateDesignerBaseTemplateId(availableTemplates.value)
+  )
   Object.assign(templateDesignerForm, state.form)
   templateDraftSections.value = state.sections
 }

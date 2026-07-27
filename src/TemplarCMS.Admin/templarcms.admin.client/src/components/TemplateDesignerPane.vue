@@ -191,7 +191,11 @@ function getKeyGuidance(name: string, key: string): string {
           </option>
         </select>
         <small class="field-meta">
-          {{ form.baseTemplateId.length === 0 ? 'Local fields only.' : `Inherits from ${baseTemplateKey}` }}
+          {{
+            form.baseTemplateId.length === 0
+              ? 'Local fields only.'
+              : `Inherits from ${baseTemplateKey}`
+          }}
         </small>
       </label>
     </div>
