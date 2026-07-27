@@ -100,6 +100,11 @@ Goals:
 - Keep the current bootstrap-friendly default content structure until
   the richer standard template can be introduced intentionally
 
+Requested implementation slice:
+- Add a dedicated slice to structure the authored sections and default
+  fields that belong to the built-in `standard` template so the OOTB
+  baseline is intentional rather than implicit.
+
 Requested standard-template sections:
 - `Advanced`
 - `Appearance`
