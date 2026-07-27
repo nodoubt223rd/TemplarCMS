@@ -75,8 +75,8 @@ The UI should render the correct editors based on field metadata.
 
 The current Vue admin client already consumes `/api/v1/field-types`
 metadata for both content editing and template authoring so field labels,
-help text, input hints, and editor-kind decisions stay aligned with the
-server catalog.
+help text, input hints, editor-kind decisions, and template-designer
+behavior previews stay aligned with the server catalog.
 
 ### Component-Based Editors
 
@@ -153,7 +153,8 @@ The admin UI should not be coupled to delivery rendering concerns.
 
 ## Future Work
 
-- Richer field-type-specific template designer affordances.
+- Continue expanding field-type-specific template designer previews into
+  fully specialized authoring controls.
 - Visual content editor.
 - Workflow management UI.
 - Publishing dashboard.

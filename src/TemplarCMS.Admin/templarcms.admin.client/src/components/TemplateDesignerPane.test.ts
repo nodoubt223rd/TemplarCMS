@@ -16,6 +16,8 @@ describe('TemplateDesignerPane', () => {
 
     expect(helpText).toContain('General links can point to an internal content item or an external URL.')
     expect(helpText).toContain('Editor: general-link')
+    expect(helpText).toContain('Storage: Version-specific per language')
+    expect(helpText).toContain('Authors can switch between internal content targets and external URLs.')
   })
 
   it('preserves unsupported field types in the selector with guidance', async () => {
@@ -93,6 +95,40 @@ describe('TemplateDesignerPane', () => {
     expect(wrapper.text()).toContain('SEO')
     expect(wrapper.text()).toContain('Meta Description')
     expect(wrapper.text()).toContain('1 sections · 1 fields')
+  })
+
+  it('shows detailed number editor hints from field type metadata', () => {
+    const wrapper = mountComponent({
+      sections: [
+        createSection({
+          fields: [
+            createField({
+              type: 'DecimalNumber'
+            })
+          ]
+        })
+      ],
+      availableFieldTypes: [
+        ...createFieldTypes(),
+        {
+          value: 'DecimalNumber',
+          label: 'Decimal Number',
+          editorKind: 'number',
+          inputType: 'number',
+          placeholder: '0.00',
+          rows: null,
+          step: '0.01',
+          helpText: 'Decimal numbers are validated by the API.'
+        }
+      ]
+    })
+
+    const text = wrapper.text()
+
+    expect(text).toContain('Authors enter numeric values with browser-level number controls.')
+    expect(text).toContain('HTML input: number')
+    expect(text).toContain('Suggested placeholder: 0.00')
+    expect(text).toContain('Validation step: 0.01')
   })
 })
 

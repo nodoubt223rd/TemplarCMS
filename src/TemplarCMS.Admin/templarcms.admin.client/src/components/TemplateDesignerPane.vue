@@ -11,6 +11,10 @@ import {
   getFieldTypeDefinition,
   getFieldTypeOptions
 } from '@/utils/editor-fields'
+import {
+  getTemplateDesignerFieldBehaviorHints,
+  getTemplateDesignerFieldStorageLabel
+} from '@/utils/template-designer-fields'
 
 const props = defineProps<{
   form: TemplateDesignerFormState
@@ -73,6 +77,10 @@ function getFieldTypeDefinitionFor(value: string): FieldTypeResponse {
 
 function getFieldTypeOptionsFor(value: string): FieldTypeResponse[] {
   return getFieldTypeOptions(value, props.availableFieldTypes)
+}
+
+function isSupportedFieldType(value: string): boolean {
+  return props.availableFieldTypes.some(fieldType => fieldType.value === value)
 }
 </script>
 
@@ -322,7 +330,7 @@ function getFieldTypeOptionsFor(value: string): FieldTypeResponse[] {
                   </template>
                 </small>
                 <small
-                  v-if="!availableFieldTypes.some(fieldType => fieldType.value === field.type)"
+                  v-if="!isSupportedFieldType(field.type)"
                   class="field-help"
                 >
                   This field keeps an existing unsupported type visible so you can preserve it or replace it intentionally.
@@ -334,6 +342,21 @@ function getFieldTypeOptionsFor(value: string): FieldTypeResponse[] {
                   {{ getFieldTypeDefinitionFor(field.type).helpText }}
                 </small>
               </label>
+            </div>
+
+            <div class="template-field-preview">
+              <span class="callout">Storage: {{ getTemplateDesignerFieldStorageLabel(field) }}</span>
+              <ul class="template-field-preview__list">
+                <li
+                  v-for="hint in getTemplateDesignerFieldBehaviorHints(getFieldTypeDefinitionFor(field.type))"
+                  :key="hint"
+                >
+                  {{ hint }}
+                </li>
+              </ul>
+              <small v-if="field.isShared" class="field-help">
+                Shared fields always save with versioning disabled.
+              </small>
             </div>
 
             <div class="template-field-toggles">

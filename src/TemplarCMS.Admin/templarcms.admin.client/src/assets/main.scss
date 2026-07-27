@@ -577,6 +577,24 @@ button {
   gap: 0.6rem;
 }
 
+.template-field-preview {
+  display: grid;
+  gap: 0.55rem;
+  margin-bottom: 0.85rem;
+  padding: 0.8rem 0.9rem;
+  border-radius: 0.85rem;
+  background: rgba(109, 127, 56, 0.06);
+  border: 1px solid rgba(109, 127, 56, 0.1);
+}
+
+.template-field-preview__list {
+  margin: 0;
+  padding-left: 1rem;
+  color: var(--ink-soft);
+  display: grid;
+  gap: 0.2rem;
+}
+
 .checkbox-field {
   display: flex;
   gap: 0.65rem;

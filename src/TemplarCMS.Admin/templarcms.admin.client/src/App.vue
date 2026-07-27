@@ -81,6 +81,7 @@ import {
   removeTemplateDraftSection,
   validateTemplateDesignerState
 } from './utils/template-designer'
+import { applyTemplateDraftFieldUpdate } from './utils/template-designer-fields'
 
 const language = ref('en')
 const version = ref(1)
@@ -694,10 +695,7 @@ function updateTemplateField(
           ...section,
           fields: section.fields.map(field =>
             field.id === fieldId
-              ? {
-                  ...field,
-                  ...update
-                }
+              ? applyTemplateDraftFieldUpdate(field, update)
               : field)
         })
 }
