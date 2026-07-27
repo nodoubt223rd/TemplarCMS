@@ -174,6 +174,60 @@ describe('TemplateDesignerPane', () => {
     expect(text).toContain('Validation step: 0.01')
   })
 
+  it('shows when keys are auto-drafted from names', () => {
+    const wrapper = mountComponent({
+      form: createForm({
+        name: 'Article Page',
+        key: 'article-page'
+      }),
+      sections: [
+        createSection({
+          name: 'Hero Banner',
+          key: 'hero-banner',
+          fields: [
+            createField({
+              name: 'CTA Link',
+              key: 'cta-link'
+            })
+          ]
+        })
+      ]
+    })
+
+    const text = wrapper.text()
+
+    expect(text).toContain('Auto-drafting key from the name as article-page.')
+    expect(text).toContain('Auto-drafting key from the name as hero-banner.')
+    expect(text).toContain('Auto-drafting key from the name as cta-link.')
+  })
+
+  it('shows suggested drafts when keys have been customized', () => {
+    const wrapper = mountComponent({
+      form: createForm({
+        name: 'Article Page',
+        key: 'landing-page'
+      }),
+      sections: [
+        createSection({
+          name: 'Hero Banner',
+          key: 'marketing-hero',
+          fields: [
+            createField({
+              name: 'CTA Link',
+              key: 'primary-link'
+            })
+          ]
+        })
+      ]
+    })
+
+    const text = wrapper.text()
+
+    expect(text).toContain('Custom key. Suggested draft is article-page.')
+    expect(text).toContain('Custom key. Suggested draft is hero-banner.')
+    expect(text).toContain('Custom key. Suggested draft is cta-link.')
+  })
+
   it('shows an effective template preview that merges inherited and local sections', () => {
     const wrapper = mountComponent({
       form: createForm({

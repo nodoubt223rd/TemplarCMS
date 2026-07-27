@@ -19,3 +19,10 @@ export function syncTemplateDesignerDraftKey(
 
   return buildTemplateDesignerKeyDraft(nextName)
 }
+
+export function isTemplateDesignerKeyFollowingName(
+  currentKey: string,
+  name: string
+): boolean {
+  return currentKey === buildTemplateDesignerKeyDraft(name)
+}
