@@ -110,6 +110,8 @@ Requested standard-template sections:
 - `Appearance`
 - `Help`
 - `Layout`
+- `Insert Options`
+- `Item Buckets`
 - `Lifetime`
 - `Indexing`
 - `Publishing`
@@ -120,6 +122,100 @@ Requested standard-template sections:
 - `Validators`
 - `Workflow`
 - `Version`
+
+Candidate field inventory from the latest Sitecore reference review:
+- `Advanced`
+  `__Enable item fallback` (`Checkbox`)
+  `__Enforce version presence` (`Checkbox`)
+  `__Source Item` (`Version Link`)
+  `__Source` (`Version Link`)
+  `__Standard values` (`Droptree`)
+  `__Tracking` (`Tracking`)
+- `Appearance`
+  `__Context Menu` (`Droptree`)
+  `__Display name` (`Single-Line Text`)
+  `__Editor` (`Server File`)
+  `__Editors` (`TreelistEx`)
+  `__Hidden` (`Checkbox`)
+  `__Icon` (`Icon`)
+  `__Originator` (`Droptree`)
+  `__Preview` (`Page Preview`)
+  `__Read Only` (`Checkbox`)
+  `__Ribbon` (`Droptree`)
+  `__Skin` (`Single-Line Text`)
+  `__Sortorder` (`Single-Line Text`)
+  `__Style` (`Single-Line Text`)
+  `__Subitems Sorting` (`Droplink`)
+  `__Thumbnail` (`Thumbnail`)
+- `Help`
+  `__Help link` (`General Link`)
+  `__Long description` (`Multi-Line Text`)
+  `__Short description` (`Single-Line Text`)
+- `Layout`
+  `__Content Test` (`Droptree`)
+  `__Controller Action` (`Text`)
+  `__Controller` (`Text`)
+  `__Final Renderings` (`Layout`)
+  `__Page Level Test Set Definition` (`Datasource`)
+  `__Presets` (`Treelist`)
+  `__Renderers` (`Multi-Line Text`)
+  `__Renderings` (`Layout`)
+- `Lifetime`
+  `__Hide version` (`Checkbox`)
+  `__Valid from` (`DateTime`)
+  `__Valid to` (`DateTime`)
+- `Indexing`
+  `__Boost` (`Single-Line Text`)
+  `__Boosting Rules` (`TreelistEx`)
+  `__Facets` (`Treelist`)
+- `Insert Options`
+  `__Insert Rules` (`TreelistEx`)
+  `__Masters` (`TreelistEx`)
+- `Item Buckets`
+  `__Bucket Parent Reference` (`Droptree`)
+  `__Bucketable` (`Checkbox`)
+  `__Default Bucket Query` (`Query Builder`)
+  `__Default View` (`Droplist`)
+  `__Enabled Views` (`Multilist`)
+  `__Is Bucket` (`Checkbox`)
+  `__Persistent Bucket Filter` (`Query Builder`)
+  `__Quick Actions` (`Multilist`)
+  `__Should Not Organize In Bucket` (`Checkbox`)
+- `Publishing`
+  `__Never publish` (`Checkbox`)
+  `__Publish` (`DateTime`)
+  `__Publishing groups` (`Checklist`)
+  `__Unpublish` (`DateTime`)
+- `Security`
+  `__Owner` (`Single-Line Text`)
+  `__Security` (`Security`)
+- `Statistics`
+  `__Created by` (`Single-Line Text`)
+  `__Created` (`DateTime`)
+  `__Revision` (`Single-Line Text`)
+  `__Updated by` (`Single-Line Text`)
+  `__Updated` (`DateTime`)
+- `Tagging`
+  `__Semantics` (`Multilist with Search`)
+- `Tasks`
+  `__Archive date` (`DateTime`)
+  `__Archive Version date` (`DateTime`)
+  `__Reminder date` (`DateTime`)
+  `__Reminder recipients` (`Single-Line Text`)
+  `__Reminder text` (`Multi-Line Text`)
+- `Validators`
+  `__Quick Action Bar Validation Rules` (`TreelistEx`)
+  `__Suppressed Validation Rules` (`Multi-Line Text`)
+  `__Validate Button Validation Rules` (`TreelistEx`)
+  `__Validator Bar Validation Rules` (`TreelistEx`)
+  `__Workflow Validation Rules` (`TreelistEx`)
+- `Workflow`
+  `__Default workflow` (`Droptree`)
+  `__Lock` (`Multi-Line Text`)
+  `__Workflow state` (`Droptree`)
+  `__Workflow` (`Droptree`)
+- `Version`
+  `__Version Name` (`Single-Line Text`)
 
 Field-type signal from this request:
 - Already represented in the request: `Checkbox`, `Single-Line Text`,
@@ -133,6 +229,8 @@ Field-type signal from this request:
 Notes:
 - This input is valuable because it reveals which field editors business
   expects to see in a realistic CMS authoring baseline.
+- Some `standard` template fields may remain intentionally hidden from
+  lower-privilege authoring accounts even when they exist in the model.
 - The current typed-value/runtime work should stay compatible with these
   future field types even if the admin editor support arrives later.
 
