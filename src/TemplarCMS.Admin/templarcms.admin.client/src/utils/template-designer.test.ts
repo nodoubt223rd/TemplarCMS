@@ -7,6 +7,7 @@ import {
   addTemplateDraftSection,
   buildTemplateDesignerPayload,
   createNewTemplateDesignerState,
+  getDefaultTemplateDesignerBaseTemplateId,
   mapTemplateToDesignerState,
   removeTemplateDraftField,
   removeTemplateDraftSection,
@@ -33,7 +34,7 @@ import {
 describe('template designer utilities', () => {
   it('creates a new designer state with one empty section and field', () => {
     const ids = ['section-1', 'field-1']
-    const state = createNewTemplateDesignerState(() => ids.shift() ?? 'fallback')
+    const state = createNewTemplateDesignerState('', () => ids.shift() ?? 'fallback')
 
     expect(state).toEqual({
       form: {
@@ -62,6 +63,31 @@ describe('template designer utilities', () => {
         }
       ]
     })
+  })
+
+  it('uses standard as the default base template when available', () => {
+    expect(
+      getDefaultTemplateDesignerBaseTemplateId([
+        {
+          id: 'standard-id',
+          name: 'Standard',
+          key: 'standard',
+          _links: {
+            self: { href: '/api/v1/templates/standard-id' },
+            fields: { href: '/api/v1/templates/standard-id/fields' },
+            dependencies: { href: '/api/v1/templates/standard-id/dependencies' },
+            'create-item': { href: '/api/v1/content' }
+          }
+        }
+      ])
+    ).toBe('standard-id')
+
+    expect(
+      createNewTemplateDesignerState(
+        'standard-id',
+        () => 'section-1'
+      ).form.baseTemplateId
+    ).toBe('standard-id')
   })
 
   it('maps a template response into editable designer state', () => {

@@ -1,4 +1,4 @@
-import type { TemplateResponse } from '@/types/admin-api'
+import type { TemplateResponse, TemplateSummaryResponse } from '@/types/admin-api'
 import type {
   TemplateDesignerFormState,
   TemplateDesignerPayload,
@@ -18,6 +18,12 @@ export function createTemplateDesignerFormState(): TemplateDesignerFormState {
     key: '',
     baseTemplateId: ''
   }
+}
+
+export function getDefaultTemplateDesignerBaseTemplateId(
+  availableTemplates: readonly TemplateSummaryResponse[]
+): string {
+  return availableTemplates.find(template => template.key.toLowerCase() === 'standard')?.id ?? ''
 }
 
 export function createTemplateDraftField(idFactory: IdFactory = defaultIdFactory): TemplateDraftField {
@@ -45,10 +51,14 @@ export function createTemplateDraftSection(
 }
 
 export function createNewTemplateDesignerState(
+  defaultBaseTemplateId: string = '',
   idFactory: IdFactory = defaultIdFactory
 ): { form: TemplateDesignerFormState; sections: TemplateDraftSection[] } {
   return {
-    form: createTemplateDesignerFormState(),
+    form: {
+      ...createTemplateDesignerFormState(),
+      baseTemplateId: defaultBaseTemplateId
+    },
     sections: [createTemplateDraftSection(idFactory)]
   }
 }
