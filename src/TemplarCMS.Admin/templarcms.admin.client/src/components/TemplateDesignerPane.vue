@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { FieldTypeResponse, TemplateSummaryResponse } from '@/types/admin-api'
-import type { TemplateSectionViewModel } from '@/types/admin-ui'
+import type { TemplateFieldViewModel, TemplateSectionViewModel } from '@/types/admin-ui'
 import type {
   TemplateDesignerFormState,
   TemplateDraftSection
@@ -13,8 +13,14 @@ import {
 } from '@/utils/editor-fields'
 import {
   getTemplateDesignerFieldBehaviorHints,
+  getTemplateDesignerFieldScopeLabel,
   getTemplateDesignerFieldStorageLabel
 } from '@/utils/template-designer-fields'
+import {
+  findInheritedFieldMatch,
+  findInheritedSectionMatch
+} from '@/utils/template-designer-inheritance'
+import { buildTemplateDesignerPreviewWorkspace } from '@/utils/template-designer-preview'
 
 const props = defineProps<{
   form: TemplateDesignerFormState
@@ -70,6 +76,12 @@ function readCheckedValue(event: Event): boolean {
 }
 
 const fieldTypeLookup = computed(() => createFieldTypeLookup(props.availableFieldTypes))
+const effectiveTemplatePreview = computed(() =>
+  buildTemplateDesignerPreviewWorkspace(
+    props.sections,
+    props.inheritedTemplateSections,
+    props.availableFieldTypes
+  ))
 
 function getFieldTypeDefinitionFor(value: string): FieldTypeResponse {
   return getFieldTypeDefinition(value, fieldTypeLookup.value)
@@ -81,6 +93,17 @@ function getFieldTypeOptionsFor(value: string): FieldTypeResponse[] {
 
 function isSupportedFieldType(value: string): boolean {
   return props.availableFieldTypes.some(fieldType => fieldType.value === value)
+}
+
+function getInheritedSectionMatchFor(sectionKey: string): TemplateSectionViewModel | null {
+  return findInheritedSectionMatch(sectionKey, props.inheritedTemplateSections)
+}
+
+function getInheritedFieldMatchFor(
+  sectionKey: string,
+  fieldKey: string
+): { section: TemplateSectionViewModel; field: TemplateFieldViewModel } | null {
+  return findInheritedFieldMatch(sectionKey, fieldKey, props.inheritedTemplateSections)
 }
 </script>
 
@@ -159,6 +182,55 @@ function isSupportedFieldType(value: string): boolean {
       </ul>
     </div>
 
+    <section class="template-section-card">
+      <div class="template-section-card__header">
+        <div>
+          <h5>Effective Template Preview</h5>
+          <p>Merged authoring view after inherited sections and local overrides are applied.</p>
+        </div>
+        <span class="callout">
+          {{ effectiveTemplatePreview.sections.length }} sections ·
+          {{ effectiveTemplatePreview.fieldCount }} fields
+        </span>
+      </div>
+
+      <div v-if="effectiveTemplatePreview.sections.length === 0" class="empty-state empty-state--compact">
+        Add sections and fields to preview the authored template structure.
+      </div>
+
+      <div v-else class="template-section-stack">
+        <section
+          v-for="section in effectiveTemplatePreview.sections"
+          :key="section.id"
+          class="template-field-editor"
+        >
+          <div class="template-section-card__header">
+            <div>
+              <h5>{{ section.name }}</h5>
+              <p>{{ section.key }}</p>
+            </div>
+            <span class="callout">Section: {{ section.originLabel }}</span>
+          </div>
+
+          <ul class="template-field-list">
+            <li
+              v-for="field in section.fields"
+              :key="field.id"
+              class="template-field-item"
+            >
+              <div>
+                <strong>{{ field.name }}</strong>
+                <p>{{ field.key }}</p>
+              </div>
+              <span class="template-field-item__meta">
+                {{ field.type }} · {{ field.scopeLabel }} · {{ field.originLabel }}
+              </span>
+            </li>
+          </ul>
+        </section>
+      </div>
+    </section>
+
     <section v-if="form.baseTemplateId.length > 0" class="template-section-card">
       <div class="template-section-card__header">
         <div>
@@ -224,7 +296,13 @@ function isSupportedFieldType(value: string): boolean {
         <div class="template-section-card__header">
           <div>
             <h5>Section {{ sectionIndex + 1 }}</h5>
-            <p>Local authored section</p>
+            <p>
+              {{
+                getInheritedSectionMatchFor(section.key) == null
+                  ? 'Local authored section'
+                  : 'Overrides inherited section metadata and extends the merged section.'
+              }}
+            </p>
           </div>
           <div class="template-inline-actions">
             <button class="button button--secondary" type="button" @click="emit('addField', section.id)">
@@ -354,8 +432,21 @@ function isSupportedFieldType(value: string): boolean {
                   {{ hint }}
                 </li>
               </ul>
+              <small
+                v-if="getInheritedFieldMatchFor(section.key, field.key) != null"
+                class="field-help"
+              >
+                Overrides inherited field
+                {{ getInheritedFieldMatchFor(section.key, field.key)?.field.name }}
+                from {{ getInheritedFieldMatchFor(section.key, field.key)?.section.name }}
+                ({{ getInheritedFieldMatchFor(section.key, field.key)?.field.type }} ·
+                {{ getInheritedFieldMatchFor(section.key, field.key)?.field.scopeLabel }}).
+              </small>
               <small v-if="field.isShared" class="field-help">
                 Shared fields always save with versioning disabled.
+              </small>
+              <small v-else-if="getTemplateDesignerFieldScopeLabel(field) === 'Unversioned'" class="field-help">
+                This field keeps one value per language while sharing it across versions.
               </small>
             </div>
 

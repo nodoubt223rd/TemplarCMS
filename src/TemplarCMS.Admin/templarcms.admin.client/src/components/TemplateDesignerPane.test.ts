@@ -97,6 +97,49 @@ describe('TemplateDesignerPane', () => {
     expect(wrapper.text()).toContain('1 sections · 1 fields')
   })
 
+  it('shows override guidance when local sections and fields match inherited keys', () => {
+    const wrapper = mountComponent({
+      form: createForm({
+        baseTemplateId: 'base-template-id'
+      }),
+      inheritedTemplateSections: [
+        {
+          id: 'section-base',
+          name: 'SEO',
+          key: 'seo',
+          sortOrder: 100,
+          fields: [
+            {
+              id: 'field-base',
+              name: 'Meta Description',
+              key: 'metaDescription',
+              type: 'Single-Line Text',
+              scopeLabel: 'Versioned'
+            }
+          ]
+        }
+      ],
+      sections: [
+        createSection({
+          name: 'SEO Override',
+          key: 'seo',
+          fields: [
+            createField({
+              name: 'Replacement Meta Description',
+              key: 'metaDescription',
+              type: 'SingleLineText'
+            })
+          ]
+        })
+      ]
+    })
+
+    const text = wrapper.text()
+
+    expect(text).toContain('Overrides inherited section metadata and extends the merged section.')
+    expect(text).toContain('Overrides inherited field Meta Description from SEO (Single-Line Text · Versioned).')
+  })
+
   it('shows detailed number editor hints from field type metadata', () => {
     const wrapper = mountComponent({
       sections: [
@@ -129,6 +172,60 @@ describe('TemplateDesignerPane', () => {
     expect(text).toContain('HTML input: number')
     expect(text).toContain('Suggested placeholder: 0.00')
     expect(text).toContain('Validation step: 0.01')
+  })
+
+  it('shows an effective template preview that merges inherited and local sections', () => {
+    const wrapper = mountComponent({
+      form: createForm({
+        baseTemplateId: 'base-template-id'
+      }),
+      inheritedTemplateSections: [
+        {
+          id: 'section-base',
+          name: 'SEO',
+          key: 'seo',
+          sortOrder: 100,
+          fields: [
+            {
+              id: 'field-base',
+              name: 'Meta Description',
+              key: 'metaDescription',
+              type: 'Single-Line Text',
+              scopeLabel: 'Versioned'
+            }
+          ]
+        }
+      ],
+      sections: [
+        createSection({
+          name: 'SEO Override',
+          key: 'seo',
+          sortOrder: 100,
+          fields: [
+            createField({
+              name: 'Meta Description Override',
+              key: 'metaDescription',
+              type: 'SingleLineText'
+            }),
+            createField({
+              id: 'field-2',
+              name: 'Canonical Url',
+              key: 'canonicalUrl',
+              type: 'SingleLineText'
+            })
+          ]
+        })
+      ]
+    })
+
+    const text = wrapper.text()
+
+    expect(text).toContain('Effective Template Preview')
+    expect(text).toContain('Merged authoring view after inherited sections and local overrides are applied.')
+    expect(text).toContain('1 sections · 2 fields')
+    expect(text).toContain('Section: Override')
+    expect(text).toContain('Single-Line Text · Versioned · Override')
+    expect(text).toContain('Single-Line Text · Versioned · Local')
   })
 })
 

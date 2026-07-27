@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { TemplateResponse } from '@/types/admin-api'
+import type { TemplateSectionViewModel } from '@/types/admin-ui'
 import type { TemplateDraftSection } from '@/types/template-designer'
 import {
   addTemplateDraftField,
@@ -365,6 +366,40 @@ describe('template designer utilities', () => {
       "Duplicate section key 'hero'.",
       "Duplicate field key 'summary' appears across the template."
     ])
+  })
+
+  it('validates collisions against inherited base template sections and fields', () => {
+    const errors = validateTemplateDesignerState(
+      {
+        mode: 'create',
+        templateId: '',
+        name: 'Landing Page',
+        key: 'landing-page',
+        baseTemplateId: 'base-id'
+      },
+      [
+        {
+          id: 'section-1',
+          name: 'SEO Override',
+          key: 'seo',
+          sortOrder: 100,
+          fields: [
+            {
+              id: 'field-1',
+              name: 'Replacement Meta Description',
+              key: 'metaDescription',
+              type: 'SingleLineText',
+              isShared: false,
+              isUnversioned: false
+            }
+          ]
+        }
+      ],
+      ['SingleLineText'],
+      'base-page'
+    )
+
+    expect(errors).toEqual([])
   })
 
   it('validates missing authored structure before submit', () => {
