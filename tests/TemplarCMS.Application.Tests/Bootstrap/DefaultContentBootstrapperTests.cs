@@ -29,12 +29,12 @@ public sealed class DefaultContentBootstrapperTests
             templates.Select(template => template.Key.ToString()).OrderBy(key => key, StringComparer.Ordinal).ToArray();
 
         Assert.Equal(
-            ["folder", "item", "standard"],
+            BuiltInTemplateKeys.All.Select(key => key.ToString()).OrderBy(key => key, StringComparer.Ordinal).ToArray(),
             templateKeys);
 
-        var standardTemplate = Assert.Single(templates, template => template.Key == new TemplateKey("standard"));
-        var folderTemplate = Assert.Single(templates, template => template.Key == new TemplateKey("folder"));
-        var itemTemplate = Assert.Single(templates, template => template.Key == new TemplateKey("item"));
+        var standardTemplate = Assert.Single(templates, template => template.Key == BuiltInTemplateKeys.Standard);
+        var folderTemplate = Assert.Single(templates, template => template.Key == BuiltInTemplateKeys.Folder);
+        var itemTemplate = Assert.Single(templates, template => template.Key == BuiltInTemplateKeys.Item);
 
         Assert.Null(standardTemplate.BaseTemplate);
         Assert.NotNull(folderTemplate.BaseTemplate);
@@ -77,6 +77,12 @@ public sealed class DefaultContentBootstrapperTests
         Assert.NotNull(images);
         Assert.NotNull(files);
         Assert.NotNull(standardItem);
+        Assert.Equal(SystemSeedContentIds.TemplarRoot, templar.Id);
+        Assert.Equal(SystemSeedContentIds.Home, home.Id);
+        Assert.Equal(SystemSeedContentIds.Settings, settings.Id);
+        Assert.Equal(SystemSeedContentIds.Images, images.Id);
+        Assert.Equal(SystemSeedContentIds.Files, files.Id);
+        Assert.Equal(SystemSeedContentIds.StandardTemplateItem, standardItem.Id);
         Assert.Equal(folderTemplate.Id, templar.TemplateId);
         Assert.Equal(itemTemplate.Id, home.TemplateId);
 
@@ -92,7 +98,7 @@ public sealed class DefaultContentBootstrapperTests
 
         var effectiveItemTemplate =
             await catalog.GetEffectiveTemplateAsync(
-                new TemplateKey("item"),
+                BuiltInTemplateKeys.Item,
                 TestContext.Current.CancellationToken);
 
         Assert.NotNull(effectiveItemTemplate);

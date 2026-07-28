@@ -30,9 +30,9 @@ public sealed class BuiltInTemplateRepositoryTests
         var templates =
             await repository.GetTemplatesAsync(TestContext.Current.CancellationToken);
 
-        Assert.Contains(templates, template => template.Key == new TemplateKey("standard"));
-        Assert.Contains(templates, template => template.Key == new TemplateKey("folder"));
-        Assert.Contains(templates, template => template.Key == new TemplateKey("item"));
+        Assert.Contains(templates, template => template.Key == BuiltInTemplateKeys.Standard);
+        Assert.Contains(templates, template => template.Key == BuiltInTemplateKeys.Folder);
+        Assert.Contains(templates, template => template.Key == BuiltInTemplateKeys.Item);
         Assert.Contains(templates, template => template.Key == mutableTemplate.Key);
     }
 
@@ -47,7 +47,7 @@ public sealed class BuiltInTemplateRepositoryTests
             new TemplateDefinition(
                 new TemplateId(Guid.NewGuid()),
                 "Standard Clone",
-                new TemplateKey("standard"));
+                BuiltInTemplateKeys.Standard);
 
         var exception =
             await Assert.ThrowsAsync<InvalidOperationException>(() =>
@@ -69,12 +69,12 @@ public sealed class BuiltInTemplateRepositoryTests
             new TemplateDefinition(
                 new TemplateId(Guid.NewGuid()),
                 "Standard",
-                new TemplateKey("standard"));
+                BuiltInTemplateKeys.Standard);
 
         var exception =
             await Assert.ThrowsAsync<InvalidOperationException>(() =>
                 repository.UpdateTemplateAsync(
-                    new TemplateKey("standard"),
+                    BuiltInTemplateKeys.Standard,
                     template,
                     TestContext.Current.CancellationToken));
 
@@ -92,7 +92,7 @@ public sealed class BuiltInTemplateRepositoryTests
         var exception =
             await Assert.ThrowsAsync<InvalidOperationException>(() =>
                 repository.DeleteTemplateAsync(
-                    new TemplateKey("standard"),
+                    BuiltInTemplateKeys.Standard,
                     TestContext.Current.CancellationToken));
 
         Assert.Contains("source-controlled", exception.Message);
