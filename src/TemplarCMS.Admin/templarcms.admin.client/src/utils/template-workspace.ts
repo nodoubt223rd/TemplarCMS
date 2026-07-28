@@ -1,6 +1,7 @@
 import type { FieldTypeResponse, TemplateResponse, TemplateSectionResponse } from '@/types/admin-api'
 import type { TemplateWorkspaceViewModel, TemplateSectionViewModel } from '@/types/admin-ui'
 import { getFieldTypeLabel } from './editor-fields'
+import { getAuthorVisibleSectionFields } from './field-visibility'
 
 export function buildTemplateWorkspaceViewModel(
   template: TemplateResponse | null,
@@ -26,7 +27,7 @@ function mapTemplateSectionViewModel(
     name: section.name,
     key: section.key,
     sortOrder: section.sortOrder,
-    fields: section.fields
+    fields: getAuthorVisibleSectionFields(section.fields)
       .slice()
       .sort((left, right) => left.name.localeCompare(right.name) || left.key.localeCompare(right.key))
       .map(field => ({

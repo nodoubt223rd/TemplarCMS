@@ -56,6 +56,14 @@ describe('buildTemplateWorkspaceViewModel', () => {
               isShared: true
             }),
             createField({
+              id: 'field-hidden',
+              name: 'Owner',
+              key: '__owner',
+              metadata: {
+                'templar.visibility': 'system'
+              }
+            }),
+            createField({
               id: 'field-a',
               name: 'Summary',
               key: 'summary',
@@ -151,6 +159,7 @@ function createField(overrides: Partial<TemplateSectionResponse['fields'][number
     type: 'SingleLineText',
     isShared: false,
     isUnversioned: false,
+    metadata: null,
     ...overrides
   }
 }

@@ -601,7 +601,10 @@ public static class TemplateEndpoints
                                     Key = field.Key,
                                     Type = field.FieldType.ToString(),
                                     IsShared = field.IsShared,
-                                    IsUnversioned = field.IsUnversioned
+                                    IsUnversioned = field.IsUnversioned,
+                                    Metadata = field.Metadata.Count == 0
+                                        ? null
+                                        : field.Metadata
                                 })
                             .ToArray()
                     })
@@ -754,6 +757,9 @@ public static class TemplateEndpoints
                                 Type = field.FieldType.ToString(),
                                 IsShared = field.IsShared,
                                 IsUnversioned = field.IsUnversioned,
+                                Metadata = field.Metadata.Count == 0
+                                    ? null
+                                    : field.Metadata,
                                 SectionId = section.Id.ToString(),
                                 SectionName = section.Name,
                                 SectionKey = section.Key,

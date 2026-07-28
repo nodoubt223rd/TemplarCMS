@@ -109,6 +109,7 @@ export type TemplateFieldResponse = {
   type: string
   isShared: boolean
   isUnversioned: boolean
+  metadata?: Record<string, string> | null
 }
 
 export type TemplateSectionResponse = {
@@ -153,6 +154,7 @@ export type TemplateFieldItemResponse = {
   type: string
   isShared: boolean
   isUnversioned: boolean
+  metadata?: Record<string, string> | null
   sectionId: string
   sectionName: string
   sectionKey: string

@@ -124,6 +124,8 @@ public sealed class TemplateFieldResponse
     public required bool IsShared { get; init; }
 
     public required bool IsUnversioned { get; init; }
+
+    public IReadOnlyDictionary<string, string>? Metadata { get; init; }
 }
 
 public sealed class TemplateFieldCollectionResponse
@@ -152,6 +154,8 @@ public sealed class TemplateFieldItemResponse
     public required bool IsShared { get; init; }
 
     public required bool IsUnversioned { get; init; }
+
+    public IReadOnlyDictionary<string, string>? Metadata { get; init; }
 
     public required string SectionId { get; init; }
 

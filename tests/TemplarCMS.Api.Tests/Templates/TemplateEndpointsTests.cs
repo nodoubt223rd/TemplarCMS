@@ -1001,7 +1001,28 @@ public sealed class TemplateEndpointsTests
     public async Task GetFieldsByIdAsync_ShouldReturnOk_WhenTemplateExists()
     {
         var template =
-            CreateTemplate();
+            new EffectiveTemplateDefinition(
+                new TemplateId(Guid.NewGuid()),
+                "Article Page",
+                new TemplateKey("article-page"),
+                [
+                    new TemplateSectionDefinition(
+                        Guid.NewGuid(),
+                        "Content",
+                        "content",
+                        100,
+                        [
+                            new FieldDefinition(
+                                new FieldId(Guid.NewGuid()),
+                                "Title",
+                                "title",
+                                FieldType.SingleLineText,
+                                metadata: new Dictionary<string, string>
+                                {
+                                    [FieldVisibilityMetadata.VisibilityKey] = FieldVisibilityMetadata.SystemValue
+                                })
+                        ])
+                ]);
         var catalog =
             new FakeContentModelCatalog(
                 template);
@@ -1019,6 +1040,10 @@ public sealed class TemplateEndpointsTests
         Assert.Equal("title", field.Key);
         Assert.Equal("SingleLineText", field.Type);
         Assert.Equal("content", field.SectionKey);
+        Assert.NotNull(field.Metadata);
+        Assert.Equal(
+            FieldVisibilityMetadata.SystemValue,
+            field.Metadata![FieldVisibilityMetadata.VisibilityKey]);
         Assert.Equal($"/api/v1/templates/{template.Id.Value}/fields", ok.Value.Links.Self.Href);
         Assert.Equal($"/api/v1/templates/{template.Id.Value}", ok.Value.Links.Template.Href);
         Assert.Equal($"/api/v1/templates/{template.Id.Value}/dependencies", ok.Value.Links.Dependencies.Href);
