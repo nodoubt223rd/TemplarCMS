@@ -84,7 +84,11 @@ public sealed class TemplateEndpointsTests
                 "Content",
                 "content",
                 100,
-                [field]);
+                [field],
+                new Dictionary<string, string>(StringComparer.Ordinal)
+                {
+                    [SectionVisibilityMetadata.VisibilityKey] = SectionVisibilityMetadata.SystemValue
+                });
         var authoredTemplate =
             new TemplateDefinition(
                 new TemplateId(Guid.NewGuid()),
@@ -115,7 +119,11 @@ public sealed class TemplateEndpointsTests
         Assert.Equal(template.Id.Value.ToString(), response.Id);
         Assert.Equal(template.Name, response.Name);
         Assert.Equal(template.Key.ToString(), response.Key);
-        Assert.Single(response.Sections);
+        var responseSection = Assert.Single(response.Sections);
+        Assert.NotNull(responseSection.Metadata);
+        Assert.Equal(
+            SectionVisibilityMetadata.SystemValue,
+            responseSection.Metadata![SectionVisibilityMetadata.VisibilityKey]);
         Assert.Equal($"/api/v1/templates/{template.Id.Value}", response.Links.Self.Href);
         Assert.Equal($"/api/v1/templates/{template.Id.Value}/fields", response.Links.Fields.Href);
         Assert.Equal($"/api/v1/templates/{template.Id.Value}/dependencies", response.Links.Dependencies.Href);

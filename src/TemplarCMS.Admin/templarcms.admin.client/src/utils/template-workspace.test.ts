@@ -43,6 +43,22 @@ describe('buildTemplateWorkspaceViewModel', () => {
       key: 'article',
       sections: [
         createSection({
+          id: 'section-hidden',
+          name: 'Advanced',
+          key: 'advanced',
+          sortOrder: 50,
+          metadata: {
+            'templar.visibility': 'system'
+          },
+          fields: [
+            createField({
+              id: 'field-system',
+              name: 'Owner',
+              key: '__owner'
+            })
+          ]
+        }),
+        createSection({
           id: 'section-b',
           name: 'Meta',
           key: 'meta',
@@ -146,6 +162,7 @@ function createSection(overrides: Partial<TemplateSectionResponse>): TemplateSec
     name: 'Section',
     key: 'section',
     sortOrder: 100,
+    metadata: null,
     fields: [],
     ...overrides
   }

@@ -10,7 +10,8 @@ public sealed class TemplateSectionDefinition
         string name,
         string key,
         int sortOrder = 100,
-        IReadOnlyCollection<FieldDefinition>? fields = null)
+        IReadOnlyCollection<FieldDefinition>? fields = null,
+        IReadOnlyDictionary<string, string>? metadata = null)
     {
         if (id == Guid.Empty)
         {
@@ -32,6 +33,9 @@ public sealed class TemplateSectionDefinition
         Key = key.Trim();
         SortOrder = sortOrder;
         Fields = fields?.ToArray() ?? [];
+        Metadata = metadata != null
+            ? new Dictionary<string, string>(metadata, StringComparer.Ordinal)
+            : new Dictionary<string, string>(StringComparer.Ordinal);
     }
 
     /// <summary>
@@ -58,4 +62,9 @@ public sealed class TemplateSectionDefinition
     /// Gets the field definitions contained by this section.
     /// </summary>
     public IReadOnlyCollection<FieldDefinition> Fields { get; }
+
+    /// <summary>
+    /// Gets additional section metadata used by authoring clients and visibility rules.
+    /// </summary>
+    public IReadOnlyDictionary<string, string> Metadata { get; }
 }

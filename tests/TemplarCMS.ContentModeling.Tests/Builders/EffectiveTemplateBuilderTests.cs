@@ -168,6 +168,51 @@ public sealed class EffectiveTemplateBuilderTests
     }
 
     [Fact]
+    public async Task BuildEffectiveTemplateAsync_AppliesDerivedSectionMetadataOverride_WhenSectionKeyMatches()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var baseSection =
+            new TemplateSectionDefinition(
+                Guid.NewGuid(),
+                "Base Content",
+                "content",
+                100,
+                [CreateField("Title", "title")],
+                new Dictionary<string, string>(StringComparer.Ordinal)
+                {
+                    [SectionVisibilityMetadata.VisibilityKey] = SectionVisibilityMetadata.SystemValue
+                });
+        var derivedSection =
+            new TemplateSectionDefinition(
+                Guid.NewGuid(),
+                "Article Content",
+                "content",
+                200,
+                [CreateField("Summary", "summary")]);
+
+        var baseTemplate = CreateTemplate(
+            "Base Page",
+            "base-page",
+            sections: [baseSection]);
+
+        var articleTemplate = CreateTemplate(
+            "Article Page",
+            "article-page",
+            baseTemplate: baseTemplate,
+            sections: [derivedSection]);
+
+        var builder = CreateBuilder();
+
+        var result = await builder.BuildEffectiveTemplateAsync(articleTemplate, cancellationToken);
+
+        Assert.True(result.Succeeded);
+        Assert.NotNull(result.Value);
+
+        var section = Assert.Single(result.Value!.Sections);
+        Assert.Empty(section.Metadata);
+    }
+
+    [Fact]
     public async Task BuildEffectiveTemplateAsync_AppliesDerivedFieldOverride_WhenFieldKeyMatches()
     {
         var cancellationToken = TestContext.Current.CancellationToken;

@@ -48,7 +48,11 @@ public sealed class BuiltInTemplateProvider : IBuiltInTemplateProvider
                                 "metaDescription",
                                 FieldType.MultiLineText,
                                 isUnversioned: true)
-                        ])
+                        ],
+                        new Dictionary<string, string>(StringComparer.Ordinal)
+                        {
+                            [SectionVisibilityMetadata.VisibilityKey] = SectionVisibilityMetadata.SystemValue
+                        })
                 ]);
 
         var folderTemplate =

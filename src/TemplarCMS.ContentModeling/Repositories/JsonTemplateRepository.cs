@@ -268,6 +268,9 @@ public sealed class JsonTemplateRepository : ITemplateRepository
                         Name = section.Name,
                         Key = section.Key,
                         SortOrder = section.SortOrder,
+                        Metadata = new Dictionary<string, string>(
+                            section.Metadata,
+                            StringComparer.Ordinal),
                         Fields = section.Fields
                             .Select(
                                 field => new JsonFieldDefinition

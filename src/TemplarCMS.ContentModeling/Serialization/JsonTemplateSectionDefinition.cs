@@ -19,6 +19,9 @@ public sealed class JsonTemplateSectionDefinition
     [JsonPropertyName("sortOrder")]
     public int SortOrder { get; set; }
 
+    [JsonPropertyName("metadata")]
+    public Dictionary<string, string> Metadata { get; set; } = new(StringComparer.Ordinal);
+
     [JsonPropertyName("fields")]
     public List<JsonFieldDefinition> Fields { get; set; } = new();
 }

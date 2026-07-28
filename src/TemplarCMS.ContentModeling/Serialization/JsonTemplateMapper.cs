@@ -77,7 +77,8 @@ namespace TemplarCMS.ContentModeling.Serialization
                 GetRequiredValue(section.Name, "section.name"),
                 GetRequiredValue(section.Key, "section.key"),
                 section.SortOrder,
-                MapFields(section.Fields));
+                MapFields(section.Fields),
+                section.Metadata);
         }
 
         private IReadOnlyCollection<FieldDefinition> MapFields(IReadOnlyCollection<JsonFieldDefinition>? fields)
