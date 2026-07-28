@@ -1,5 +1,6 @@
 import type { FieldTypeResponse, TemplateFieldItemResponse } from '@/types/admin-api'
 import type { EditorFieldModel } from '@/types/admin-ui'
+import { getAuthorVisibleTemplateFields, isSystemOwnedField } from './field-visibility'
 
 const defaultFieldTypeDefinition: FieldTypeResponse = {
   value: 'SingleLineText',
@@ -53,10 +54,18 @@ export function buildEditorFields(
   templateFields: TemplateFieldItemResponse[],
   fieldTypeLookup: ReadonlyMap<string, FieldTypeResponse>
 ): EditorFieldModel[] {
+  const visibleTemplateFields = getAuthorVisibleTemplateFields(templateFields)
+  const hiddenFieldKeys = new Set(
+    templateFields
+      .filter(isSystemOwnedField)
+      .map(field => field.key)
+  )
+
   return Object.keys(fieldForm)
+    .filter(key => !hiddenFieldKeys.has(key))
     .sort((left, right) => left.localeCompare(right))
     .map(key => {
-      const templateField = templateFields.find(field => field.key === key)
+      const templateField = visibleTemplateFields.find(field => field.key === key)
       const type = templateField?.type ?? 'SingleLineText'
       const editor = getFieldTypeDefinition(type, fieldTypeLookup)
 

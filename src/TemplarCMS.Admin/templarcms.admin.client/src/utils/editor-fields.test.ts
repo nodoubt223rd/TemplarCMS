@@ -114,6 +114,14 @@ describe('editor field utilities', () => {
   it('builds editor field models with template metadata and sorts by key', () => {
     const templateFields: TemplateFieldItemResponse[] = [
       createTemplateField({
+        key: '__owner',
+        name: 'Owner',
+        metadata: {
+          'templar.visibility': 'system'
+        },
+        sectionName: 'System'
+      }),
+      createTemplateField({
         key: 'showInNav',
         name: 'Show In Navigation',
         type: 'Checkbox',
@@ -132,7 +140,8 @@ describe('editor field utilities', () => {
     const result = buildEditorFields(
       {
         showInNav: 'true',
-        heroLink: '{"kind":"external","url":"https://example.com"}'
+        heroLink: '{"kind":"external","url":"https://example.com"}',
+        __owner: 'sitecore\\admin'
       },
       templateFields,
       lookup
