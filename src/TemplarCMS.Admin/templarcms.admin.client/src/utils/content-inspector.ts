@@ -1,8 +1,7 @@
 import type { ContentItemResponse, TemplateSummaryResponse } from '@/types/admin-api'
 import type { CreateFormState, MoveFormState, RenameFormState } from '@/types/content-inspector'
 import { extractParentIdFromHref } from './content-tree'
-
-const excludedCreateTemplateKeys = new Set(['standard'])
+import { getAuthorVisibleTemplates, isSystemOwnedTemplateKey } from './template-visibility'
 
 export function syncInspectorFormsFromItem(
   item: ContentItemResponse,
@@ -97,5 +96,6 @@ export function getTemplateKeyById(
 export function getCreatableTemplates(
   availableTemplates: TemplateSummaryResponse[]
 ): TemplateSummaryResponse[] {
-  return availableTemplates.filter(template => !excludedCreateTemplateKeys.has(template.key.toLowerCase()))
+  return getAuthorVisibleTemplates(availableTemplates)
+    .filter(template => !isSystemOwnedTemplateKey(template.key))
 }
