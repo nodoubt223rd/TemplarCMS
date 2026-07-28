@@ -138,32 +138,59 @@ public sealed class DefaultContentBootstrapper : IDefaultContentBootstrapper
         ContentItemId? parentId,
         CancellationToken cancellationToken)
     {
+        var existingById =
+            await _contentRepository.GetItemAsync(
+                defaultId,
+                cancellationToken);
         var existing =
             await FindChildByKeyAsync(
                 parentId,
                 key,
                 cancellationToken);
 
-        var item =
-            new ContentItemDefinition(
-                existing?.Id ?? defaultId,
-                existing?.Name ?? name,
-                new ContentItemKey(key),
-                existing?.TemplateId ?? templateId,
-                parentId);
-
-        if (existing == null)
+        if (existing != null)
         {
-            await _contentItemService.SaveItemAsync(
-                item,
-                cancellationToken);
+            LogSeedItemDriftIfDetected(
+                defaultId,
+                key,
+                templateId,
+                parentId,
+                existing,
+                existingById);
 
-            _logger.LogInformation(
-                "Seeded default content item '{ContentKey}'.",
-                key);
+            return existing;
         }
 
-        return existing ?? item;
+        if (existingById != null)
+        {
+            _logger.LogWarning(
+                "Seed content item '{ContentKey}' drift detected. Canonical id '{ExpectedId}' already exists as runtime item '{ActualId}' beneath parent '{ActualParentId}' instead of expected parent '{ExpectedParentId}'. Bootstrap preserved the existing runtime item instead of relocating it.",
+                key,
+                defaultId,
+                existingById.Id,
+                existingById.ParentId?.ToString() ?? "<root>",
+                parentId?.ToString() ?? "<root>");
+
+            return existingById;
+        }
+
+        var item =
+            new ContentItemDefinition(
+                defaultId,
+                name,
+                new ContentItemKey(key),
+                templateId,
+                parentId);
+
+        await _contentItemService.SaveItemAsync(
+            item,
+            cancellationToken);
+
+        _logger.LogInformation(
+            "Seeded default content item '{ContentKey}'.",
+            key);
+
+        return item;
     }
 
     private async Task EnsureHomeFieldValuesAsync(
@@ -174,17 +201,37 @@ public sealed class DefaultContentBootstrapper : IDefaultContentBootstrapper
             new FieldValueResolutionContext(
                 new ContentLanguage("en"),
                 ContentVersion.First);
-
-        await _contentItemService.SaveFieldValuesAsync(
-            homeItemId,
-            context,
+        var existingFieldValues =
+            await _contentRepository.GetFieldValuesAsync(
+                homeItemId,
+                cancellationToken);
+        var existingFieldKeys =
+            existingFieldValues
+                .Select(value => value.FieldKey)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var missingDefaults =
             new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase)
             {
                 ["title"] = "Home",
                 ["navigationTitle"] = "Home",
                 ["metaDescription"] = "Starter home item for Templar CMS.",
                 ["body"] = "<p>Welcome to Templar CMS.</p>"
-            },
+            }
+            .Where(pair => !existingFieldKeys.Contains(pair.Key))
+            .ToDictionary(
+                pair => pair.Key,
+                pair => pair.Value,
+                StringComparer.OrdinalIgnoreCase);
+
+        if (missingDefaults.Count == 0)
+        {
+            return;
+        }
+
+        await _contentItemService.SaveFieldValuesAsync(
+            homeItemId,
+            context,
+            missingDefaults,
             cancellationToken);
     }
 
@@ -222,5 +269,46 @@ public sealed class DefaultContentBootstrapper : IDefaultContentBootstrapper
                     child.Key.Value,
                     key,
                     StringComparison.OrdinalIgnoreCase));
+    }
+
+    private void LogSeedItemDriftIfDetected(
+        ContentItemId expectedId,
+        string key,
+        TemplateId expectedTemplateId,
+        ContentItemId? expectedParentId,
+        ContentItemDefinition existingAtExpectedLocation,
+        ContentItemDefinition? existingByCanonicalId)
+    {
+        if (existingAtExpectedLocation.Id != expectedId)
+        {
+            _logger.LogWarning(
+                "Seed content item '{ContentKey}' drift detected. Expected canonical id '{ExpectedId}' beneath parent '{ExpectedParentId}', but runtime item '{ActualId}' occupies the seeded location. Bootstrap preserved the runtime item instead of replacing it.",
+                key,
+                expectedId,
+                expectedParentId?.ToString() ?? "<root>",
+                existingAtExpectedLocation.Id);
+        }
+
+        if (existingAtExpectedLocation.TemplateId != expectedTemplateId)
+        {
+            _logger.LogWarning(
+                "Seed content item '{ContentKey}' drift detected. Expected template '{ExpectedTemplateId}' for canonical id '{ExpectedId}', but runtime item '{ActualId}' uses template '{ActualTemplateId}'. Bootstrap preserved the runtime template assignment.",
+                key,
+                expectedTemplateId,
+                expectedId,
+                existingAtExpectedLocation.Id,
+                existingAtExpectedLocation.TemplateId);
+        }
+
+        if (existingByCanonicalId != null
+            && existingByCanonicalId.Id == expectedId
+            && existingByCanonicalId.Id != existingAtExpectedLocation.Id)
+        {
+            _logger.LogWarning(
+                "Seed content item '{ContentKey}' drift detected. Canonical id '{ExpectedId}' exists separately from the runtime item '{ActualId}' that occupies the seeded location. Bootstrap preserved the current runtime state and did not merge the conflict automatically.",
+                key,
+                expectedId,
+                existingAtExpectedLocation.Id);
+        }
     }
 }

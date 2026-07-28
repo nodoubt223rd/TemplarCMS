@@ -61,7 +61,7 @@ Goals:
 
 ### System Seed Data Contract
 
-Status: Future
+Status: In Progress
 
 Problem:
 TemplarCMS now relies on stable out-of-box templates, fields, and root
@@ -78,6 +78,18 @@ Goals:
 - Separate mutable runtime storage from canonical built-in definitions
 - Define how bootstrap or upgrade logic handles drift, missing items,
   and intentional local customization
+
+Completed so far:
+- Promoted canonical built-in template keys and starter content ids into
+  shared domain contract types
+- Added bootstrap drift warnings for structural seed-item mismatches
+  such as wrong runtime ids, wrong template assignments, and canonical
+  ids found in unexpected locations
+- Kept bootstrap reconciliation non-destructive by preserving existing
+  runtime items when drift is detected instead of silently replacing or
+  relocating them
+- Changed default home-field seeding to backfill only missing values so
+  intentional runtime customization is not overwritten on every startup
 
 ## Content Modeling
 
