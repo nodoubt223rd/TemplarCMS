@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using TemplarCMS.Abstractions.Content;
 using TemplarCMS.Application.Bootstrap;
@@ -19,7 +20,7 @@ public sealed class DefaultContentBootstrapperTests
     [Fact]
     public async Task EnsureInitializedAsync_ShouldSeedDefaultTemplatesAndContentTree()
     {
-        var (bootstrapper, templateRepository, contentRepository, catalog) = CreateBootstrapper();
+        var (bootstrapper, templateRepository, contentRepository, catalog, _) = CreateBootstrapper();
 
         await bootstrapper.EnsureInitializedAsync(TestContext.Current.CancellationToken);
 
@@ -109,7 +110,7 @@ public sealed class DefaultContentBootstrapperTests
     [Fact]
     public async Task EnsureInitializedAsync_ShouldBeIdempotent()
     {
-        var (bootstrapper, templateRepository, contentRepository, _) = CreateBootstrapper();
+        var (bootstrapper, templateRepository, contentRepository, _, _) = CreateBootstrapper();
 
         await bootstrapper.EnsureInitializedAsync(TestContext.Current.CancellationToken);
         await bootstrapper.EnsureInitializedAsync(TestContext.Current.CancellationToken);
@@ -145,12 +146,109 @@ public sealed class DefaultContentBootstrapperTests
         Assert.Equal(4, homeValues.Count);
     }
 
+    [Fact]
+    public async Task EnsureInitializedAsync_ShouldPreserveExistingSeededItemAndLogDrift_WhenCanonicalIdDoesNotMatch()
+    {
+        var logger = new ListLogger<DefaultContentBootstrapper>();
+        var (bootstrapper, _, contentRepository, catalog, _) = CreateBootstrapper(logger);
+        await catalog.RefreshAsync(TestContext.Current.CancellationToken);
+        var folderTemplate =
+            await catalog.GetEffectiveTemplateAsync(
+                BuiltInTemplateKeys.Folder,
+                TestContext.Current.CancellationToken);
+        Assert.NotNull(folderTemplate);
+
+        var driftedTemplar =
+            new ContentItemDefinition(
+                new ContentItemId(Guid.NewGuid()),
+                "Templar",
+                new ContentItemKey("templar"),
+                folderTemplate.Id,
+                parentId: null);
+        await contentRepository.SaveItemAsync(
+            driftedTemplar,
+            TestContext.Current.CancellationToken);
+
+        await bootstrapper.EnsureInitializedAsync(TestContext.Current.CancellationToken);
+
+        var templar =
+            await contentRepository.GetItemAsync(
+                new ContentPath("/templar"),
+                TestContext.Current.CancellationToken);
+
+        Assert.NotNull(templar);
+        Assert.Equal(driftedTemplar.Id, templar.Id);
+        Assert.Contains(
+            logger.Entries,
+            entry =>
+                entry.Level == LogLevel.Warning
+                && entry.Message.Contains("templar", StringComparison.OrdinalIgnoreCase)
+                && entry.Message.Contains("drift", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task EnsureInitializedAsync_ShouldPreserveExistingHomeFieldValues()
+    {
+        var (bootstrapper, _, contentRepository, catalog, _) = CreateBootstrapper();
+
+        await bootstrapper.EnsureInitializedAsync(TestContext.Current.CancellationToken);
+
+        var home =
+            await contentRepository.GetItemAsync(
+                new ContentPath("/templar/content/home"),
+                TestContext.Current.CancellationToken);
+        var itemTemplate =
+            await catalog.GetEffectiveTemplateAsync(
+                BuiltInTemplateKeys.Item,
+                TestContext.Current.CancellationToken);
+        Assert.NotNull(home);
+        Assert.NotNull(itemTemplate);
+
+        var fieldsByKey =
+            itemTemplate.Fields.ToDictionary(
+                field => field.Key,
+                StringComparer.OrdinalIgnoreCase);
+
+        await contentRepository.SaveFieldValuesAsync(
+            home.Id,
+            [
+                new ContentFieldValue(
+                    home.Id,
+                    fieldsByKey["title"].Id,
+                    "title",
+                    new ContentLanguage("en"),
+                    ContentVersion.First,
+                    "Custom Home"),
+                new ContentFieldValue(
+                    home.Id,
+                    fieldsByKey["body"].Id,
+                    "body",
+                    new ContentLanguage("en"),
+                    ContentVersion.First,
+                    "<p>Custom body</p>")
+            ],
+            TestContext.Current.CancellationToken);
+
+        await bootstrapper.EnsureInitializedAsync(TestContext.Current.CancellationToken);
+
+        var homeValues =
+            await contentRepository.GetFieldValuesAsync(
+                home.Id,
+                TestContext.Current.CancellationToken);
+
+        Assert.Contains(homeValues, value => value.FieldKey == "title" && value.Value == "Custom Home");
+        Assert.Contains(homeValues, value => value.FieldKey == "body" && value.Value == "<p>Custom body</p>");
+    }
+
     private static (
         DefaultContentBootstrapper Bootstrapper,
         ITemplateRepository TemplateRepository,
         InMemoryContentRepository ContentRepository,
-        IContentModelCatalog Catalog) CreateBootstrapper()
+        IContentModelCatalog Catalog,
+        ListLogger<DefaultContentBootstrapper> Logger) CreateBootstrapper(
+            ListLogger<DefaultContentBootstrapper>? logger = null)
     {
+        logger ??= new ListLogger<DefaultContentBootstrapper>();
         var templateRepository = new InMemoryTemplateRepository();
         var builtInTemplateRepository =
             new BuiltInTemplateRepository(
@@ -181,10 +279,11 @@ public sealed class DefaultContentBootstrapperTests
                 catalog,
                 contentRepository,
                 contentItemService,
-                NullLogger<DefaultContentBootstrapper>.Instance),
+                logger),
             builtInTemplateRepository,
             contentRepository,
-            catalog);
+            catalog,
+            logger);
     }
 
     private sealed class InMemoryTemplateRepository : ITemplateRepository
@@ -230,4 +329,39 @@ public sealed class DefaultContentBootstrapperTests
             throw new NotSupportedException();
         }
     }
+
+    private sealed class ListLogger<T> : ILogger<T>
+    {
+        public List<LogEntry> Entries { get; } = [];
+
+        public IDisposable? BeginScope<TState>(
+            TState state)
+            where TState : notnull
+        {
+            return null;
+        }
+
+        public bool IsEnabled(
+            LogLevel logLevel)
+        {
+            return true;
+        }
+
+        public void Log<TState>(
+            LogLevel logLevel,
+            EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter)
+        {
+            Entries.Add(
+                new LogEntry(
+                    logLevel,
+                    formatter(state, exception)));
+        }
+    }
+
+    private sealed record LogEntry(
+        LogLevel Level,
+        string Message);
 }
