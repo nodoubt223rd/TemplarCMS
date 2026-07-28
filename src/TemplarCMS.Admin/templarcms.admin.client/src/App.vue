@@ -84,6 +84,12 @@ import {
   validateTemplateDesignerState
 } from './utils/template-designer'
 import {
+  getAuthorVisibleBaseTemplates,
+  getAuthorVisibleTemplates,
+  getTemplateVisibilityLabel,
+  isAuthorVisibleTemplate
+} from './utils/template-visibility'
+import {
   updateTemplateDesignerFormName,
   updateTemplateDraftField,
   updateTemplateDraftFieldName,
@@ -142,6 +148,8 @@ const selectedCreateTemplate = computed(() =>
   creatableTemplates.value.find(template => template.id === createForm.templateId) ?? null)
 const creatableTemplates = computed(() =>
   getCreatableTemplates(availableTemplates.value))
+const visibleTemplates = computed(() =>
+  getAuthorVisibleTemplates(availableTemplates.value))
 const selectedTemplateSummary = computed(() =>
   selectedTemplateId.value == null
     ? null
@@ -151,7 +159,9 @@ const templateWorkspace = computed(() =>
 const templateSections = computed(() => templateWorkspace.value.sections)
 const selectedTemplateFieldCount = computed(() => templateWorkspace.value.fieldCount)
 const availableBaseTemplates = computed(() =>
-  availableTemplates.value.filter(template => template.id !== templateDesignerForm.templateId))
+  getAuthorVisibleBaseTemplates(availableTemplates.value, templateDesignerForm.templateId))
+const baseTemplateVisibilityLabel = computed(() =>
+  getTemplateVisibilityLabel(availableTemplates.value, templateDesignerForm.baseTemplateId))
 const templateDesignerHeading = computed(() =>
   templateDesignerForm.mode === 'create'
     ? 'Draft a new template'
@@ -499,8 +509,8 @@ async function loadTemplates() {
       templateDesignerForm.baseTemplateId = getDefaultTemplateDesignerBaseTemplateId(availableTemplates.value)
     }
 
-    if (selectedTemplateId.value == null) {
-      selectedTemplateId.value = availableTemplates.value[0]?.id ?? null
+    if (selectedTemplateId.value == null || selectedTemplateSummary.value == null || !isAuthorVisibleTemplate(selectedTemplateSummary.value)) {
+      selectedTemplateId.value = visibleTemplates.value[0]?.id ?? null
     }
   } catch {
     availableTemplates.value = []
@@ -581,6 +591,14 @@ async function inspectSelectedItemTemplate() {
     return
   }
 
+  const template =
+    availableTemplates.value.find(candidate => candidate.id === selectedItem.value?.templateId)
+
+  if (template != null && !isAuthorVisibleTemplate(template)) {
+    successMessage.value = 'The selected item uses a system-owned template that stays outside the authoring catalog.'
+    return
+  }
+
   await selectTemplate(selectedItem.value.templateId)
 }
 
@@ -657,6 +675,16 @@ function loadSelectedTemplateIntoDesigner() {
 
 async function loadBaseTemplatePreview(templateId: string) {
   if (templateId.trim().length === 0) {
+    selectedBaseTemplateDetail.value = null
+    baseTemplatePreviewError.value = null
+    isLoadingBaseTemplatePreview.value = false
+    return
+  }
+
+  const template =
+    availableTemplates.value.find(candidate => candidate.id === templateId)
+
+  if (template != null && !isAuthorVisibleTemplate(template)) {
     selectedBaseTemplateDetail.value = null
     baseTemplatePreviewError.value = null
     isLoadingBaseTemplatePreview.value = false
@@ -855,7 +883,7 @@ async function submitTemplateDelete() {
       startNewTemplateDraft()
     }
 
-    selectedTemplateId.value = availableTemplates.value[0]?.id ?? null
+    selectedTemplateId.value = visibleTemplates.value[0]?.id ?? null
     selectedTemplateDetail.value = null
     selectedTemplateDependencies.value = null
 
@@ -1125,7 +1153,7 @@ function countNodes(nodes: TreeNode[]): number {
 
       <section class="template-grid">
         <TemplateCatalogPane
-          :available-templates="availableTemplates"
+          :available-templates="visibleTemplates"
           :selected-template-id="selectedTemplateId"
           :is-loading-templates="isLoadingTemplates"
           :selected-item-available="selectedItem != null"
@@ -1157,7 +1185,7 @@ function countNodes(nodes: TreeNode[]): number {
                 :is-submitting="isSubmitting"
                 :heading="templateDesignerHeading"
                 :selected-template-loaded="selectedTemplateDetail != null"
-                :base-template-key="selectedBaseTemplateKey"
+                :base-template-key="baseTemplateVisibilityLabel"
                 :validation-errors="templateDesignerValidationErrors"
                 :inherited-template-sections="inheritedTemplateWorkspace.sections"
                 :inherited-field-count="inheritedTemplateWorkspace.fieldCount"
