@@ -36,12 +36,14 @@ public sealed class AuthoringSecurityEndpointTests
     }
 
     [Theory]
-    [InlineData(false, false, true)]
-    [InlineData(true, false, false)]
-    [InlineData(true, true, true)]
-    public async Task AuthoringPolicy_ShouldHonorEnabledAndAuthenticationState(
+    [InlineData(false, false, false, true)]
+    [InlineData(true, false, false, false)]
+    [InlineData(true, true, false, false)]
+    [InlineData(true, true, true, true)]
+    public async Task AuthoringPolicy_ShouldHonorEnabledAuthenticationAndRole(
         bool enabled,
         bool isAuthenticated,
+        bool hasAuthoringRole,
         bool expectedSuccess)
     {
         var configuration =
@@ -64,7 +66,7 @@ public sealed class AuthoringSecurityEndpointTests
             isAuthenticated
                 ? new ClaimsPrincipal(
                     new ClaimsIdentity(
-                        [new Claim(ClaimTypes.NameIdentifier, "tester")],
+                        CreateClaims(hasAuthoringRole),
                         "Test"))
                 : new ClaimsPrincipal(new ClaimsIdentity());
 
@@ -75,6 +77,22 @@ public sealed class AuthoringSecurityEndpointTests
                 ApiAuthorizationPolicies.AuthorContent);
 
         Assert.Equal(expectedSuccess, result.Succeeded);
+    }
+
+    private static Claim[] CreateClaims(bool hasAuthoringRole)
+    {
+        var claims =
+            new List<Claim>
+            {
+                new(ClaimTypes.NameIdentifier, "tester")
+            };
+
+        if (hasAuthoringRole)
+        {
+            claims.Add(new Claim(ClaimTypes.Role, ApiAuthorizationPolicies.AuthorContent));
+        }
+
+        return claims.ToArray();
     }
 
     [Theory]

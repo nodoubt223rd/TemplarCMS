@@ -13,21 +13,6 @@ namespace TemplarCMS.Application.Bootstrap;
 /// </summary>
 public sealed class DefaultContentBootstrapper : IDefaultContentBootstrapper
 {
-    private static readonly TemplateKey StandardTemplateKey = new("standard");
-    private static readonly TemplateKey FolderTemplateKey = new("folder");
-    private static readonly TemplateKey ItemTemplateKey = new("item");
-
-    private static readonly ContentItemId TemplarRootId = new(new Guid("0B6AFCDA-BBD1-4CB3-A392-A4078C899F2A"));
-    private static readonly ContentItemId ContentRootId = new(new Guid("93D45FC9-C7A0-48EC-B78D-B8980D4C2DF0"));
-    private static readonly ContentItemId HomeItemId = new(new Guid("EF88F020-C20C-47E5-99A8-1E2F6F69506A"));
-    private static readonly ContentItemId SystemRootId = new(new Guid("5F27B5F5-20A7-4445-AEE4-7C955F804084"));
-    private static readonly ContentItemId SettingsItemId = new(new Guid("FE75ED5F-EE55-4839-AE36-D1E7AB7E4A3A"));
-    private static readonly ContentItemId MediaRootId = new(new Guid("705D37CB-9A7B-4DDE-AF97-6A0453452DBB"));
-    private static readonly ContentItemId ImagesItemId = new(new Guid("6784EA0F-53A0-448E-B253-1586E51101F6"));
-    private static readonly ContentItemId FilesItemId = new(new Guid("CE0F8D78-C857-483E-9A4B-1F88E31A8A89"));
-    private static readonly ContentItemId TemplatesRootId = new(new Guid("4CF76720-EA11-431C-8DF0-93A057DFAD98"));
-    private static readonly ContentItemId StandardItemId = new(new Guid("74922877-D8DF-466B-93CE-96E5C91D5B7E"));
-
     private readonly IContentModelCatalog _contentModelCatalog;
     private readonly IContentRepository _contentRepository;
     private readonly IContentItemService _contentItemService;
@@ -54,16 +39,16 @@ public sealed class DefaultContentBootstrapper : IDefaultContentBootstrapper
 
         var folderTemplate =
             await RequireTemplateAsync(
-                FolderTemplateKey,
+                BuiltInTemplateKeys.Folder,
                 cancellationToken);
         var itemTemplate =
             await RequireTemplateAsync(
-                ItemTemplateKey,
+                BuiltInTemplateKeys.Item,
                 cancellationToken);
 
         var templar =
             await EnsureItemAsync(
-                TemplarRootId,
+                SystemSeedContentIds.TemplarRoot,
                 "Templar",
                 "templar",
                 folderTemplate.Id,
@@ -71,7 +56,7 @@ public sealed class DefaultContentBootstrapper : IDefaultContentBootstrapper
                 cancellationToken);
         var content =
             await EnsureItemAsync(
-                ContentRootId,
+                SystemSeedContentIds.ContentRoot,
                 "Content",
                 "content",
                 folderTemplate.Id,
@@ -79,7 +64,7 @@ public sealed class DefaultContentBootstrapper : IDefaultContentBootstrapper
                 cancellationToken);
         var home =
             await EnsureItemAsync(
-                HomeItemId,
+                SystemSeedContentIds.Home,
                 "Home",
                 "home",
                 itemTemplate.Id,
@@ -87,14 +72,14 @@ public sealed class DefaultContentBootstrapper : IDefaultContentBootstrapper
                 cancellationToken);
         var system =
             await EnsureItemAsync(
-                SystemRootId,
+                SystemSeedContentIds.SystemRoot,
                 "System",
                 "system",
                 folderTemplate.Id,
                 templar.Id,
                 cancellationToken);
         await EnsureItemAsync(
-            SettingsItemId,
+            SystemSeedContentIds.Settings,
             "Settings",
             "settings",
             folderTemplate.Id,
@@ -103,21 +88,21 @@ public sealed class DefaultContentBootstrapper : IDefaultContentBootstrapper
 
         var media =
             await EnsureItemAsync(
-                MediaRootId,
+                SystemSeedContentIds.MediaRoot,
                 "Media",
                 "media",
                 folderTemplate.Id,
                 templar.Id,
                 cancellationToken);
         await EnsureItemAsync(
-            ImagesItemId,
+            SystemSeedContentIds.Images,
             "Images",
             "images",
             folderTemplate.Id,
             media.Id,
             cancellationToken);
         await EnsureItemAsync(
-            FilesItemId,
+            SystemSeedContentIds.Files,
             "Files",
             "files",
             folderTemplate.Id,
@@ -126,14 +111,14 @@ public sealed class DefaultContentBootstrapper : IDefaultContentBootstrapper
 
         var templates =
             await EnsureItemAsync(
-                TemplatesRootId,
+                SystemSeedContentIds.TemplatesRoot,
                 "Templates",
                 "templates",
                 folderTemplate.Id,
                 templar.Id,
                 cancellationToken);
         await EnsureItemAsync(
-            StandardItemId,
+            SystemSeedContentIds.StandardTemplateItem,
             "Standard",
             "standard",
             folderTemplate.Id,

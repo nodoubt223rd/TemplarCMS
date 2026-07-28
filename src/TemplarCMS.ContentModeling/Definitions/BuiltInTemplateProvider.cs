@@ -7,10 +7,6 @@ namespace TemplarCMS.ContentModeling.Definitions;
 /// </summary>
 public sealed class BuiltInTemplateProvider : IBuiltInTemplateProvider
 {
-    private static readonly TemplateKey StandardTemplateKey = new("standard");
-    private static readonly TemplateKey FolderTemplateKey = new("folder");
-    private static readonly TemplateKey ItemTemplateKey = new("item");
-
     private static readonly IReadOnlyCollection<TemplateDefinition> Templates = CreateTemplates();
 
     /// <inheritdoc />
@@ -25,7 +21,7 @@ public sealed class BuiltInTemplateProvider : IBuiltInTemplateProvider
             new TemplateDefinition(
                 new TemplateId(new Guid("95071327-4AAB-4827-9641-1C45EF6A1D37")),
                 "Standard",
-                StandardTemplateKey,
+                BuiltInTemplateKeys.Standard,
                 sections:
                 [
                     new TemplateSectionDefinition(
@@ -59,7 +55,7 @@ public sealed class BuiltInTemplateProvider : IBuiltInTemplateProvider
             new TemplateDefinition(
                 new TemplateId(new Guid("6991D76D-6475-4A2B-B04F-D16E9E4AAE9F")),
                 "Folder",
-                FolderTemplateKey,
+                BuiltInTemplateKeys.Folder,
                 standardTemplate,
                 []);
 
@@ -67,7 +63,7 @@ public sealed class BuiltInTemplateProvider : IBuiltInTemplateProvider
             new TemplateDefinition(
                 new TemplateId(new Guid("562BA716-A878-45E5-9BA7-397F46BA7B1D")),
                 "Item",
-                ItemTemplateKey,
+                BuiltInTemplateKeys.Item,
                 standardTemplate,
                 [
                     new TemplateSectionDefinition(

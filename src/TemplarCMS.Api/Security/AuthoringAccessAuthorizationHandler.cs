@@ -27,7 +27,8 @@ internal sealed class AuthoringAccessAuthorizationHandler
             return Task.CompletedTask;
         }
 
-        if (context.User.Identity?.IsAuthenticated == true)
+        if (context.User.Identity?.IsAuthenticated == true
+            && context.User.IsInRole(ApiAuthorizationPolicies.AuthorContent))
         {
             context.Succeed(requirement);
         }
