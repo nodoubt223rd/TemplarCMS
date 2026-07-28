@@ -117,6 +117,7 @@ export type TemplateSectionResponse = {
   name: string
   key: string
   sortOrder: number
+  metadata?: Record<string, string> | null
   fields: TemplateFieldResponse[]
 }
 

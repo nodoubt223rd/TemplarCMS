@@ -63,7 +63,8 @@ public sealed class EffectiveTemplateBuilder : IEffectiveTemplateBuilder
                         section.Id,
                         section.Name,
                         section.Key,
-                        section.SortOrder);
+                        section.SortOrder,
+                        section.Metadata);
 
                     sectionsByKey.Add(sectionKey, accumulator);
                 }
@@ -93,12 +94,14 @@ public sealed class EffectiveTemplateBuilder : IEffectiveTemplateBuilder
             Guid id,
             string name,
             string key,
-            int sortOrder)
+            int sortOrder,
+            IReadOnlyDictionary<string, string> metadata)
         {
             Id = id;
             Name = name;
             Key = key;
             SortOrder = sortOrder;
+            Metadata = new Dictionary<string, string>(metadata, StringComparer.Ordinal);
             _fieldsByKey = new Dictionary<string, FieldDefinition>(StringComparer.OrdinalIgnoreCase);
         }
 
@@ -110,11 +113,14 @@ public sealed class EffectiveTemplateBuilder : IEffectiveTemplateBuilder
 
         public int SortOrder { get; private set; }
 
+        public IReadOnlyDictionary<string, string> Metadata { get; private set; }
+
         public void ApplySectionOverride(TemplateSectionDefinition section)
         {
             Id = section.Id;
             Name = section.Name;
             SortOrder = section.SortOrder;
+            Metadata = new Dictionary<string, string>(section.Metadata, StringComparer.Ordinal);
         }
 
         public void AddOrReplaceField(FieldDefinition field)
@@ -129,7 +135,8 @@ public sealed class EffectiveTemplateBuilder : IEffectiveTemplateBuilder
                 Name,
                 Key,
                 SortOrder,
-                _fieldsByKey.Values.ToArray());
+                _fieldsByKey.Values.ToArray(),
+                Metadata);
         }
     }
 }

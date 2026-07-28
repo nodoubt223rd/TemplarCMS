@@ -399,7 +399,11 @@ public sealed class JsonTemplateRepositoryTests
                                 {
                                     ["maxLength"] = "100"
                                 })
-                        ])
+                        ],
+                        new Dictionary<string, string>(StringComparer.Ordinal)
+                        {
+                            [SectionVisibilityMetadata.VisibilityKey] = SectionVisibilityMetadata.SystemValue
+                        })
                 ]);
 
         await repository.CreateTemplateAsync(
@@ -428,6 +432,9 @@ public sealed class JsonTemplateRepositoryTests
 
         var section = Assert.Single(dto.Sections);
         Assert.Equal("content", section.Key);
+        Assert.Equal(
+            SectionVisibilityMetadata.SystemValue,
+            section.Metadata[SectionVisibilityMetadata.VisibilityKey]);
 
         var field = Assert.Single(section.Fields);
         Assert.Equal("title", field.Key);

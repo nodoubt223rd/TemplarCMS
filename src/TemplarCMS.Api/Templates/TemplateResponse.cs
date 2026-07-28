@@ -108,6 +108,8 @@ public sealed class TemplateSectionResponse
 
     public required int SortOrder { get; init; }
 
+    public IReadOnlyDictionary<string, string>? Metadata { get; init; }
+
     public required IReadOnlyCollection<TemplateFieldResponse> Fields { get; init; }
 }
 

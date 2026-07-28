@@ -592,6 +592,9 @@ public static class TemplateEndpoints
                         Name = section.Name,
                         Key = section.Key,
                         SortOrder = section.SortOrder,
+                        Metadata = section.Metadata.Count == 0
+                            ? null
+                            : section.Metadata,
                         Fields = section.Fields
                             .Select(
                                 field => new TemplateFieldResponse

@@ -1,8 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import type { TemplateFieldItemResponse, TemplateFieldResponse } from '@/types/admin-api'
+import type {
+  TemplateFieldItemResponse,
+  TemplateFieldResponse,
+  TemplateSectionResponse
+} from '@/types/admin-api'
 import {
+  getAuthorVisibleTemplateSections,
   getAuthorVisibleSectionFields,
   getAuthorVisibleTemplateFields,
+  isSystemOwnedSection,
   isSystemOwnedField
 } from './field-visibility'
 
@@ -54,6 +60,40 @@ describe('field visibility utilities', () => {
       ]).map(field => field.key)
     ).toEqual(['title'])
   })
+
+  it('treats metadata-marked sections as system-owned', () => {
+    expect(
+      isSystemOwnedSection({
+        metadata: {
+          'templar.visibility': 'system'
+        }
+      })
+    ).toBe(true)
+
+    expect(
+      isSystemOwnedSection({
+        metadata: {
+          'templar.visibility': 'author'
+        }
+      })
+    ).toBe(false)
+  })
+
+  it('filters hidden sections from template responses', () => {
+    expect(
+      getAuthorVisibleTemplateSections([
+        createTemplateSection({
+          key: 'advanced',
+          metadata: {
+            'templar.visibility': 'system'
+          }
+        }),
+        createTemplateSection({
+          key: 'content'
+        })
+      ]).map(section => section.key)
+    ).toEqual(['content'])
+  })
 })
 
 function createTemplateField(overrides: Partial<TemplateFieldResponse>): TemplateFieldResponse {
@@ -82,6 +122,18 @@ function createTemplateFieldItem(overrides: Partial<TemplateFieldItemResponse>):
     sectionName: 'Fields',
     sectionKey: 'fields',
     sectionSortOrder: 100,
+    ...overrides
+  }
+}
+
+function createTemplateSection(overrides: Partial<TemplateSectionResponse>): TemplateSectionResponse {
+  return {
+    id: 'section-id',
+    name: 'Section',
+    key: 'section',
+    sortOrder: 100,
+    metadata: null,
+    fields: [],
     ...overrides
   }
 }

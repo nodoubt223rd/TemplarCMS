@@ -1,13 +1,13 @@
 import type { FieldTypeResponse, TemplateResponse, TemplateSectionResponse } from '@/types/admin-api'
 import type { TemplateWorkspaceViewModel, TemplateSectionViewModel } from '@/types/admin-ui'
 import { getFieldTypeLabel } from './editor-fields'
-import { getAuthorVisibleSectionFields } from './field-visibility'
+import { getAuthorVisibleSectionFields, getAuthorVisibleTemplateSections } from './field-visibility'
 
 export function buildTemplateWorkspaceViewModel(
   template: TemplateResponse | null,
   fieldTypeLookup: ReadonlyMap<string, FieldTypeResponse>
 ): TemplateWorkspaceViewModel {
-  const sections = (template?.sections ?? [])
+  const sections = getAuthorVisibleTemplateSections(template?.sections ?? [])
     .slice()
     .sort(compareSections)
     .map(section => mapTemplateSectionViewModel(section, fieldTypeLookup))
