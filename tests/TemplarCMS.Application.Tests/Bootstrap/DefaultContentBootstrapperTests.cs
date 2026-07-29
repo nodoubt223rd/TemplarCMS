@@ -64,6 +64,15 @@ public sealed class DefaultContentBootstrapperTests
         Assert.Contains(standardTemplate.Sections.SelectMany(section => section.Fields), field => field.Key == "__publish");
         Assert.Contains(standardTemplate.Sections.SelectMany(section => section.Fields), field => field.Key == "__created");
         Assert.Contains(standardTemplate.Sections.SelectMany(section => section.Fields), field => field.Key == "__versionName");
+        Assert.Contains(
+            standardTemplate.Sections.SelectMany(section => section.Fields),
+            field => field.Key == "__hidden" && field.IsShared);
+        Assert.Contains(
+            standardTemplate.Sections.SelectMany(section => section.Fields),
+            field => field.Key == "__displayName" && field.IsUnversioned);
+        Assert.Contains(
+            standardTemplate.Sections.SelectMany(section => section.Fields),
+            field => field.Key == "__publish" && field.IsVersioned);
         Assert.Contains(itemTemplate.Sections.SelectMany(section => section.Fields), field => field.Key == "body");
 
         var templar =

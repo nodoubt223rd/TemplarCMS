@@ -71,14 +71,36 @@ public sealed class BuiltInTemplateRepositoryTests
             Assert.Single(
                 standardTemplate.Sections,
                 section => section.Key == "appearance");
-        Assert.Contains(appearanceSection.Fields, field => field.Key == "__displayName");
-        Assert.Contains(appearanceSection.Fields, field => field.Key == "__hidden");
+        Assert.Contains(
+            appearanceSection.Fields,
+            field => field.Key == "__displayName" && field.IsUnversioned);
+        Assert.Contains(
+            appearanceSection.Fields,
+            field => field.Key == "__hidden" && field.IsShared);
 
         var helpSection =
             Assert.Single(
                 standardTemplate.Sections,
                 section => section.Key == "help");
-        Assert.Contains(helpSection.Fields, field => field.Key == "__helpLink");
+        Assert.Contains(
+            helpSection.Fields,
+            field => field.Key == "__helpLink" && field.IsUnversioned);
+
+        var publishingSection =
+            Assert.Single(
+                standardTemplate.Sections,
+                section => section.Key == "publishing");
+        Assert.Contains(
+            publishingSection.Fields,
+            field => field.Key == "__publish" && field.IsVersioned);
+
+        var statisticsSection =
+            Assert.Single(
+                standardTemplate.Sections,
+                section => section.Key == "statistics");
+        Assert.Contains(
+            statisticsSection.Fields,
+            field => field.Key == "__created" && field.IsShared);
 
         Assert.All(
             standardTemplate.Sections,
