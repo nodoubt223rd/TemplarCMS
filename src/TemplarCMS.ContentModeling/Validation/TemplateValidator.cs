@@ -1,5 +1,6 @@
 using TemplarCMS.ContentModeling.Abstractions;
 using TemplarCMS.ContentModeling.Definitions;
+using TemplarCMS.Domain.Content;
 
 namespace TemplarCMS.ContentModeling.Validation;
 
@@ -31,8 +32,33 @@ public sealed class TemplateValidator : ITemplateValidator
         ValidateDuplicateFieldKeysWithinSections(template, errors);
         ValidateDuplicateFieldKeysAcrossTemplate(template, errors);
         ValidateSectionFieldCollisions(template, errors);
+        ValidateReservedSystemFieldKeys(template, errors);
 
         return Task.FromResult(new ValidationResult(errors));
+    }
+
+    private static void ValidateReservedSystemFieldKeys(
+        TemplateDefinition template,
+        ICollection<ValidationError> errors)
+    {
+        if (BuiltInTemplateKeys.All.Contains(template.Key))
+        {
+            return;
+        }
+
+        foreach (var field in template.Sections.SelectMany(section => section.Fields))
+        {
+            if (!field.Key.StartsWith("__", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            errors.Add(
+                new ValidationError(
+                    "ReservedSystemFieldKey",
+                    $"Template '{template.Key}' uses reserved system field key '{field.Key}'. Keys beginning with '__' are reserved for built-in system fields.",
+                    field.Key));
+        }
     }
 
     private static void ValidateDuplicateSectionKeys(

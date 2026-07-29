@@ -37,6 +37,58 @@ public sealed class BuiltInTemplateRepositoryTests
     }
 
     [Fact]
+    public async Task GetTemplatesAsync_ShouldExposeWaveOneStandardSections()
+    {
+        var repository =
+            new BuiltInTemplateRepository(
+                Substitute.For<ITemplateRepository>(),
+                new BuiltInTemplateProvider());
+
+        var templates =
+            await repository.GetTemplatesAsync(TestContext.Current.CancellationToken);
+
+        var standardTemplate =
+            Assert.Single(
+                templates,
+                template => template.Key == BuiltInTemplateKeys.Standard);
+
+        Assert.Equal(
+            [
+                "content",
+                "appearance",
+                "help",
+                "lifetime",
+                "publishing",
+                "statistics",
+                "version"
+            ],
+            standardTemplate.Sections
+                .OrderBy(section => section.SortOrder)
+                .Select(section => section.Key)
+                .ToArray());
+
+        var appearanceSection =
+            Assert.Single(
+                standardTemplate.Sections,
+                section => section.Key == "appearance");
+        Assert.Contains(appearanceSection.Fields, field => field.Key == "__displayName");
+        Assert.Contains(appearanceSection.Fields, field => field.Key == "__hidden");
+
+        var helpSection =
+            Assert.Single(
+                standardTemplate.Sections,
+                section => section.Key == "help");
+        Assert.Contains(helpSection.Fields, field => field.Key == "__helpLink");
+
+        Assert.All(
+            standardTemplate.Sections,
+            section =>
+                Assert.Equal(
+                    SectionVisibilityMetadata.SystemValue,
+                    section.Metadata[SectionVisibilityMetadata.VisibilityKey]));
+    }
+
+    [Fact]
     public async Task CreateTemplateAsync_ShouldRejectBuiltInTemplateKey()
     {
         var repository =

@@ -121,9 +121,7 @@ Requested standard-template sections:
 - `Advanced`
 - `Appearance`
 - `Help`
-- `Layout`
 - `Insert Options`
-- `Item Buckets`
 - `Lifetime`
 - `Indexing`
 - `Publishing`
@@ -134,6 +132,10 @@ Requested standard-template sections:
 - `Validators`
 - `Workflow`
 - `Version`
+
+Removed from the current target:
+- `Layout`
+- `Item Buckets`
 
 Candidate field inventory from the latest Sitecore reference review:
 - `Advanced`
@@ -308,6 +310,23 @@ public interface ICookieService
 }
 
 ## Admin UI
+
+### Template Designer Information Density
+
+Status: Future
+
+Problem:
+The template designer is gaining more inherited structure, field-type
+detail, and standard-template surface area, which makes the screen
+busier and harder to scan during longer authoring sessions.
+
+Goals:
+- Make template sections collapsible so authors can focus on one area
+  at a time
+- Reduce visual clutter in the inherited preview and local section
+  editor flows
+- Keep important validation and inheritance context visible without
+  forcing every section fully open all the time
 
 ### Frontend Unit Test Coverage
 
