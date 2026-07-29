@@ -117,6 +117,31 @@ Requested implementation slice:
   fields that belong to the built-in `standard` template so the OOTB
   baseline is intentional rather than implicit.
 
+Wave 1 implemented so far:
+- Added the built-in `Content`, `Appearance`, `Help`, `Lifetime`,
+  `Publishing`, `Statistics`, and `Version` sections to the source-
+  controlled `standard` template
+- Reserved the `__*` field-key namespace for built-in system fields
+- Made the new built-in field storage scopes explicit instead of
+  relying on default versioning behavior
+
+Wave 1 deferred fields:
+- `Appearance`
+  `__Icon` (`Icon`)
+  `__Preview` (`Page Preview`)
+  `__Thumbnail` (`Thumbnail`)
+- These remain intentionally deferred until dedicated field types and
+  authoring/runtime behavior exist for them.
+
+Wave 1 temporary mappings:
+- `Help`
+  `__Help link` currently maps to `General Link`, reusing the existing
+  structured link support for internal and external references.
+- `Publishing`
+  `__Publishing groups` currently maps to `Multilist` so the built-in
+  baseline can carry the field before checklist-specific behavior
+  exists.
+
 Requested standard-template sections:
 - `Advanced`
 - `Appearance`

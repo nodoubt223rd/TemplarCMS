@@ -77,6 +77,12 @@ public sealed class BuiltInTemplateRepositoryTests
         Assert.Contains(
             appearanceSection.Fields,
             field => field.Key == "__hidden" && field.IsShared);
+        Assert.DoesNotContain(
+            appearanceSection.Fields,
+            field =>
+                field.Key is "__icon"
+                    or "__preview"
+                    or "__thumbnail");
 
         var helpSection =
             Assert.Single(
@@ -85,6 +91,11 @@ public sealed class BuiltInTemplateRepositoryTests
         Assert.Contains(
             helpSection.Fields,
             field => field.Key == "__helpLink" && field.IsUnversioned);
+        Assert.Contains(
+            helpSection.Fields,
+            field =>
+                field.Key == "__helpLink"
+                && field.FieldType == FieldType.GeneralLink);
 
         var publishingSection =
             Assert.Single(
@@ -93,6 +104,12 @@ public sealed class BuiltInTemplateRepositoryTests
         Assert.Contains(
             publishingSection.Fields,
             field => field.Key == "__publish" && field.IsVersioned);
+        Assert.Contains(
+            publishingSection.Fields,
+            field =>
+                field.Key == "__publishingGroups"
+                && field.FieldType == FieldType.Multilist
+                && field.IsShared);
 
         var statisticsSection =
             Assert.Single(
