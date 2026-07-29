@@ -231,6 +231,53 @@ public sealed class TemplateValidatorTests
     }
 
     [Fact]
+    public async Task ValidateAsync_ReturnsReservedSystemFieldKey_WhenAuthoredTemplateUsesDoubleUnderscorePrefix()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var template = CreateTemplate(
+            "Article Page",
+            "article-page",
+            CreateSection(
+                "Metadata",
+                "metadata",
+                CreateField("Owner", "__owner")));
+
+        var validator = new TemplateValidator();
+
+        var result = await validator.ValidateAsync(template, cancellationToken);
+
+        Assert.False(result.IsValid);
+
+        var error = Assert.Single(result.Errors);
+        Assert.Equal("ReservedSystemFieldKey", error.Code);
+        Assert.Equal("__owner", error.Target);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_AllowsReservedSystemFieldKeys_ForBuiltInTemplates()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var template = new TemplateDefinition(
+            new TemplateId(Guid.NewGuid()),
+            "Standard",
+            BuiltInTemplateKeys.Standard,
+            sections:
+            [
+                CreateSection(
+                    "Statistics",
+                    "statistics",
+                    CreateField("Created", "__created"))
+            ]);
+
+        var validator = new TemplateValidator();
+
+        var result = await validator.ValidateAsync(template, cancellationToken);
+
+        Assert.True(result.IsValid);
+        Assert.Empty(result.Errors);
+    }
+
+    [Fact]
     public async Task ValidateAsync_ReturnsMultipleErrors_WhenTemplateContainsMultipleValidationIssues()
     {
         var cancellationToken = TestContext.Current.CancellationToken;

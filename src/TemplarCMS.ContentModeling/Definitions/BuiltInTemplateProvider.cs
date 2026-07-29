@@ -7,6 +7,12 @@ namespace TemplarCMS.ContentModeling.Definitions;
 /// </summary>
 public sealed class BuiltInTemplateProvider : IBuiltInTemplateProvider
 {
+    private static readonly IReadOnlyDictionary<string, string> SystemOwnedSectionMetadata =
+        new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            [SectionVisibilityMetadata.VisibilityKey] = SectionVisibilityMetadata.SystemValue
+        };
+
     private static readonly IReadOnlyCollection<TemplateDefinition> Templates = CreateTemplates();
 
     /// <inheritdoc />
@@ -24,35 +30,213 @@ public sealed class BuiltInTemplateProvider : IBuiltInTemplateProvider
                 BuiltInTemplateKeys.Standard,
                 sections:
                 [
-                    new TemplateSectionDefinition(
+                    CreateSystemSection(
                         new Guid("55081A71-C336-41F0-B070-F44B84E0D7C0"),
                         "Content",
                         "content",
                         100,
                         [
-                            new FieldDefinition(
+                            CreateField(
                                 new FieldId(new Guid("BE9B2863-EB2D-4D2E-8990-884A87AB6A0B")),
                                 "Title",
                                 "title",
                                 FieldType.SingleLineText,
                                 isUnversioned: true),
-                            new FieldDefinition(
+                            CreateField(
                                 new FieldId(new Guid("D315D9AF-F921-4385-BD24-8A97BCE1AFA3")),
                                 "Navigation Title",
                                 "navigationTitle",
                                 FieldType.SingleLineText,
                                 isUnversioned: true),
-                            new FieldDefinition(
+                            CreateField(
                                 new FieldId(new Guid("B6A8A944-F09A-4779-83EB-1ABEA205F51C")),
                                 "Meta Description",
                                 "metaDescription",
                                 FieldType.MultiLineText,
                                 isUnversioned: true)
-                        ],
-                        new Dictionary<string, string>(StringComparer.Ordinal)
-                        {
-                            [SectionVisibilityMetadata.VisibilityKey] = SectionVisibilityMetadata.SystemValue
-                        })
+                        ]),
+                    CreateSystemSection(
+                        new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5A001"),
+                        "Appearance",
+                        "appearance",
+                        200,
+                        [
+                            CreateField(
+                                new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B001")),
+                                "__Context Menu",
+                                "__contextMenu",
+                                FieldType.Droplink),
+                            CreateField(
+                                new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B002")),
+                                "__Display name",
+                                "__displayName",
+                                FieldType.SingleLineText),
+                            CreateField(
+                                new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B003")),
+                                "__Editor",
+                                "__editor",
+                                FieldType.File),
+                            CreateField(
+                                new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B004")),
+                                "__Editors",
+                                "__editors",
+                                FieldType.Multilist),
+                            CreateField(
+                                new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B005")),
+                                "__Hidden",
+                                "__hidden",
+                                FieldType.Checkbox),
+                            CreateField(
+                                new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B006")),
+                                "__Originator",
+                                "__originator",
+                                FieldType.Droplink),
+                            CreateField(
+                                new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B007")),
+                                "__Read Only",
+                                "__readOnly",
+                                FieldType.Checkbox),
+                            CreateField(
+                                new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B008")),
+                                "__Ribbon",
+                                "__ribbon",
+                                FieldType.Droplink),
+                            CreateField(
+                                new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B009")),
+                                "__Skin",
+                                "__skin",
+                                FieldType.SingleLineText),
+                            CreateField(
+                                new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B00A")),
+                                "__Sortorder",
+                                "__sortorder",
+                                FieldType.SingleLineText),
+                            CreateField(
+                                new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B00B")),
+                                "__Style",
+                                "__style",
+                                FieldType.SingleLineText),
+                            CreateField(
+                                new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B00C")),
+                                "__Subitems Sorting",
+                                "__subitemsSorting",
+                                FieldType.Droplink)
+                        ]),
+                    CreateSystemSection(
+                        new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5A002"),
+                        "Help",
+                        "help",
+                        300,
+                        [
+                            CreateField(
+                                new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B00D")),
+                                "__Help link",
+                                "__helpLink",
+                                FieldType.GeneralLink),
+                            CreateField(
+                                new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B00E")),
+                                "__Long description",
+                                "__longDescription",
+                                FieldType.MultiLineText),
+                            CreateField(
+                                new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B00F")),
+                                "__Short description",
+                                "__shortDescription",
+                                FieldType.SingleLineText)
+                        ]),
+                    CreateSystemSection(
+                        new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5A003"),
+                        "Lifetime",
+                        "lifetime",
+                        400,
+                        [
+                            CreateField(
+                                new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B010")),
+                                "__Hide version",
+                                "__hideVersion",
+                                FieldType.Checkbox),
+                            CreateField(
+                                new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B011")),
+                                "__Valid from",
+                                "__validFrom",
+                                FieldType.DateTime),
+                            CreateField(
+                                new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B012")),
+                                "__Valid to",
+                                "__validTo",
+                                FieldType.DateTime)
+                        ]),
+                    CreateSystemSection(
+                        new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5A004"),
+                        "Publishing",
+                        "publishing",
+                        500,
+                        [
+                            CreateField(
+                                new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B013")),
+                                "__Never publish",
+                                "__neverPublish",
+                                FieldType.Checkbox),
+                            CreateField(
+                                new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B014")),
+                                "__Publish",
+                                "__publish",
+                                FieldType.DateTime),
+                            CreateField(
+                                new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B015")),
+                                "__Publishing groups",
+                                "__publishingGroups",
+                                FieldType.Multilist),
+                            CreateField(
+                                new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B016")),
+                                "__Unpublish",
+                                "__unpublish",
+                                FieldType.DateTime)
+                        ]),
+                    CreateSystemSection(
+                        new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5A005"),
+                        "Statistics",
+                        "statistics",
+                        600,
+                        [
+                            CreateField(
+                                new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B017")),
+                                "__Created by",
+                                "__createdBy",
+                                FieldType.SingleLineText),
+                            CreateField(
+                                new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B018")),
+                                "__Created",
+                                "__created",
+                                FieldType.DateTime),
+                            CreateField(
+                                new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B019")),
+                                "__Revision",
+                                "__revision",
+                                FieldType.SingleLineText),
+                            CreateField(
+                                new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B01A")),
+                                "__Updated by",
+                                "__updatedBy",
+                                FieldType.SingleLineText),
+                            CreateField(
+                                new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B01B")),
+                                "__Updated",
+                                "__updated",
+                                FieldType.DateTime)
+                        ]),
+                    CreateSystemSection(
+                        new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5A006"),
+                        "Version",
+                        "version",
+                        700,
+                        [
+                            CreateField(
+                                new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B01C")),
+                                "__Version Name",
+                                "__versionName",
+                                FieldType.SingleLineText)
+                        ])
                 ]);
 
         var folderTemplate =
@@ -85,5 +269,38 @@ public sealed class BuiltInTemplateProvider : IBuiltInTemplateProvider
                 ]);
 
         return [standardTemplate, folderTemplate, itemTemplate];
+    }
+
+    private static TemplateSectionDefinition CreateSystemSection(
+        Guid id,
+        string name,
+        string key,
+        int sortOrder,
+        IReadOnlyCollection<FieldDefinition> fields)
+    {
+        return new TemplateSectionDefinition(
+            id,
+            name,
+            key,
+            sortOrder,
+            fields,
+            SystemOwnedSectionMetadata);
+    }
+
+    private static FieldDefinition CreateField(
+        FieldId id,
+        string name,
+        string key,
+        FieldType fieldType,
+        bool isShared = false,
+        bool isUnversioned = false)
+    {
+        return new FieldDefinition(
+            id,
+            name,
+            key,
+            fieldType,
+            isShared,
+            isUnversioned);
     }
 }

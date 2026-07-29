@@ -42,9 +42,28 @@ public sealed class DefaultContentBootstrapperTests
         Assert.NotNull(itemTemplate.BaseTemplate);
         Assert.Equal(standardTemplate.Key, folderTemplate.BaseTemplate!.Key);
         Assert.Equal(standardTemplate.Key, itemTemplate.BaseTemplate!.Key);
+        Assert.Equal(
+            [
+                "content",
+                "appearance",
+                "help",
+                "lifetime",
+                "publishing",
+                "statistics",
+                "version"
+            ],
+            standardTemplate.Sections
+                .OrderBy(section => section.SortOrder)
+                .Select(section => section.Key)
+                .ToArray());
         Assert.Contains(standardTemplate.Sections.SelectMany(section => section.Fields), field => field.Key == "title");
         Assert.Contains(standardTemplate.Sections.SelectMany(section => section.Fields), field => field.Key == "navigationTitle");
         Assert.Contains(standardTemplate.Sections.SelectMany(section => section.Fields), field => field.Key == "metaDescription");
+        Assert.Contains(standardTemplate.Sections.SelectMany(section => section.Fields), field => field.Key == "__displayName");
+        Assert.Contains(standardTemplate.Sections.SelectMany(section => section.Fields), field => field.Key == "__helpLink");
+        Assert.Contains(standardTemplate.Sections.SelectMany(section => section.Fields), field => field.Key == "__publish");
+        Assert.Contains(standardTemplate.Sections.SelectMany(section => section.Fields), field => field.Key == "__created");
+        Assert.Contains(standardTemplate.Sections.SelectMany(section => section.Fields), field => field.Key == "__versionName");
         Assert.Contains(itemTemplate.Sections.SelectMany(section => section.Fields), field => field.Key == "body");
 
         var templar =
