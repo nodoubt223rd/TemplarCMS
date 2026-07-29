@@ -65,8 +65,9 @@ public sealed class BuiltInTemplateProvider : IBuiltInTemplateProvider
                                 new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B001")),
                                 "__Context Menu",
                                 "__contextMenu",
-                                FieldType.Droplink),
-                            CreateField(
+                                FieldType.Droplink,
+                                isShared: true),
+                            CreateUnversionedField(
                                 new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B002")),
                                 "__Display name",
                                 "__displayName",
@@ -75,52 +76,62 @@ public sealed class BuiltInTemplateProvider : IBuiltInTemplateProvider
                                 new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B003")),
                                 "__Editor",
                                 "__editor",
-                                FieldType.File),
+                                FieldType.File,
+                                isShared: true),
                             CreateField(
                                 new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B004")),
                                 "__Editors",
                                 "__editors",
-                                FieldType.Multilist),
+                                FieldType.Multilist,
+                                isShared: true),
                             CreateField(
                                 new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B005")),
                                 "__Hidden",
                                 "__hidden",
-                                FieldType.Checkbox),
+                                FieldType.Checkbox,
+                                isShared: true),
                             CreateField(
                                 new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B006")),
                                 "__Originator",
                                 "__originator",
-                                FieldType.Droplink),
+                                FieldType.Droplink,
+                                isShared: true),
                             CreateField(
                                 new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B007")),
                                 "__Read Only",
                                 "__readOnly",
-                                FieldType.Checkbox),
+                                FieldType.Checkbox,
+                                isShared: true),
                             CreateField(
                                 new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B008")),
                                 "__Ribbon",
                                 "__ribbon",
-                                FieldType.Droplink),
+                                FieldType.Droplink,
+                                isShared: true),
                             CreateField(
                                 new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B009")),
                                 "__Skin",
                                 "__skin",
-                                FieldType.SingleLineText),
+                                FieldType.SingleLineText,
+                                isShared: true),
                             CreateField(
                                 new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B00A")),
                                 "__Sortorder",
                                 "__sortorder",
-                                FieldType.SingleLineText),
+                                FieldType.SingleLineText,
+                                isShared: true),
                             CreateField(
                                 new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B00B")),
                                 "__Style",
                                 "__style",
-                                FieldType.SingleLineText),
+                                FieldType.SingleLineText,
+                                isShared: true),
                             CreateField(
                                 new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B00C")),
                                 "__Subitems Sorting",
                                 "__subitemsSorting",
-                                FieldType.Droplink)
+                                FieldType.Droplink,
+                                isShared: true)
                         ]),
                     CreateSystemSection(
                         new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5A002"),
@@ -128,17 +139,17 @@ public sealed class BuiltInTemplateProvider : IBuiltInTemplateProvider
                         "help",
                         300,
                         [
-                            CreateField(
+                            CreateUnversionedField(
                                 new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B00D")),
                                 "__Help link",
                                 "__helpLink",
                                 FieldType.GeneralLink),
-                            CreateField(
+                            CreateUnversionedField(
                                 new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B00E")),
                                 "__Long description",
                                 "__longDescription",
                                 FieldType.MultiLineText),
-                            CreateField(
+                            CreateUnversionedField(
                                 new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B00F")),
                                 "__Short description",
                                 "__shortDescription",
@@ -154,17 +165,20 @@ public sealed class BuiltInTemplateProvider : IBuiltInTemplateProvider
                                 new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B010")),
                                 "__Hide version",
                                 "__hideVersion",
-                                FieldType.Checkbox),
+                                FieldType.Checkbox,
+                                isShared: true),
                             CreateField(
                                 new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B011")),
                                 "__Valid from",
                                 "__validFrom",
-                                FieldType.DateTime),
+                                FieldType.DateTime,
+                                isUnversioned: true),
                             CreateField(
                                 new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B012")),
                                 "__Valid to",
                                 "__validTo",
-                                FieldType.DateTime)
+                                FieldType.DateTime,
+                                isUnversioned: true)
                         ]),
                     CreateSystemSection(
                         new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5A004"),
@@ -176,7 +190,8 @@ public sealed class BuiltInTemplateProvider : IBuiltInTemplateProvider
                                 new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B013")),
                                 "__Never publish",
                                 "__neverPublish",
-                                FieldType.Checkbox),
+                                FieldType.Checkbox,
+                                isShared: true),
                             CreateField(
                                 new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B014")),
                                 "__Publish",
@@ -186,7 +201,8 @@ public sealed class BuiltInTemplateProvider : IBuiltInTemplateProvider
                                 new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B015")),
                                 "__Publishing groups",
                                 "__publishingGroups",
-                                FieldType.Multilist),
+                                FieldType.Multilist,
+                                isShared: true),
                             CreateField(
                                 new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B016")),
                                 "__Unpublish",
@@ -199,27 +215,27 @@ public sealed class BuiltInTemplateProvider : IBuiltInTemplateProvider
                         "statistics",
                         600,
                         [
-                            CreateField(
+                            CreateSharedField(
                                 new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B017")),
                                 "__Created by",
                                 "__createdBy",
                                 FieldType.SingleLineText),
-                            CreateField(
+                            CreateSharedField(
                                 new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B018")),
                                 "__Created",
                                 "__created",
                                 FieldType.DateTime),
-                            CreateField(
+                            CreateSharedField(
                                 new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B019")),
                                 "__Revision",
                                 "__revision",
                                 FieldType.SingleLineText),
-                            CreateField(
+                            CreateSharedField(
                                 new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B01A")),
                                 "__Updated by",
                                 "__updatedBy",
                                 FieldType.SingleLineText),
-                            CreateField(
+                            CreateSharedField(
                                 new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B01B")),
                                 "__Updated",
                                 "__updated",
@@ -302,5 +318,33 @@ public sealed class BuiltInTemplateProvider : IBuiltInTemplateProvider
             fieldType,
             isShared,
             isUnversioned);
+    }
+
+    private static FieldDefinition CreateSharedField(
+        FieldId id,
+        string name,
+        string key,
+        FieldType fieldType)
+    {
+        return CreateField(
+            id,
+            name,
+            key,
+            fieldType,
+            isShared: true);
+    }
+
+    private static FieldDefinition CreateUnversionedField(
+        FieldId id,
+        string name,
+        string key,
+        FieldType fieldType)
+    {
+        return CreateField(
+            id,
+            name,
+            key,
+            fieldType,
+            isUnversioned: true);
     }
 }
