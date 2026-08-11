@@ -136,6 +136,14 @@ public sealed class BuiltInTemplateRepositoryTests
             statisticsSection.Fields,
             field => field.Key == "__updated" && field.IsShared);
 
+        var versionSection =
+            Assert.Single(
+                standardTemplate.Sections,
+                section => section.Key == "version");
+        Assert.Contains(
+            versionSection.Fields,
+            field => field.Key == "__versionName" && field.IsVersioned);
+
         Assert.All(
             standardTemplate.Sections,
             section =>

@@ -88,6 +88,9 @@ public sealed class DefaultContentBootstrapperTests
         Assert.Contains(
             standardTemplate.Sections.SelectMany(section => section.Fields),
             field => field.Key == "__updated" && field.IsShared);
+        Assert.Contains(
+            standardTemplate.Sections.SelectMany(section => section.Fields),
+            field => field.Key == "__versionName" && field.IsVersioned);
         Assert.Contains(itemTemplate.Sections.SelectMany(section => section.Fields), field => field.Key == "body");
 
         var templar =

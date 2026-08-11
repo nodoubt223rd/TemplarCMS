@@ -151,6 +151,9 @@ Wave 1 explicit semantics:
   audit fields such as `__Created`, `__Created by`, `__Updated`, and
   `__Updated by` are shared system bookkeeping rather than per-version
   author content.
+- `Version`
+  `__Version Name` remains versioned so authors can label and
+  distinguish individual item revisions.
 
 Requested standard-template sections:
 - `Advanced`
