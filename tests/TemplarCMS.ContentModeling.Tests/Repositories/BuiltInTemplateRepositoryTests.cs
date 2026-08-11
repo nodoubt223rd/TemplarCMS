@@ -111,6 +111,20 @@ public sealed class BuiltInTemplateRepositoryTests
                 && field.FieldType == FieldType.Multilist
                 && field.IsShared);
 
+        var lifetimeSection =
+            Assert.Single(
+                standardTemplate.Sections,
+                section => section.Key == "lifetime");
+        Assert.Contains(
+            lifetimeSection.Fields,
+            field => field.Key == "__hideVersion" && field.IsShared);
+        Assert.Contains(
+            lifetimeSection.Fields,
+            field => field.Key == "__validFrom" && field.IsUnversioned);
+        Assert.Contains(
+            lifetimeSection.Fields,
+            field => field.Key == "__validTo" && field.IsUnversioned);
+
         var statisticsSection =
             Assert.Single(
                 standardTemplate.Sections,
@@ -118,6 +132,9 @@ public sealed class BuiltInTemplateRepositoryTests
         Assert.Contains(
             statisticsSection.Fields,
             field => field.Key == "__created" && field.IsShared);
+        Assert.Contains(
+            statisticsSection.Fields,
+            field => field.Key == "__updated" && field.IsShared);
 
         Assert.All(
             standardTemplate.Sections,

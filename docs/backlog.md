@@ -142,6 +142,16 @@ Wave 1 temporary mappings:
   baseline can carry the field before checklist-specific behavior
   exists.
 
+Wave 1 explicit semantics:
+- `Lifetime`
+  `__Hide version` is treated as a shared system toggle, while
+  `__Valid from` and `__Valid to` are unversioned so lifecycle windows
+  can vary by language without duplicating per version.
+- `Statistics`
+  audit fields such as `__Created`, `__Created by`, `__Updated`, and
+  `__Updated by` are shared system bookkeeping rather than per-version
+  author content.
+
 Requested standard-template sections:
 - `Advanced`
 - `Appearance`

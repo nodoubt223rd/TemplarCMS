@@ -221,6 +221,8 @@ public sealed class BuiltInTemplateProvider : IBuiltInTemplateProvider
 
     private static TemplateSectionDefinition CreateStandardLifetimeSection()
     {
+        // Keep lifecycle windows language-specific but shared across versions,
+        // while the hide-version flag remains a global toggle for the item.
         return CreateSystemSection(
             new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5A003"),
             "Lifetime",
@@ -285,6 +287,8 @@ public sealed class BuiltInTemplateProvider : IBuiltInTemplateProvider
 
     private static TemplateSectionDefinition CreateStandardStatisticsSection()
     {
+        // Treat audit metadata as shared system bookkeeping so versioning does
+        // not duplicate timestamps and authorship markers per language/version.
         return CreateSystemSection(
             new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5A005"),
             "Statistics",
