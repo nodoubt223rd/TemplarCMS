@@ -79,6 +79,15 @@ public sealed class DefaultContentBootstrapperTests
                 field.Key == "__publishingGroups"
                 && field.FieldType == FieldType.Multilist
                 && field.IsShared);
+        Assert.Contains(
+            standardTemplate.Sections.SelectMany(section => section.Fields),
+            field => field.Key == "__hideVersion" && field.IsShared);
+        Assert.Contains(
+            standardTemplate.Sections.SelectMany(section => section.Fields),
+            field => field.Key == "__validFrom" && field.IsUnversioned);
+        Assert.Contains(
+            standardTemplate.Sections.SelectMany(section => section.Fields),
+            field => field.Key == "__updated" && field.IsShared);
         Assert.Contains(itemTemplate.Sections.SelectMany(section => section.Fields), field => field.Key == "body");
 
         var templar =
