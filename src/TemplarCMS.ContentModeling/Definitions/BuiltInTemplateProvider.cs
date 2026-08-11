@@ -325,6 +325,8 @@ public sealed class BuiltInTemplateProvider : IBuiltInTemplateProvider
 
     private static TemplateSectionDefinition CreateStandardVersionSection()
     {
+        // Keep version naming per-version so authors can distinguish draft
+        // history without that label collapsing across all versions.
         return CreateSystemSection(
             new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5A006"),
             "Version",
