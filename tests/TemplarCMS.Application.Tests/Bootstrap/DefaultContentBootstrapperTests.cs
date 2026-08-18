@@ -45,6 +45,7 @@ public sealed class DefaultContentBootstrapperTests
         Assert.Equal(
             [
                 "content",
+                "advanced",
                 "appearance",
                 "help",
                 "lifetime",
@@ -58,6 +59,13 @@ public sealed class DefaultContentBootstrapperTests
                 .Select(section => section.Key)
                 .ToArray());
         Assert.Contains(standardTemplate.Sections.SelectMany(section => section.Fields), field => field.Key == "title");
+        Assert.Contains(standardTemplate.Sections.SelectMany(section => section.Fields), field => field.Key == "__enableItemFallback" && field.IsShared);
+        Assert.Contains(
+            standardTemplate.Sections.SelectMany(section => section.Fields),
+            field =>
+                field.Key == "__sourceItem"
+                && field.FieldType == FieldType.Droplink
+                && field.IsShared);
         Assert.Contains(standardTemplate.Sections.SelectMany(section => section.Fields), field => field.Key == "navigationTitle");
         Assert.Contains(standardTemplate.Sections.SelectMany(section => section.Fields), field => field.Key == "metaDescription");
         Assert.Contains(standardTemplate.Sections.SelectMany(section => section.Fields), field => field.Key == "__displayName");

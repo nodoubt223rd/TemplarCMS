@@ -55,6 +55,7 @@ public sealed class BuiltInTemplateRepositoryTests
         Assert.Equal(
             [
                 "content",
+                "advanced",
                 "appearance",
                 "help",
                 "lifetime",
@@ -66,7 +67,27 @@ public sealed class BuiltInTemplateRepositoryTests
             standardTemplate.Sections
                 .OrderBy(section => section.SortOrder)
                 .Select(section => section.Key)
-                .ToArray());
+            .ToArray());
+
+        var advancedSection =
+            Assert.Single(
+                standardTemplate.Sections,
+                section => section.Key == "advanced");
+        Assert.Contains(
+            advancedSection.Fields,
+            field => field.Key == "__enableItemFallback" && field.IsShared);
+        Assert.Contains(
+            advancedSection.Fields,
+            field => field.Key == "__enforceVersionPresence" && field.IsShared);
+        Assert.Contains(
+            advancedSection.Fields,
+            field =>
+                field.Key is "__sourceItem" or "__source" or "__standardValues"
+                && field.FieldType == FieldType.Droplink
+                && field.IsShared);
+        Assert.DoesNotContain(
+            advancedSection.Fields,
+            field => field.Key == "__tracking");
 
         var appearanceSection =
             Assert.Single(

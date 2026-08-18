@@ -67,6 +67,7 @@ public sealed class BuiltInTemplateProvider : IBuiltInTemplateProvider
         return
         [
             CreateStandardContentSection(),
+            CreateStandardAdvancedSection(),
             CreateStandardAppearanceSection(),
             CreateStandardHelpSection(),
             CreateStandardLifetimeSection(),
@@ -188,6 +189,46 @@ public sealed class BuiltInTemplateProvider : IBuiltInTemplateProvider
                     "__subitemsSorting",
                     FieldType.Droplink,
                     isShared: true)
+            ]);
+    }
+
+    private static TemplateSectionDefinition CreateStandardAdvancedSection()
+    {
+        // These fields govern item-level system behavior, so keep them shared.
+        // Version Link and Droptree do not have dedicated implementations yet;
+        // Droplink preserves their single-item reference semantics in the
+        // current model without exposing an unsupported editor type.
+        return CreateSystemSection(
+            new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5A007"),
+            "Advanced",
+            "advanced",
+            150,
+            [
+                CreateSharedField(
+                    new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B01D")),
+                    "__Enable item fallback",
+                    "__enableItemFallback",
+                    FieldType.Checkbox),
+                CreateSharedField(
+                    new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B01E")),
+                    "__Enforce version presence",
+                    "__enforceVersionPresence",
+                    FieldType.Checkbox),
+                CreateSharedField(
+                    new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B01F")),
+                    "__Source Item",
+                    "__sourceItem",
+                    FieldType.Droplink),
+                CreateSharedField(
+                    new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B020")),
+                    "__Source",
+                    "__source",
+                    FieldType.Droplink),
+                CreateSharedField(
+                    new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B021")),
+                    "__Standard values",
+                    "__standardValues",
+                    FieldType.Droplink)
             ]);
     }
 
