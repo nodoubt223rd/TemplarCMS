@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import type { FieldTypeResponse, TemplateSummaryResponse } from '@/types/admin-api'
 import type { TemplateFieldViewModel, TemplateSectionViewModel } from '@/types/admin-ui'
 import type {
@@ -80,6 +80,7 @@ function readCheckedValue(event: Event): boolean {
 }
 
 const fieldTypeLookup = computed(() => createFieldTypeLookup(props.availableFieldTypes))
+const collapsedSections = ref<Set<string>>(new Set())
 const effectiveTemplatePreview = computed(() =>
   buildTemplateDesignerPreviewWorkspace(
     props.sections,
@@ -124,6 +125,31 @@ function getKeyGuidance(name: string, key: string): string {
   return isTemplateDesignerKeyFollowingName(key, name)
     ? `Auto-drafting key from the name as ${draftKey}.`
     : `Custom key. Suggested draft is ${draftKey}.`
+}
+
+function getSectionStateKey(scope: string, sectionId: string): string {
+  return `${scope}:${sectionId}`
+}
+
+function getSectionContentId(scope: string, sectionId: string): string {
+  return `template-designer-${scope}-${sectionId}`
+}
+
+function isSectionExpanded(scope: string, sectionId: string): boolean {
+  return !collapsedSections.value.has(getSectionStateKey(scope, sectionId))
+}
+
+function toggleSection(scope: string, sectionId: string): void {
+  const stateKey = getSectionStateKey(scope, sectionId)
+  const nextCollapsedSections = new Set(collapsedSections.value)
+
+  if (nextCollapsedSections.has(stateKey)) {
+    nextCollapsedSections.delete(stateKey)
+  } else {
+    nextCollapsedSections.add(stateKey)
+  }
+
+  collapsedSections.value = nextCollapsedSections
 }
 </script>
 
@@ -234,10 +260,25 @@ function getKeyGuidance(name: string, key: string): string {
               <h5>{{ section.name }}</h5>
               <p>{{ section.key }}</p>
             </div>
-            <span class="callout">Section: {{ section.originLabel }}</span>
+            <div class="template-inline-actions">
+              <span class="callout">Section: {{ section.originLabel }}</span>
+              <button
+                class="button button--secondary"
+                type="button"
+                :aria-controls="getSectionContentId('effective', section.id)"
+                :aria-expanded="isSectionExpanded('effective', section.id)"
+                @click="toggleSection('effective', section.id)"
+              >
+                {{ isSectionExpanded('effective', section.id) ? 'Collapse' : 'Expand' }}
+              </button>
+            </div>
           </div>
 
-          <ul class="template-field-list">
+          <ul
+            :id="getSectionContentId('effective', section.id)"
+            v-show="isSectionExpanded('effective', section.id)"
+            class="template-field-list"
+          >
             <li
               v-for="field in section.fields"
               :key="field.id"
@@ -292,10 +333,25 @@ function getKeyGuidance(name: string, key: string): string {
               <h5>{{ section.name }}</h5>
               <p>{{ section.key }}</p>
             </div>
-            <span class="callout">{{ section.fields.length }} fields</span>
+            <div class="template-inline-actions">
+              <span class="callout">{{ section.fields.length }} fields</span>
+              <button
+                class="button button--secondary"
+                type="button"
+                :aria-controls="getSectionContentId('inherited', section.id)"
+                :aria-expanded="isSectionExpanded('inherited', section.id)"
+                @click="toggleSection('inherited', section.id)"
+              >
+                {{ isSectionExpanded('inherited', section.id) ? 'Collapse' : 'Expand' }}
+              </button>
+            </div>
           </div>
 
-          <ul class="template-field-list">
+          <ul
+            :id="getSectionContentId('inherited', section.id)"
+            v-show="isSectionExpanded('inherited', section.id)"
+            class="template-field-list"
+          >
             <li
               v-for="field in section.fields"
               :key="field.id"
@@ -330,6 +386,15 @@ function getKeyGuidance(name: string, key: string): string {
             </p>
           </div>
           <div class="template-inline-actions">
+            <button
+              class="button button--secondary"
+              type="button"
+              :aria-controls="getSectionContentId('local', section.id)"
+              :aria-expanded="isSectionExpanded('local', section.id)"
+              @click="toggleSection('local', section.id)"
+            >
+              {{ isSectionExpanded('local', section.id) ? 'Collapse' : 'Expand' }}
+            </button>
             <button class="button button--secondary" type="button" @click="emit('addField', section.id)">
               Add Field
             </button>
@@ -339,6 +404,10 @@ function getKeyGuidance(name: string, key: string): string {
           </div>
         </div>
 
+        <div
+          :id="getSectionContentId('local', section.id)"
+          v-show="isSectionExpanded('local', section.id)"
+        >
         <div class="template-section-form">
           <label class="field">
             <span>Section Name</span>
@@ -498,6 +567,7 @@ function getKeyGuidance(name: string, key: string): string {
               </label>
             </div>
           </article>
+        </div>
         </div>
       </section>
     </div>
