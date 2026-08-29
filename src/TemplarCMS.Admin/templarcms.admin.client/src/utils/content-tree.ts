@@ -39,6 +39,23 @@ export function findTreeNodeById(nodes: TreeNode[], id: string | null): TreeNode
   return null
 }
 
+export function treeNodeMatchesFilter(node: TreeNode, filterText: string): boolean {
+  const normalizedFilter = filterText.trim().toLocaleLowerCase()
+
+  if (normalizedFilter.length === 0) {
+    return true
+  }
+
+  if (
+    node.item.name.toLocaleLowerCase().includes(normalizedFilter)
+    || node.item.path.toLocaleLowerCase().includes(normalizedFilter)
+  ) {
+    return true
+  }
+
+  return node.children.some(child => treeNodeMatchesFilter(child, normalizedFilter))
+}
+
 export function applyBranchToTree(nodes: TreeNode[], branch: ContentBranchResponse): TreeNode[] {
   if (branch.item == null) {
     return branch.embedded.children

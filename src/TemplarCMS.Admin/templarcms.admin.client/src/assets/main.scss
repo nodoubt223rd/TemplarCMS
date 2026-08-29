@@ -220,11 +220,24 @@ button {
 
 .navigator-filter {
   margin: 1rem 0 0.75rem;
-  padding: 0.55rem 0.7rem;
   border-radius: 0.45rem;
-  color: var(--ink-faint);
   background: #ecebe6;
+}
+
+.navigator-filter input {
+  width: 100%;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid transparent;
+  border-radius: 0.45rem;
+  color: inherit;
+  background: transparent;
   font-size: 0.78rem;
+}
+
+.navigator-filter input:focus {
+  border-color: rgba(82, 106, 203, 0.45);
+  outline: 0;
+  background: #ffffff;
 }
 
 .navigator-state {

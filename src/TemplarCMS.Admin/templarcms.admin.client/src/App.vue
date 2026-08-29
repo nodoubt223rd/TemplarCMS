@@ -40,6 +40,7 @@ import {
   createTreeNode,
   extractParentIdFromHref,
   findTreeNodeById,
+  treeNodeMatchesFilter,
   upsertTreeNode
 } from './utils/content-tree'
 import {
@@ -95,6 +96,7 @@ import {
 const language = ref('en')
 const version = ref(1)
 const activeWorkspace = ref<'content' | 'templates'>('content')
+const treeFilter = ref('')
 const isBootstrapping = ref(false)
 const isSubmitting = ref(false)
 const pageError = ref<string | null>(null)
@@ -104,6 +106,8 @@ const rootNodes = ref<TreeNode[]>([])
 const selectedItemId = ref<string | null>(null)
 const selectedNode = computed(() => findTreeNodeById(rootNodes.value, selectedItemId.value))
 const selectedItem = computed(() => selectedNode.value?.item ?? null)
+const visibleRootNodes = computed(() =>
+  rootNodes.value.filter(node => treeNodeMatchesFilter(node, treeFilter.value)))
 
 const createForm = reactive({
   name: '',
@@ -1035,7 +1039,10 @@ function countNodes(nodes: TreeNode[]): number {
         <span class="panel-pill">{{ treeCount }}</span>
       </div>
 
-      <div class="navigator-filter">Loaded content tree</div>
+      <label class="navigator-filter">
+        <span class="sr-only">Filter loaded content items</span>
+        <input v-model="treeFilter" type="search" placeholder="Filter loaded items" />
+      </label>
 
       <section class="navigator-state">
         <span>{{ isBootstrapping ? 'Refreshing content tree' : 'Tree-aware authoring' }}</span>
@@ -1050,12 +1057,17 @@ function countNodes(nodes: TreeNode[]): number {
         No root content items have been loaded yet.
       </div>
 
+      <div v-else-if="visibleRootNodes.length === 0" class="empty-state">
+        No loaded content items match “{{ treeFilter }}”.
+      </div>
+
       <ul v-else class="tree-list">
         <TreeBranch
-          v-for="node in rootNodes"
+          v-for="node in visibleRootNodes"
           :key="node.item.id"
           :node="node"
           :selected-item-id="selectedItemId"
+          :filter-text="treeFilter"
           @toggle="toggleNode"
           @select="selectNode"
         />
