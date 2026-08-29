@@ -16,6 +16,25 @@ namespace TemplarCMS.Api.Tests.Security;
 public sealed class AuthoringSecurityIntegrationTests
 {
     [Fact]
+    public async Task SampleHomePage_ShouldRenderTheBootstrappedHomeContent()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        await using var factory = new AuthoringSecurityApiFactory();
+        using var client = factory.CreateClient();
+        using var response = await client.GetAsync("/", cancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("text/html", response.Content.Headers.ContentType?.MediaType);
+
+        var page = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        Assert.Contains("<title>Home | TemplarCMS</title>", page, StringComparison.Ordinal);
+        Assert.Contains("<p>Welcome to Templar CMS.</p>", page, StringComparison.Ordinal);
+        Assert.Contains("/author-workspace/", page, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task AuthoringEndpoint_ShouldReturn401_WhenApiKeyIsMissing()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
