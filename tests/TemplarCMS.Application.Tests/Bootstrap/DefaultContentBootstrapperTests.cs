@@ -50,6 +50,7 @@ public sealed class DefaultContentBootstrapperTests
                 "lifetime",
                 "publishing",
                 "statistics",
+                "tasks",
                 "version"
             ],
             standardTemplate.Sections
@@ -91,6 +92,15 @@ public sealed class DefaultContentBootstrapperTests
         Assert.Contains(
             standardTemplate.Sections.SelectMany(section => section.Fields),
             field => field.Key == "__versionName" && field.IsVersioned);
+        Assert.Contains(
+            standardTemplate.Sections.SelectMany(section => section.Fields),
+            field => field.Key == "__archiveDate" && field.FieldType == FieldType.DateTime && field.IsShared);
+        Assert.Contains(
+            standardTemplate.Sections.SelectMany(section => section.Fields),
+            field => field.Key == "__archiveVersionDate" && field.FieldType == FieldType.DateTime && field.IsVersioned);
+        Assert.Contains(
+            standardTemplate.Sections.SelectMany(section => section.Fields),
+            field => field.Key == "__reminderText" && field.FieldType == FieldType.MultiLineText && field.IsShared);
         Assert.Contains(itemTemplate.Sections.SelectMany(section => section.Fields), field => field.Key == "body");
 
         var templar =

@@ -72,6 +72,7 @@ public sealed class BuiltInTemplateProvider : IBuiltInTemplateProvider
             CreateStandardLifetimeSection(),
             CreateStandardPublishingSection(),
             CreateStandardStatisticsSection(),
+            CreateStandardTasksSection(),
             CreateStandardVersionSection()
         ];
     }
@@ -338,6 +339,45 @@ public sealed class BuiltInTemplateProvider : IBuiltInTemplateProvider
                     "__Version Name",
                     "__versionName",
                     FieldType.SingleLineText)
+            ]);
+    }
+
+    private static TemplateSectionDefinition CreateStandardTasksSection()
+    {
+        // Task metadata controls the item as a whole, so it remains shared.
+        // The archive-version date is the exception because it explicitly
+        // records a lifecycle event for an individual content version.
+        return CreateSystemSection(
+            new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5A008"),
+            "Tasks",
+            "tasks",
+            650,
+            [
+                CreateSharedField(
+                    new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B022")),
+                    "__Archive date",
+                    "__archiveDate",
+                    FieldType.DateTime),
+                CreateField(
+                    new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B023")),
+                    "__Archive Version date",
+                    "__archiveVersionDate",
+                    FieldType.DateTime),
+                CreateSharedField(
+                    new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B024")),
+                    "__Reminder date",
+                    "__reminderDate",
+                    FieldType.DateTime),
+                CreateSharedField(
+                    new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B025")),
+                    "__Reminder recipients",
+                    "__reminderRecipients",
+                    FieldType.SingleLineText),
+                CreateSharedField(
+                    new FieldId(new Guid("7A1186B2-4A79-4E20-9B31-7F3D94F5B026")),
+                    "__Reminder text",
+                    "__reminderText",
+                    FieldType.MultiLineText)
             ]);
     }
 

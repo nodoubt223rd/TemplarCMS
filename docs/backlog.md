@@ -155,6 +155,24 @@ Wave 1 explicit semantics:
   `__Version Name` remains versioned so authors can label and
   distinguish individual item revisions.
 
+Wave 2 implemented so far:
+- `Advanced`
+  `__Enable item fallback` and `__Enforce version presence` are shared
+  system toggles. `__Source Item`, `__Source`, and `__Standard values`
+  are shared single-item references.
+- `Advanced` temporary mappings
+  `__Source Item` and `__Source` map from `Version Link`, and
+  `__Standard values` maps from `Droptree`, to `Droplink` until their
+  dedicated reference semantics exist.
+- `Advanced` deferred field
+  `__Tracking` remains deferred until tracking-specific storage,
+  runtime, and authoring behavior exist.
+- `Tasks`
+  `__Archive date`, `__Reminder date`, `__Reminder recipients`, and
+  `__Reminder text` are shared item-level task metadata. `__Archive
+  Version date` remains versioned because it records a lifecycle event
+  for an individual content version.
+
 Requested standard-template sections:
 - `Advanced`
 - `Appearance`
