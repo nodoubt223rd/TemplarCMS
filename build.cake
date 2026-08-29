@@ -66,7 +66,8 @@ Task("Publish-Api-To-Inetpub")
     .IsDependentOn("Test")
     .Does(() =>
 {
-    PublishApi(inetpubDirectory);
+    PublishApi(publishDirectory);
+    DeployApiToInetpub(publishDirectory, inetpubDirectory);
 });
 
 Task("Recycle-IIS-AppPool")
@@ -136,4 +137,46 @@ void PublishApi(DirectoryPath outputDirectory)
     DotNetPublish(apiProject, settings);
 
     Information("Published API to {0}", outputDirectory.FullPath);
+}
+
+void DeployApiToInetpub(DirectoryPath sourceDirectory, DirectoryPath destinationDirectory)
+{
+    EnsureDirectoryExists(destinationDirectory);
+
+    foreach (var sourceFile in System.IO.Directory.GetFiles(
+                 sourceDirectory.FullPath,
+                 "*",
+                 System.IO.SearchOption.AllDirectories))
+    {
+        var relativePath = System.IO.Path.GetRelativePath(sourceDirectory.FullPath, sourceFile);
+
+        if (IsRuntimeDataPath(relativePath))
+        {
+            continue;
+        }
+
+        var destinationFile = System.IO.Path.Combine(destinationDirectory.FullPath, relativePath);
+        var destinationParent = System.IO.Path.GetDirectoryName(destinationFile);
+
+        if (!string.IsNullOrWhiteSpace(destinationParent))
+        {
+            System.IO.Directory.CreateDirectory(destinationParent);
+        }
+
+        System.IO.File.Copy(sourceFile, destinationFile, overwrite: true);
+    }
+
+    Information(
+        "Deployed API files to {0} while preserving RuntimeData and App_Data.",
+        destinationDirectory.FullPath);
+}
+
+bool IsRuntimeDataPath(string relativePath)
+{
+    var firstPathSegment = relativePath.Split(
+        new[] { System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar },
+        StringSplitOptions.RemoveEmptyEntries)[0];
+
+    return string.Equals(firstPathSegment, "RuntimeData", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(firstPathSegment, "App_Data", StringComparison.OrdinalIgnoreCase);
 }
