@@ -142,8 +142,9 @@ The API now exposes an OpenAPI document at:
 /openapi/v1.json
 ```
 
-When OpenAPI is enabled, the site root redirects to the Swagger UI at
-`/openapi/`. The API discovery document is available at `/api/v1`.
+The site root renders the source-controlled sample home content. Use it to
+verify the bootstrap, runtime resolution, and public rendering path end-to-end.
+The API discovery document is available at `/api/v1`.
 
 There is also a browser UI at:
 

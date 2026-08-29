@@ -6,18 +6,6 @@ namespace TemplarCMS.Api.Tests;
 
 public sealed class ApiRootEndpointsTests
 {
-    [Theory]
-    [InlineData(true, "/openapi/")]
-    [InlineData(false, "/api/v1")]
-    public void GetLandingPage_ShouldRedirectToTheAvailableDiscoveryPage(
-        bool openApiEnabled,
-        string expectedLocation)
-    {
-        var result = ApiRootEndpoints.GetLandingPage(openApiEnabled);
-
-        Assert.Equal(expectedLocation, result.Url);
-    }
-
     [Fact]
     public async Task GetAsync_ShouldReturnDiscoveryLinks_WhenOpenApiIsEnabled()
     {

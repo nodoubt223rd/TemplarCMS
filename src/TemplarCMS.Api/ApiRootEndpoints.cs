@@ -1,4 +1,7 @@
 using System.Text.Json.Serialization;
+using System.Net;
+using TemplarCMS.Application.Content;
+using TemplarCMS.Domain.Content;
 using Microsoft.AspNetCore.Http.HttpResults;
 using TemplarCMS.Api.Content;
 
@@ -14,7 +17,10 @@ public static class ApiRootEndpoints
 
         endpoints.MapGet(
             "/",
-            () => GetLandingPage(openApiEnabled));
+            GetLandingPageAsync)
+            .WithName("GetSampleHomePage")
+            .WithTags("Public site")
+            .ExcludeFromDescription();
 
         endpoints.MapGet(
                 "/api/v1",
@@ -26,9 +32,73 @@ public static class ApiRootEndpoints
         return endpoints;
     }
 
-    public static RedirectHttpResult GetLandingPage(bool openApiEnabled)
+    public static async Task<IResult> GetLandingPageAsync(
+        IContentItemService contentItemService,
+        CancellationToken cancellationToken)
     {
-        return TypedResults.Redirect(openApiEnabled ? "/openapi/" : "/api/v1");
+        var home =
+            await contentItemService.GetItemAsync(
+                SystemSeedContentIds.Home,
+                new FieldValueResolutionContext(
+                    new ContentLanguage("en"),
+                    ContentVersion.First),
+                cancellationToken);
+
+        if (home == null)
+        {
+            return TypedResults.Problem(
+                statusCode: StatusCodes.Status503ServiceUnavailable,
+                title: "Sample content is initializing",
+                detail: "The TemplarCMS starter content is not available yet.");
+        }
+
+        var title = GetFieldValue(home, "title") ?? home.Item.Name;
+        var navigationTitle = GetFieldValue(home, "navigationTitle") ?? title;
+        var metaDescription = GetFieldValue(home, "metaDescription") ?? string.Empty;
+        var body = GetFieldValue(home, "body") ?? string.Empty;
+
+        // Rich text is authored HTML; the other values are encoded before being inserted into the page shell.
+        var page = $$"""
+            <!doctype html>
+            <html lang="en">
+            <head>
+              <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1">
+              <meta name="description" content="{{WebUtility.HtmlEncode(metaDescription)}}">
+              <title>{{WebUtility.HtmlEncode(title)}} | TemplarCMS</title>
+              <style>
+                :root { color-scheme: light; font-family: Georgia, 'Times New Roman', serif; color: #1d3027; background: #f5f2e8; }
+                body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: radial-gradient(circle at top left, #d7e8d1, transparent 42%), #f5f2e8; }
+                main { width: min(42rem, calc(100% - 3rem)); padding: 4rem 0; }
+                header { border-bottom: 1px solid #a4b9a5; padding-bottom: 1.5rem; }
+                .eyebrow { color: #55705d; font-family: ui-monospace, monospace; font-size: .75rem; letter-spacing: .14em; text-transform: uppercase; }
+                h1 { font-size: clamp(2.5rem, 8vw, 5rem); font-weight: 400; letter-spacing: -.05em; line-height: .95; margin: .5rem 0 0; }
+                article { font-size: 1.2rem; line-height: 1.7; padding: 2rem 0; }
+                footer { color: #55705d; font-family: ui-monospace, monospace; font-size: .8rem; }
+                a { color: inherit; }
+              </style>
+            </head>
+            <body>
+              <main>
+                <header>
+                  <div class="eyebrow">TemplarCMS sample site</div>
+                  <h1>{{WebUtility.HtmlEncode(navigationTitle)}}</h1>
+                </header>
+                <article>{{body}}</article>
+                <footer><a href="/author-workspace/">Author workspace</a> <span aria-hidden="true">/</span> <a href="/openapi/">API documentation</a></footer>
+              </main>
+            </body>
+            </html>
+            """;
+
+        return TypedResults.Content(page, "text/html; charset=utf-8");
+    }
+
+    private static string? GetFieldValue(ResolvedContentItem item, string fieldKey)
+    {
+        return item.Fields.TryGetValue(fieldKey, out var fieldValue)
+            ? fieldValue?.Value
+            : null;
     }
 
     public static Task<Ok<ApiRootResponse>> GetAsync(bool openApiEnabled)
