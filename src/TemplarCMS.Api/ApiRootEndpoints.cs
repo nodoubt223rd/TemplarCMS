@@ -23,6 +23,13 @@ public static class ApiRootEndpoints
             .ExcludeFromDescription();
 
         endpoints.MapGet(
+            "/{**contentPath}",
+            GetContentPageAsync)
+            .WithName("GetPublicContentPage")
+            .WithTags("Public site")
+            .ExcludeFromDescription();
+
+        endpoints.MapGet(
                 "/api/v1",
                 () => GetAsync(openApiEnabled))
             .WithName("GetApiRoot")
@@ -52,10 +59,40 @@ public static class ApiRootEndpoints
                 detail: "The TemplarCMS starter content is not available yet.");
         }
 
-        var title = GetFieldValue(home, "title") ?? home.Item.Name;
-        var navigationTitle = GetFieldValue(home, "navigationTitle") ?? title;
-        var metaDescription = GetFieldValue(home, "metaDescription") ?? string.Empty;
-        var body = GetFieldValue(home, "body") ?? string.Empty;
+        return RenderContentPage(home, "TemplarCMS sample site");
+    }
+
+    public static async Task<IResult> GetContentPageAsync(
+        string? contentPath,
+        IContentItemService contentItemService,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(contentPath))
+        {
+            return TypedResults.NotFound();
+        }
+
+        var item =
+            await contentItemService.GetItemAsync(
+                new ContentPath(contentPath),
+                new FieldValueResolutionContext(
+                    new ContentLanguage("en"),
+                    ContentVersion.First),
+                cancellationToken);
+
+        return item == null
+            ? RenderNotFoundPage()
+            : RenderContentPage(item, "TemplarCMS");
+    }
+
+    private static IResult RenderContentPage(
+        ResolvedContentItem item,
+        string eyebrow)
+    {
+        var title = GetFieldValue(item, "title") ?? item.Item.Name;
+        var navigationTitle = GetFieldValue(item, "navigationTitle") ?? title;
+        var metaDescription = GetFieldValue(item, "metaDescription") ?? string.Empty;
+        var body = GetFieldValue(item, "body") ?? string.Empty;
 
         // Rich text is authored HTML; the other values are encoded before being inserted into the page shell.
         var page = $$"""
@@ -81,7 +118,7 @@ public static class ApiRootEndpoints
             <body>
               <main>
                 <header>
-                  <div class="eyebrow">TemplarCMS sample site</div>
+                  <div class="eyebrow">{{WebUtility.HtmlEncode(eyebrow)}}</div>
                   <h1>{{WebUtility.HtmlEncode(navigationTitle)}}</h1>
                 </header>
                 <article>{{body}}</article>
@@ -92,6 +129,32 @@ public static class ApiRootEndpoints
             """;
 
         return TypedResults.Content(page, "text/html; charset=utf-8");
+    }
+
+    private static IResult RenderNotFoundPage()
+    {
+        const string page = """
+            <!doctype html>
+            <html lang="en">
+            <head>
+              <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1">
+              <title>Page not found | TemplarCMS</title>
+            </head>
+            <body>
+              <main>
+                <h1>Page not found</h1>
+                <p>The requested content does not exist.</p>
+                <p><a href="/">Return to the sample home page</a></p>
+              </main>
+            </body>
+            </html>
+            """;
+
+        return TypedResults.Content(
+            page,
+            "text/html; charset=utf-8",
+            statusCode: StatusCodes.Status404NotFound);
     }
 
     private static string? GetFieldValue(ResolvedContentItem item, string fieldKey)
