@@ -94,6 +94,7 @@ import {
 
 const language = ref('en')
 const version = ref(1)
+const activeWorkspace = ref<'content' | 'templates'>('content')
 const isBootstrapping = ref(false)
 const isSubmitting = ref(false)
 const pageError = ref<string | null>(null)
@@ -968,10 +969,26 @@ function countNodes(nodes: TreeNode[]): number {
 
       <div class="workspace-toolbar__title">
         <span class="workspace-toolbar__search-mark" aria-hidden="true">⌕</span>
-        <span>{{ selectedItem == null ? 'Search content…' : selectedItem.path }}</span>
+        <span>{{ activeWorkspace === 'content' ? selectedItem?.path ?? 'Content workspace' : 'Template workspace' }}</span>
       </div>
 
       <div class="workspace-toolbar__context">
+        <div class="workspace-toolbar__areas" aria-label="Workspace area">
+          <button
+            :class="['workspace-area-button', { 'workspace-area-button--active': activeWorkspace === 'content' }]"
+            type="button"
+            @click="activeWorkspace = 'content'"
+          >
+            Content
+          </button>
+          <button
+            :class="['workspace-area-button', { 'workspace-area-button--active': activeWorkspace === 'templates' }]"
+            type="button"
+            @click="activeWorkspace = 'templates'"
+          >
+            Templates
+          </button>
+        </div>
         <label>
           <span class="sr-only">Language</span>
           <input v-model="language" type="text" aria-label="Language" />
@@ -986,12 +1003,28 @@ function countNodes(nodes: TreeNode[]): number {
       </div>
     </header>
 
-    <aside class="workspace-rail" aria-label="Primary workspace areas">
-      <span class="workspace-rail__item workspace-rail__item--active" title="Content">C</span>
-      <span class="workspace-rail__item" title="Templates">T</span>
-      <span class="workspace-rail__item" title="Media">M</span>
-      <span class="workspace-rail__item" title="System">S</span>
-    </aside>
+    <nav class="workspace-rail" aria-label="Primary workspace areas">
+      <button
+        :class="['workspace-rail__item', { 'workspace-rail__item--active': activeWorkspace === 'content' }]"
+        type="button"
+        title="Content"
+        aria-label="Content workspace"
+        :aria-pressed="activeWorkspace === 'content'"
+        @click="activeWorkspace = 'content'"
+      >
+        C
+      </button>
+      <button
+        :class="['workspace-rail__item', { 'workspace-rail__item--active': activeWorkspace === 'templates' }]"
+        type="button"
+        title="Templates"
+        aria-label="Template workspace"
+        :aria-pressed="activeWorkspace === 'templates'"
+        @click="activeWorkspace = 'templates'"
+      >
+        T
+      </button>
+    </nav>
 
     <aside class="workspace-sidebar">
       <div class="navigator-heading">
@@ -1032,14 +1065,24 @@ function countNodes(nodes: TreeNode[]): number {
     <main class="workspace-main">
       <header class="top-panel">
         <div>
-          <p class="eyebrow">{{ selectedItem == null ? 'Content workspace' : 'Editing content' }}</p>
-          <h2>{{ selectedItem == null ? 'Select a content item to begin.' : selectedItem.name }}</h2>
+          <p class="eyebrow">
+            {{ activeWorkspace === 'content' ? selectedItem == null ? 'Content workspace' : 'Editing content' : 'Template workspace' }}
+          </p>
+          <h2>
+            {{
+              activeWorkspace === 'content'
+                ? selectedItem == null ? 'Select a content item to begin.' : selectedItem.name
+                : 'Model the structure behind every content item.'
+            }}
+          </h2>
         </div>
         <p class="top-panel__copy">
           {{
-            selectedItem == null
-              ? 'The content tree, request context, and template tools remain in sync as you author.'
-              : `${selectedItemTemplateName ?? 'Template'} · ${language} · version ${version}`
+            activeWorkspace === 'templates'
+              ? 'Inspect effective fields, author inheritance-aware definitions, and validate templates before they reach content authors.'
+              : selectedItem == null
+                ? 'The content tree, request context, and template tools remain in sync as you author.'
+                : `${selectedItemTemplateName ?? 'Template'} · ${language} · version ${version}`
           }}
         </p>
       </header>
@@ -1052,37 +1095,38 @@ function countNodes(nodes: TreeNode[]): number {
         {{ successMessage }}
       </div>
 
-      <section class="content-grid">
-        <ContentInspectorPane
-          :selected-item="selectedItem"
-          :selected-item-template-name="selectedItemTemplateName"
-          :is-loading-template-fields="isLoadingTemplateFields"
-          :editor-fields="editorFields"
-          :field-form="fieldForm"
-          :is-submitting="isSubmitting"
-          :rename-name="renameForm.name"
-          :move-parent-id="moveForm.parentId"
-          :selected-item-dependencies="selectedItemDependencies"
-          :is-loading-item-dependencies="isLoadingItemDependencies"
-          :get-general-link-draft="getGeneralLinkDraft"
-          :get-checkbox-value="getCheckboxValue"
-          @submit-values="submitValues"
-          @submit-rename="submitRename"
-          @submit-move="submitMove"
-          @submit-delete="submitDelete"
-          @update-rename-name="renameForm.name = $event"
-          @update-move-parent-id="moveForm.parentId = $event"
-          @field-input="onFieldInput"
-          @checkbox-input="onCheckboxInput"
-          @general-link-kind-input="onGeneralLinkKindInput"
-          @general-link-item-id-input="onGeneralLinkItemIdInput"
-          @general-link-url-input="onGeneralLinkUrlInput"
-          @general-link-text-input="onGeneralLinkTextInput"
-          @general-link-target-input="onGeneralLinkTargetInput"
-        />
-      </section>
+      <template v-if="activeWorkspace === 'content'">
+        <section class="content-grid">
+          <ContentInspectorPane
+            :selected-item="selectedItem"
+            :selected-item-template-name="selectedItemTemplateName"
+            :is-loading-template-fields="isLoadingTemplateFields"
+            :editor-fields="editorFields"
+            :field-form="fieldForm"
+            :is-submitting="isSubmitting"
+            :rename-name="renameForm.name"
+            :move-parent-id="moveForm.parentId"
+            :selected-item-dependencies="selectedItemDependencies"
+            :is-loading-item-dependencies="isLoadingItemDependencies"
+            :get-general-link-draft="getGeneralLinkDraft"
+            :get-checkbox-value="getCheckboxValue"
+            @submit-values="submitValues"
+            @submit-rename="submitRename"
+            @submit-move="submitMove"
+            @submit-delete="submitDelete"
+            @update-rename-name="renameForm.name = $event"
+            @update-move-parent-id="moveForm.parentId = $event"
+            @field-input="onFieldInput"
+            @checkbox-input="onCheckboxInput"
+            @general-link-kind-input="onGeneralLinkKindInput"
+            @general-link-item-id-input="onGeneralLinkItemIdInput"
+            @general-link-url-input="onGeneralLinkUrlInput"
+            @general-link-text-input="onGeneralLinkTextInput"
+            @general-link-target-input="onGeneralLinkTargetInput"
+          />
+        </section>
 
-      <section class="panel composer-panel">
+        <section class="panel composer-panel">
         <div class="panel-header">
           <div>
             <p class="eyebrow">Create</p>
@@ -1141,9 +1185,10 @@ function countNodes(nodes: TreeNode[]): number {
             </button>
           </div>
         </form>
-      </section>
+        </section>
+      </template>
 
-      <section class="template-grid">
+      <section v-else class="template-grid">
         <TemplateCatalogPane
           :available-templates="visibleTemplates"
           :selected-template-id="selectedTemplateId"
