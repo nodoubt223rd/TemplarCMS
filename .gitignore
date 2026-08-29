@@ -8,6 +8,7 @@ dist/
 coverage/
 TestResults/
 .tmp/
+artifacts/
 RuntimeData/
 src/TemplarCMS.Api/App_Data/
 src/TemplarCMS.Api/RuntimeData/
