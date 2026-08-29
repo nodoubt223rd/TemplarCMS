@@ -555,10 +555,10 @@ Authoring security note:
 Path lookup route note:
 
 - The public route accepts a slash-delimited relative route segment such as
-  `home/articles/hello-world`.
-- The API normalizes that segment into the canonical absolute
-  `ContentPath` value `/home/articles/hello-world` before application-layer
-  lookup.
+  `articles/hello-world`.
+- The API resolves that segment beneath the seeded `Home` item. For example,
+  it maps to the canonical absolute `ContentPath` value
+  `/templar/content/home/articles/hello-world` before application-layer lookup.
 - Responses should return the canonical absolute path so clients can store
   one stable representation.
 

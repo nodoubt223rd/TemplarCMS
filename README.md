@@ -149,14 +149,15 @@ The API now exposes an OpenAPI document at:
 
 The site root renders the source-controlled sample home content. Use it to
 verify the bootstrap, runtime resolution, and public rendering path end-to-end.
-Public content items can also be rendered from their normalized CMS paths; for
-example, an item at `/home/articles/hello-world` is available at that public
-URL. Unknown public paths return an HTML `404` page. The API discovery document
-is available at `/api/v1`.
+Public content items are rendered relative to the starter home item. For
+example, a CMS item stored at the canonical path
+`/templar/content/home/articles/hello-world` is available publicly at
+`/articles/hello-world`. Unknown public paths return an HTML `404` page. The API
+discovery document is available at `/api/v1`.
 
 The public shell also renders a navigation menu from the direct children of the
-starter home item. Each link uses the child item's canonical CMS path and its
-authored `navigationTitle`, falling back to `title` and then the item name.
+starter home item. Each link uses a path relative to the public home root and
+its authored `navigationTitle`, falling back to `title` and then the item name.
 
 There is also a browser UI at:
 

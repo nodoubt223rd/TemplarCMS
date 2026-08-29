@@ -11,13 +11,14 @@ public static class PublicSitePageRenderer
     public static IResult RenderContentPage(
         ResolvedContentItem item,
         string eyebrow,
-        IReadOnlyCollection<ResolvedContentItem> navigationItems)
+        IReadOnlyCollection<ResolvedContentItem> navigationItems,
+        ContentPath publicRootPath)
     {
         var title = GetFieldValue(item, "title") ?? item.Item.Name;
         var navigationTitle = GetFieldValue(item, "navigationTitle") ?? title;
         var metaDescription = GetFieldValue(item, "metaDescription") ?? string.Empty;
         var body = GetFieldValue(item, "body") ?? string.Empty;
-        var navigation = RenderNavigation(navigationItems);
+        var navigation = RenderNavigation(navigationItems, publicRootPath);
 
         // Rich text is authored HTML; the other values are encoded before being inserted into the page shell.
         var page = $$"""
@@ -87,7 +88,8 @@ public static class PublicSitePageRenderer
     }
 
     private static string RenderNavigation(
-        IReadOnlyCollection<ResolvedContentItem> navigationItems)
+        IReadOnlyCollection<ResolvedContentItem> navigationItems,
+        ContentPath publicRootPath)
     {
         if (navigationItems.Count == 0)
         {
@@ -104,7 +106,9 @@ public static class PublicSitePageRenderer
                         ?? GetFieldValue(item, "title")
                         ?? item.Item.Name;
 
-                    return $"<li><a href=\"{WebUtility.HtmlEncode(item.Path.Value)}\">{WebUtility.HtmlEncode(label)}</a></li>";
+                    var href = GetPublicPath(item.Path, publicRootPath);
+
+                    return $"<li><a href=\"{WebUtility.HtmlEncode(href)}\">{WebUtility.HtmlEncode(label)}</a></li>";
                 }));
 
         return $$"""
@@ -121,5 +125,23 @@ public static class PublicSitePageRenderer
         return item.Fields.TryGetValue(fieldKey, out var fieldValue)
             ? fieldValue?.Value
             : null;
+    }
+
+    private static string GetPublicPath(
+        ContentPath contentPath,
+        ContentPath publicRootPath)
+    {
+        if (contentPath == publicRootPath)
+        {
+            return "/";
+        }
+
+        var publicRootPrefix = $"{publicRootPath.Value}/";
+
+        return contentPath.Value.StartsWith(
+                publicRootPrefix,
+                StringComparison.OrdinalIgnoreCase)
+            ? contentPath.Value[publicRootPath.Value.Length..]
+            : contentPath.Value;
     }
 }
