@@ -151,6 +151,10 @@ example, an item at `/home/articles/hello-world` is available at that public
 URL. Unknown public paths return an HTML `404` page. The API discovery document
 is available at `/api/v1`.
 
+The public shell also renders a navigation menu from the direct children of the
+starter home item. Each link uses the child item's canonical CMS path and its
+authored `navigationTitle`, falling back to `title` and then the item name.
+
 There is also a browser UI at:
 
 ```text
