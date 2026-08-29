@@ -35,7 +35,7 @@ Publish to a local artifact folder:
 .\build.ps1 -Target Publish-Api -PublishDirectory .\artifacts\publish\api
 ```
 
-Publish directly to the default IIS content path:
+Deploy to the default IIS content path:
 
 ```powershell
 .\build.ps1 -Target Publish-Api-To-Inetpub
@@ -52,6 +52,11 @@ Notes:
 - The default IIS target path is `C:\inetpub\wwwroot\TemplarCMS.Api`.
 - Override it with `-InetpubDirectory` when the site uses a different root.
 - The IIS site and app pool should already exist before publishing.
+- IIS deployment stages the publish output under `artifacts` and copies application
+  files into the IIS root. It does not clean the IIS root.
+- `RuntimeData` and legacy `App_Data` folders are explicitly preserved so local
+  SQLite data and templates are not deleted or overwritten during deployment.
+- The `Publish-To-IIS` target recycles the selected app pool after the file copy.
 - Use `-SkipTests` when you want a faster inner-loop deploy from a known-good branch.
 
 ### IIS Prerequisites
