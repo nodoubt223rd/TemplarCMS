@@ -6,6 +6,7 @@ import {
   createTreeNode,
   extractParentIdFromHref,
   findTreeNodeById,
+  treeNodeMatchesFilter,
   upsertTreeNode
 } from './content-tree'
 
@@ -24,6 +25,23 @@ describe('content tree utilities', () => {
     root.children = [nested]
 
     expect(findTreeNodeById([root], 'child-1')).toBe(nested)
+  })
+
+  it('matches item names and paths case-insensitively', () => {
+    const node = createTreeNode(createItem({ name: 'Product Catalog', path: '/home/products' }))
+
+    expect(treeNodeMatchesFilter(node, 'catalog')).toBe(true)
+    expect(treeNodeMatchesFilter(node, '/HOME/PRODUCTS')).toBe(true)
+    expect(treeNodeMatchesFilter(node, 'blog')).toBe(false)
+  })
+
+  it('keeps an ancestor visible when a loaded descendant matches', () => {
+    const root = createTreeNode(createItem({ name: 'Home', path: '/home' }))
+    root.children = [
+      createTreeNode(createItem({ name: 'Article', path: '/home/articles/getting-started' }))
+    ]
+
+    expect(treeNodeMatchesFilter(root, 'getting')).toBe(true)
   })
 
   it('applies a root branch and keeps nodes sorted by path', () => {
