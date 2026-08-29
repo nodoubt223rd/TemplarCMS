@@ -44,6 +44,57 @@ public sealed class AuthoringSecurityIntegrationTests
         AssertProblemCode(problem, "authoring-authentication-required");
     }
 
+    [Theory]
+    [InlineData("POST", "/api/v1/content")]
+    [InlineData("PUT", "/api/v1/content/00000000-0000-0000-0000-000000000001")]
+    [InlineData("POST", "/api/v1/content/00000000-0000-0000-0000-000000000001/rename")]
+    [InlineData("POST", "/api/v1/content/00000000-0000-0000-0000-000000000001/move")]
+    [InlineData("POST", "/api/v1/content/00000000-0000-0000-0000-000000000001/values")]
+    [InlineData("DELETE", "/api/v1/content/00000000-0000-0000-0000-000000000001")]
+    [InlineData("POST", "/api/v1/templates")]
+    [InlineData("PUT", "/api/v1/templates/00000000-0000-0000-0000-000000000001")]
+    [InlineData("DELETE", "/api/v1/templates/00000000-0000-0000-0000-000000000001")]
+    public async Task AuthoringEndpoints_ShouldReturn401_WhenApiKeyIsMissing(
+        string method,
+        string requestUri)
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        await using var factory = new AuthoringSecurityApiFactory();
+        using var client = factory.CreateClient();
+        using var request = new HttpRequestMessage(new HttpMethod(method), requestUri);
+        using var response = await client.SendAsync(request, cancellationToken);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task AuthoringEndpoint_ShouldReturn401_WhenApiKeyIsInvalid()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        await using var factory = new AuthoringSecurityApiFactory();
+        using var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Add("X-Templar-Api-Key", "invalid-api-key");
+
+        using var response =
+            await client.PostAsJsonAsync(
+                "/api/v1/templates",
+                CreateTemplateRequest(),
+                cancellationToken);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+
+        var problem =
+            await response.Content.ReadFromJsonAsync<ProblemDetails>(
+                cancellationToken);
+
+        Assert.NotNull(problem);
+        Assert.Equal("Authoring authentication failed", problem.Title);
+        Assert.Equal("/api/problems/authoring-authentication-failed", problem.Type);
+        AssertProblemCode(problem, "authoring-authentication-failed");
+    }
+
     [Fact]
     public async Task AuthoringEndpoint_ShouldReturn403_WhenAuthorizationFailsAfterAuthentication()
     {

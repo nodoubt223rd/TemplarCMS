@@ -4,7 +4,7 @@
 
 ### Authoring Endpoint Security
 
-Status: Future
+Status: Completed
 
 Problem:
 The first public write endpoints can be shaped before authentication
@@ -22,6 +22,21 @@ Goals:
   API-key authoring flows through the real ASP.NET Core pipeline
 - Keep current endpoint contracts compatible with future `401` and
   `403` responses
+
+Completed:
+- Protected every current content and template write endpoint with the
+  shared `AuthorContent` policy
+- Added the configurable `X-Templar-Api-Key` authentication scheme and
+  consistent `ProblemDetails` responses for missing, invalid, and
+  forbidden authoring access
+- Documented the API-key scheme only on protected OpenAPI operations
+- Added endpoint metadata coverage and missing-key HTTP integration
+  coverage for every protected write route, plus invalid-key,
+  forbidden, and successful API-key flows through the real pipeline
+
+Future hardening:
+- Replace the development API-key mechanism with a production identity
+  and role/claims provider before public deployment
 
 ### ProblemDetails Error Catalog
 
