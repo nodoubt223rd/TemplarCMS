@@ -13,6 +13,10 @@ public static class ApiRootEndpoints
         ArgumentNullException.ThrowIfNull(endpoints);
 
         endpoints.MapGet(
+            "/",
+            () => GetLandingPage(openApiEnabled));
+
+        endpoints.MapGet(
                 "/api/v1",
                 () => GetAsync(openApiEnabled))
             .WithName("GetApiRoot")
@@ -20,6 +24,11 @@ public static class ApiRootEndpoints
             .Produces<ApiRootResponse>(StatusCodes.Status200OK);
 
         return endpoints;
+    }
+
+    public static RedirectHttpResult GetLandingPage(bool openApiEnabled)
+    {
+        return TypedResults.Redirect(openApiEnabled ? "/openapi/" : "/api/v1");
     }
 
     public static Task<Ok<ApiRootResponse>> GetAsync(bool openApiEnabled)
