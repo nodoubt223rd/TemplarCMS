@@ -28,9 +28,7 @@ import type { EditorFieldModel, TreeNode } from './types/admin-ui'
 import {
   clearFieldFormValues,
   getCreatableTemplates,
-  getSuggestedCreateTemplateId,
   getSuggestedTemplateId,
-  getTemplateIdByKey,
   getTemplateKeyById,
   resetCreateForm as resetCreateInspectorForm,
   resetInspectorForms as resetInspectorFormState,
@@ -46,15 +44,12 @@ import {
 } from './utils/content-tree'
 import {
   buildEditorFields,
-  createFieldTypeLookup,
-  getFieldTypeLabel as getEditorFieldTypeLabel
+  createFieldTypeLookup
 } from './utils/editor-fields'
 import {
   getCheckboxFieldValue,
   normalizeFieldValue,
   normalizeOptionalValue,
-  readCheckboxEventValue,
-  readInputEventValue,
   setCheckboxFieldValue,
   setFieldFormValue
 } from './utils/field-form'
@@ -955,10 +950,6 @@ function onGeneralLinkTargetInput(key: string, value: string) {
   updateGeneralLinkDraft(key, { target: value })
 }
 
-function getFieldTypeLabel(fieldType: string) {
-  return getEditorFieldTypeLabel(fieldType, fieldTypeLookup.value)
-}
-
 function countNodes(nodes: TreeNode[]): number {
   return nodes.reduce((total, node) => total + 1 + countNodes(node.children), 0)
 }
@@ -966,60 +957,90 @@ function countNodes(nodes: TreeNode[]): number {
 
 <template>
   <div class="workspace-shell">
-    <aside class="workspace-sidebar">
+    <header class="workspace-toolbar">
       <div class="brand">
         <span class="brand-mark">TC</span>
         <div>
-          <p class="eyebrow">Authoring</p>
-          <h1>TemplarCMS Admin</h1>
+          <h1>TemplarCMS</h1>
+          <p>Authoring workspace</p>
         </div>
       </div>
 
-      <section class="context-panel">
-        <p class="eyebrow">Tree-Aware Flow</p>
-        <h2>Patch only the branches that changed.</h2>
-        <p>
-          Create, rename, move, and delete actions refresh the affected tree edges
-          instead of forcing a full explorer reload.
-        </p>
-      </section>
+      <div class="workspace-toolbar__title">
+        <span class="workspace-toolbar__search-mark" aria-hidden="true">⌕</span>
+        <span>{{ selectedItem == null ? 'Search content…' : selectedItem.path }}</span>
+      </div>
 
-      <section class="context-panel">
-        <p class="eyebrow">Request Context</p>
-        <div class="context-grid">
-          <label class="field">
-            <span>Language</span>
-            <input v-model="language" type="text" />
-          </label>
-          <label class="field">
-            <span>Version</span>
-            <input v-model.number="version" type="number" min="1" />
-          </label>
-        </div>
+      <div class="workspace-toolbar__context">
+        <label>
+          <span class="sr-only">Language</span>
+          <input v-model="language" type="text" aria-label="Language" />
+        </label>
+        <label>
+          <span class="sr-only">Version</span>
+          <input v-model.number="version" type="number" min="1" aria-label="Version" />
+        </label>
         <button class="button button--secondary" type="button" @click="refreshRootBranch">
-          Refresh Root Branch
+          Refresh
         </button>
+      </div>
+    </header>
+
+    <aside class="workspace-rail" aria-label="Primary workspace areas">
+      <span class="workspace-rail__item workspace-rail__item--active" title="Content">C</span>
+      <span class="workspace-rail__item" title="Templates">T</span>
+      <span class="workspace-rail__item" title="Media">M</span>
+      <span class="workspace-rail__item" title="System">S</span>
+    </aside>
+
+    <aside class="workspace-sidebar">
+      <div class="navigator-heading">
+        <div>
+          <p class="eyebrow">Content</p>
+          <h2>Navigator</h2>
+        </div>
+        <span class="panel-pill">{{ treeCount }}</span>
+      </div>
+
+      <div class="navigator-filter">Loaded content tree</div>
+
+      <section class="navigator-state">
+        <span>{{ isBootstrapping ? 'Refreshing content tree' : 'Tree-aware authoring' }}</span>
+        <span v-if="selectedItem != null">{{ selectedItem.name }}</span>
       </section>
 
-      <section class="context-panel">
-        <p class="eyebrow">Current State</p>
-        <ul class="meta-list">
-          <li>{{ treeCount }} loaded nodes</li>
-          <li>{{ selectedItem == null ? 'No active selection' : `Selected: ${selectedItem.name}` }}</li>
-          <li>{{ isBootstrapping ? 'Loading branch data' : 'Ready for authoring flow' }}</li>
-        </ul>
-      </section>
+      <div v-if="isBootstrapping" class="empty-state">
+        Loading the root content branch…
+      </div>
+
+      <div v-else-if="rootNodes.length === 0" class="empty-state">
+        No root content items have been loaded yet.
+      </div>
+
+      <ul v-else class="tree-list">
+        <TreeBranch
+          v-for="node in rootNodes"
+          :key="node.item.id"
+          :node="node"
+          :selected-item-id="selectedItemId"
+          @toggle="toggleNode"
+          @select="selectNode"
+        />
+      </ul>
     </aside>
 
     <main class="workspace-main">
       <header class="top-panel">
         <div>
-          <p class="eyebrow">Workspace</p>
-          <h2>Content, schema, and authoring in one view.</h2>
+          <p class="eyebrow">{{ selectedItem == null ? 'Content workspace' : 'Editing content' }}</p>
+          <h2>{{ selectedItem == null ? 'Select a content item to begin.' : selectedItem.name }}</h2>
         </div>
         <p class="top-panel__copy">
-          The navigator stays anchored on the left while the inspector and template tools
-          stay within reach on the right.
+          {{
+            selectedItem == null
+              ? 'The content tree, request context, and template tools remain in sync as you author.'
+              : `${selectedItemTemplateName ?? 'Template'} · ${language} · version ${version}`
+          }}
         </p>
       </header>
 
@@ -1032,35 +1053,6 @@ function countNodes(nodes: TreeNode[]): number {
       </div>
 
       <section class="content-grid">
-        <article class="panel tree-panel">
-          <div class="panel-header">
-            <div>
-              <p class="eyebrow">Navigator</p>
-              <h3>Loaded Branches</h3>
-            </div>
-            <span class="panel-pill">{{ rootNodes.length }} root nodes</span>
-          </div>
-
-          <div v-if="isBootstrapping" class="empty-state">
-            Loading the root branch from `/api/v1/content/root/branch`...
-          </div>
-
-          <div v-else-if="rootNodes.length === 0" class="empty-state">
-            No root content items have been loaded yet.
-          </div>
-
-          <ul v-else class="tree-list">
-            <TreeBranch
-              v-for="node in rootNodes"
-              :key="node.item.id"
-              :node="node"
-              :selected-item-id="selectedItemId"
-              @toggle="toggleNode"
-              @select="selectNode"
-            />
-          </ul>
-        </article>
-
         <ContentInspectorPane
           :selected-item="selectedItem"
           :selected-item-template-name="selectedItemTemplateName"

@@ -6,7 +6,7 @@ import type {
 import type { GeneralLinkDraft } from '@/types/general-link'
 import type { EditorFieldModel } from '@/types/admin-ui'
 
-const props = defineProps<{
+defineProps<{
   selectedItem: ContentItemResponse | null
   selectedItemTemplateName: string | null
   isLoadingTemplateFields: boolean
@@ -55,8 +55,8 @@ function readCheckedValue(event: Event): boolean {
         <p class="eyebrow">Content Inspector</p>
         <h3>{{ selectedItem == null ? 'Select an item' : selectedItem.name }}</h3>
       </div>
-      <span class="panel-pill">
-        {{ selectedItem == null ? 'No active item' : selectedItem.path }}
+      <span class="status-pill">
+        {{ selectedItem == null ? 'Waiting for selection' : 'Authoring draft' }}
       </span>
     </div>
 
@@ -90,10 +90,10 @@ function readCheckedValue(event: Event): boolean {
         <form class="editor-card" @submit.prevent="emit('submitValues')">
           <div class="editor-card__header">
             <div>
-              <p class="eyebrow">Fields</p>
-              <h4>Edit resolved field values</h4>
+              <p class="eyebrow">Page Content</p>
+              <h4>Resolved field values</h4>
             </div>
-            <span class="callout">Uses the language/version value contract</span>
+            <span class="callout">{{ editorFields.length }} fields</span>
           </div>
 
           <div v-if="isLoadingTemplateFields" class="empty-state empty-state--compact">
@@ -111,10 +111,11 @@ function readCheckedValue(event: Event): boolean {
               class="field-editor"
             >
               <label class="field">
-                <span>{{ field.label }}</span>
-                <small class="field-meta">
-                  {{ field.sectionName }} · {{ field.type }} · {{ field.scopeLabel }}
-                </small>
+                <span class="field-heading">
+                  <span>{{ field.label }}</span>
+                  <small>{{ field.type }}</small>
+                </span>
+                <small class="field-meta"><span class="scope-badge">{{ field.scopeLabel }}</span> {{ field.sectionName }}</small>
                 <small v-if="field.helpText != null" class="field-help">
                   {{ field.helpText }}
                 </small>
@@ -204,7 +205,7 @@ function readCheckedValue(event: Event): boolean {
               </label>
             </div>
 
-            <button class="button" type="submit" :disabled="isSubmitting">
+            <button class="button editor-card__save" type="submit" :disabled="isSubmitting">
               Save Values
             </button>
           </template>
