@@ -9,19 +9,23 @@ var appPoolName = Argument("appPoolName", string.Empty);
 var runtime = Argument("runtime", string.Empty);
 var selfContained = Argument("selfContained", false);
 var publishDirectoryArgument = Argument("publishDirectory", "./artifacts/publish/api");
+var adminPublishDirectoryArgument = Argument("adminPublishDirectory", "./artifacts/publish/admin");
 var inetpubDirectoryArgument = Argument("inetpubDirectory", @"C:\inetpub\wwwroot\TemplarCMS.Api");
+var adminInetpubDirectoryArgument = Argument("adminInetpubDirectory", @"C:\inetpub\wwwroot\TemplarCMS.Api\author-workspace");
 
 var apiProject = "./src/TemplarCMS.Api/TemplarCMS.Api.csproj";
+var adminProject = "./src/TemplarCMS.Admin/TemplarCMS.Admin.Server/TemplarCMS.Admin.Server.csproj";
 var apiTestsProject = "./tests/TemplarCMS.Api.Tests/TemplarCMS.Api.Tests.csproj";
 var artifactsDirectory = Directory("./artifacts");
 var publishDirectory = MakeAbsolute(Directory(publishDirectoryArgument));
+var adminPublishDirectory = MakeAbsolute(Directory(adminPublishDirectoryArgument));
 var inetpubDirectory = MakeAbsolute(Directory(inetpubDirectoryArgument));
+var adminInetpubDirectory = MakeAbsolute(Directory(adminInetpubDirectoryArgument));
 
 Task("Clean")
     .Does(() =>
 {
     EnsureDirectoryExists(artifactsDirectory);
-    CleanDirectory(artifactsDirectory);
 });
 
 Task("Restore")
@@ -70,6 +74,21 @@ Task("Publish-Api-To-Inetpub")
     DeployApiToInetpub(publishDirectory, inetpubDirectory);
 });
 
+Task("Publish-Admin")
+    .IsDependentOn("Test")
+    .Does(() =>
+{
+    PublishProject(adminProject, adminPublishDirectory);
+});
+
+Task("Publish-Admin-To-Inetpub")
+    .IsDependentOn("Test")
+    .Does(() =>
+{
+    PublishProject(adminProject, adminPublishDirectory);
+    DeployApiToInetpub(adminPublishDirectory, adminInetpubDirectory);
+});
+
 Task("Recycle-IIS-AppPool")
     .Does(() =>
 {
@@ -113,6 +132,13 @@ RunTarget(target);
 
 void PublishApi(DirectoryPath outputDirectory)
 {
+    PublishProject(apiProject, outputDirectory);
+
+    Information("Published API to {0}", outputDirectory.FullPath);
+}
+
+void PublishProject(string project, DirectoryPath outputDirectory)
+{
     EnsureDirectoryExists(outputDirectory);
 
     if (cleanOutput)
@@ -134,9 +160,7 @@ void PublishApi(DirectoryPath outputDirectory)
         settings.Runtime = runtime;
     }
 
-    DotNetPublish(apiProject, settings);
-
-    Information("Published API to {0}", outputDirectory.FullPath);
+    DotNetPublish(project, settings);
 }
 
 void DeployApiToInetpub(DirectoryPath sourceDirectory, DirectoryPath destinationDirectory)
@@ -167,7 +191,7 @@ void DeployApiToInetpub(DirectoryPath sourceDirectory, DirectoryPath destination
     }
 
     Information(
-        "Deployed API files to {0} while preserving RuntimeData and App_Data.",
+        "Deployed publish files to {0} while preserving RuntimeData and App_Data.",
         destinationDirectory.FullPath);
 }
 

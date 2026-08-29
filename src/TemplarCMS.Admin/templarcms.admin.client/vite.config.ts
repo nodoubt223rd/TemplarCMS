@@ -7,7 +7,12 @@ import { defineConfig } from 'vite';
 import plugin from '@vitejs/plugin-vue';
 
 export default defineConfig(({ command }) => {
+    const base = command === 'build'
+        ? env.VITE_PUBLIC_BASE_PATH || '/author-workspace/'
+        : '/';
+
     const config = {
+        base,
         plugins: [plugin()],
         resolve: {
             alias: {

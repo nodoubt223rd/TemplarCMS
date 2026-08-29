@@ -2,7 +2,9 @@ param(
     [string]$Target = "Default",
     [string]$Configuration = "Release",
     [string]$PublishDirectory,
+    [string]$AdminPublishDirectory,
     [string]$InetpubDirectory = "C:\inetpub\wwwroot\TemplarCMS.Api",
+    [string]$AdminInetpubDirectory = "C:\inetpub\wwwroot\TemplarCMS.Api\author-workspace",
     [string]$AppPoolName,
     [string]$Runtime,
     [switch]$RecycleAppPool,
@@ -30,11 +32,16 @@ try {
         '--recycleAppPool', $RecycleAppPool.IsPresent.ToString().ToLowerInvariant(),
         '--selfContained', $SelfContained.IsPresent.ToString().ToLowerInvariant(),
         '--cleanOutput', (-not $NoCleanOutput.IsPresent).ToString().ToLowerInvariant(),
-        '--inetpubDirectory', $InetpubDirectory
+        '--inetpubDirectory', $InetpubDirectory,
+        '--adminInetpubDirectory', $AdminInetpubDirectory
     )
 
     if ($PublishDirectory) {
         $cakeArguments += @('--publishDirectory', $PublishDirectory)
+    }
+
+    if ($AdminPublishDirectory) {
+        $cakeArguments += @('--adminPublishDirectory', $AdminPublishDirectory)
     }
 
     if ($AppPoolName) {
