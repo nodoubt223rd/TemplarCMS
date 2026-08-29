@@ -97,6 +97,27 @@ describe('TemplateDesignerPane', () => {
     expect(wrapper.text()).toContain('1 sections · 1 fields')
   })
 
+  it('collapses and expands local section details without hiding its context', async () => {
+    const wrapper = mountComponent()
+    const sectionDetails = wrapper.get('#template-designer-local-section-1')
+    const collapseButton = wrapper.get('[aria-controls="template-designer-local-section-1"]')
+
+    expect(collapseButton.attributes('aria-expanded')).toBe('true')
+    expect(sectionDetails.isVisible()).toBe(true)
+    expect(wrapper.text()).toContain('Local authored section')
+
+    await collapseButton.trigger('click')
+
+    expect(collapseButton.attributes('aria-expanded')).toBe('false')
+    expect(sectionDetails.attributes('style')).toContain('display: none')
+    expect(wrapper.text()).toContain('Local authored section')
+
+    await collapseButton.trigger('click')
+
+    expect(collapseButton.attributes('aria-expanded')).toBe('true')
+    expect(sectionDetails.attributes('style')).not.toContain('display: none')
+  })
+
   it('shows override guidance when local sections and fields match inherited keys', () => {
     const wrapper = mountComponent({
       form: createForm({
