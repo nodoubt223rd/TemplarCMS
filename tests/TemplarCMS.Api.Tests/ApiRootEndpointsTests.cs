@@ -79,24 +79,67 @@ public sealed class ApiRootEndpointsTests
         Assert.Contains("Page not found", response.Body);
     }
 
-    private static ResolvedContentItem CreateResolvedItem()
+    [Fact]
+    public async Task GetContentPageAsync_ShouldRenderHomeChildrenAsNavigation()
+    {
+        var home = CreateResolvedItem("Home", "home", "/home");
+        var article =
+            CreateResolvedItem(
+                "Article list",
+                "articles",
+                "/home/articles",
+                navigationTitle: "Articles & updates");
+        var service =
+            new FakeContentItemService(
+                item: article,
+                home: home,
+                homeChildren: new[] { article });
+
+        var result =
+            await ApiRootEndpoints.GetContentPageAsync(
+                "home/articles",
+                service,
+                TestContext.Current.CancellationToken);
+        var response = await ExecuteResultAsync(result);
+
+        Assert.Equal(StatusCodes.Status200OK, response.StatusCode);
+        Assert.Equal(home.Item.Id, service.LastRequestedChildrenParentId);
+        Assert.Contains("<nav aria-label=\"Site navigation\">", response.Body);
+        Assert.Contains("href=\"/home/articles\"", response.Body);
+        Assert.Contains("Articles &amp; updates", response.Body);
+    }
+
+    private static ResolvedContentItem CreateResolvedItem(
+        string name = "Hello world",
+        string key = "hello-world",
+        string path = "/home/articles/hello-world",
+        string? navigationTitle = null)
     {
         var item =
             new ContentItemDefinition(
                 new ContentItemId(Guid.NewGuid()),
-                "Hello world",
-                new ContentItemKey("hello-world"),
+                name,
+                new ContentItemKey(key),
                 new TemplateId(Guid.NewGuid()),
                 parentId: null);
 
-        return new ResolvedContentItem(
-            item,
-            new ContentPath("/home/articles/hello-world"),
+        var fields =
             new Dictionary<string, ContentFieldValue?>
             {
                 ["title"] = CreateFieldValue(item.Id, "title", "Hello <world>"),
                 ["body"] = CreateFieldValue(item.Id, "body", "<p>Authored body.</p>")
-            },
+            };
+
+        if (navigationTitle != null)
+        {
+            fields["navigationTitle"] =
+                CreateFieldValue(item.Id, "navigationTitle", navigationTitle);
+        }
+
+        return new ResolvedContentItem(
+            item,
+            new ContentPath(path),
+            fields,
             new Dictionary<string, TypedFieldValue>());
     }
 
@@ -138,20 +181,29 @@ public sealed class ApiRootEndpointsTests
     private sealed class FakeContentItemService : IContentItemService
     {
         private readonly ResolvedContentItem? _item;
+        private readonly ResolvedContentItem? _home;
+        private readonly IReadOnlyCollection<ResolvedContentItem> _homeChildren;
 
-        public FakeContentItemService(ResolvedContentItem? item)
+        public FakeContentItemService(
+            ResolvedContentItem? item,
+            ResolvedContentItem? home = null,
+            IReadOnlyCollection<ResolvedContentItem>? homeChildren = null)
         {
             _item = item;
+            _home = home;
+            _homeChildren = homeChildren ?? Array.Empty<ResolvedContentItem>();
         }
 
         public ContentPath? LastRequestedPath { get; private set; }
+
+        public ContentItemId? LastRequestedChildrenParentId { get; private set; }
 
         public Task<ResolvedContentItem?> GetItemAsync(
             ContentItemId itemId,
             FieldValueResolutionContext context,
             CancellationToken cancellationToken = default)
         {
-            return Task.FromResult(_item);
+            return Task.FromResult(_home);
         }
 
         public Task<ResolvedContentItem?> GetItemAsync(
@@ -168,7 +220,8 @@ public sealed class ApiRootEndpointsTests
             FieldValueResolutionContext context,
             CancellationToken cancellationToken = default)
         {
-            throw new NotSupportedException();
+            LastRequestedChildrenParentId = parentId;
+            return Task.FromResult(_homeChildren);
         }
 
         public Task SaveItemAsync(
