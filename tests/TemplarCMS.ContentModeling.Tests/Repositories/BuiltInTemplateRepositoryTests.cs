@@ -60,6 +60,7 @@ public sealed class BuiltInTemplateRepositoryTests
                 "lifetime",
                 "publishing",
                 "statistics",
+                "tasks",
                 "version"
             ],
             standardTemplate.Sections
@@ -143,6 +144,26 @@ public sealed class BuiltInTemplateRepositoryTests
         Assert.Contains(
             versionSection.Fields,
             field => field.Key == "__versionName" && field.IsVersioned);
+
+        var tasksSection =
+            Assert.Single(
+                standardTemplate.Sections,
+                section => section.Key == "tasks");
+        Assert.Contains(
+            tasksSection.Fields,
+            field => field.Key == "__archiveDate" && field.FieldType == FieldType.DateTime && field.IsShared);
+        Assert.Contains(
+            tasksSection.Fields,
+            field => field.Key == "__archiveVersionDate" && field.FieldType == FieldType.DateTime && field.IsVersioned);
+        Assert.Contains(
+            tasksSection.Fields,
+            field => field.Key == "__reminderDate" && field.FieldType == FieldType.DateTime && field.IsShared);
+        Assert.Contains(
+            tasksSection.Fields,
+            field => field.Key == "__reminderRecipients" && field.FieldType == FieldType.SingleLineText && field.IsShared);
+        Assert.Contains(
+            tasksSection.Fields,
+            field => field.Key == "__reminderText" && field.FieldType == FieldType.MultiLineText && field.IsShared);
 
         Assert.All(
             standardTemplate.Sections,
