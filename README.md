@@ -58,6 +58,9 @@ Notes:
 - The default IIS target path is `C:\inetpub\wwwroot\TemplarCMS.Api`.
 - Override it with `-InetpubDirectory` when the site uses a different root.
 - The IIS site and app pool should already exist before publishing.
+- Run IIS deployment targets from an elevated PowerShell session. They write
+  under `C:\inetpub` and can otherwise fail with `Access to the path
+  '...\\appsettings.json' is denied`, even when the source publish succeeds.
 - IIS deployment stages the publish output under `artifacts` and copies application
   files into the IIS root. It does not clean the IIS root.
 - `RuntimeData` is explicitly preserved so local SQLite data is never deleted
