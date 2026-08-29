@@ -4,7 +4,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <SpaRoot>..\templarcms.admin.client</SpaRoot>
+    <SpaRoot>..\templarcms.admin.client\</SpaRoot>
     <SpaProxyLaunchCommand>npm run dev</SpaProxyLaunchCommand>
     <SpaProxyServerUrl>https://localhost:54946</SpaProxyServerUrl>
   </PropertyGroup>
@@ -14,5 +14,18 @@
       <Version>8.*-*</Version>
     </PackageReference>
   </ItemGroup>
+
+  <Target Name="PublishAdminClient" AfterTargets="ComputeFilesToPublish">
+    <Exec WorkingDirectory="$(SpaRoot)" Command="npm ci" Condition="!Exists('$(SpaRoot)node_modules')" />
+    <Exec WorkingDirectory="$(SpaRoot)" Command="npm run build" />
+
+    <ItemGroup>
+      <AdminClientDistFiles Include="$(SpaRoot)dist\**\*" />
+      <ResolvedFileToPublish Include="@(AdminClientDistFiles->'%(FullPath)')">
+        <RelativePath>wwwroot\%(AdminClientDistFiles.RecursiveDir)%(Filename)%(Extension)</RelativePath>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      </ResolvedFileToPublish>
+    </ItemGroup>
+  </Target>
 
 </Project>

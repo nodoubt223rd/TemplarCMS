@@ -35,6 +35,12 @@ Publish to a local artifact folder:
 .\build.ps1 -Target Publish-Api -PublishDirectory .\artifacts\publish\api
 ```
 
+Publish the author workspace to a local artifact folder:
+
+```powershell
+.\build.ps1 -Target Publish-Admin -AdminPublishDirectory .\artifacts\publish\author-workspace
+```
+
 Deploy to the default IIS content path:
 
 ```powershell
@@ -58,6 +64,33 @@ Notes:
   SQLite data and templates are not deleted or overwritten during deployment.
 - The `Publish-To-IIS` target recycles the selected app pool after the file copy.
 - Use `-SkipTests` when you want a faster inner-loop deploy from a known-good branch.
+
+### Author Workspace
+
+The Vue authoring client is hosted by `TemplarCMS.Admin.Server` and is intended
+to run as the `/author-workspace/` IIS application under the API site. Its
+production build uses that base path for static assets and continues to call
+the API through same-origin `/api` routes.
+
+Publish its files to the IIS application directory:
+
+```powershell
+.\build.ps1 -Target Publish-Admin-To-Inetpub
+```
+
+Create the IIS application once, after the API site and a `TemplarCMS.Admin`
+app pool exist:
+
+```powershell
+New-WebApplication -Site 'TemplarCMS.api' -Name 'author-workspace' `
+  -PhysicalPath 'C:\inetpub\wwwroot\TemplarCMS.Api\author-workspace' `
+  -ApplicationPool 'TemplarCMS.Admin'
+```
+
+Browse to `https://templarcms.api/author-workspace/`. Authentication is
+intentionally deferred for local, internal testing; do not expose this route
+to an untrusted network until authoring authentication and authorization are
+implemented.
 
 ### IIS Prerequisites
 
