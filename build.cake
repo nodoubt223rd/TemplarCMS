@@ -174,7 +174,7 @@ void DeployApiToInetpub(DirectoryPath sourceDirectory, DirectoryPath destination
     {
         var relativePath = System.IO.Path.GetRelativePath(sourceDirectory.FullPath, sourceFile);
 
-        if (IsRuntimeDataPath(relativePath))
+        if (ShouldPreserveDestinationFile(relativePath, destinationDirectory))
         {
             continue;
         }
@@ -191,16 +191,44 @@ void DeployApiToInetpub(DirectoryPath sourceDirectory, DirectoryPath destination
     }
 
     Information(
-        "Deployed publish files to {0} while preserving RuntimeData and App_Data.",
+        "Deployed publish files to {0} while preserving RuntimeData and populated App_Data\\Templates.",
         destinationDirectory.FullPath);
 }
 
-bool IsRuntimeDataPath(string relativePath)
+bool ShouldPreserveDestinationFile(string relativePath, DirectoryPath destinationDirectory)
 {
     var firstPathSegment = relativePath.Split(
         new[] { System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar },
         StringSplitOptions.RemoveEmptyEntries)[0];
 
-    return string.Equals(firstPathSegment, "RuntimeData", StringComparison.OrdinalIgnoreCase)
-        || string.Equals(firstPathSegment, "App_Data", StringComparison.OrdinalIgnoreCase);
+    if (string.Equals(firstPathSegment, "RuntimeData", StringComparison.OrdinalIgnoreCase))
+    {
+        return true;
+    }
+
+    if (!IsAppDataTemplatePath(relativePath))
+    {
+        return false;
+    }
+
+    var destinationTemplatesDirectory =
+        System.IO.Path.Combine(destinationDirectory.FullPath, "App_Data", "Templates");
+
+    return System.IO.Directory.Exists(destinationTemplatesDirectory)
+        && System.IO.Directory.EnumerateFiles(
+                destinationTemplatesDirectory,
+                "*",
+                System.IO.SearchOption.AllDirectories)
+            .Any();
+}
+
+bool IsAppDataTemplatePath(string relativePath)
+{
+    var pathSegments = relativePath.Split(
+        new[] { System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar },
+        StringSplitOptions.RemoveEmptyEntries);
+
+    return pathSegments.Length >= 2
+        && string.Equals(pathSegments[0], "App_Data", StringComparison.OrdinalIgnoreCase)
+        && string.Equals(pathSegments[1], "Templates", StringComparison.OrdinalIgnoreCase);
 }

@@ -60,8 +60,10 @@ Notes:
 - The IIS site and app pool should already exist before publishing.
 - IIS deployment stages the publish output under `artifacts` and copies application
   files into the IIS root. It does not clean the IIS root.
-- `RuntimeData` and legacy `App_Data` folders are explicitly preserved so local
-  SQLite data and templates are not deleted or overwritten during deployment.
+- `RuntimeData` is explicitly preserved so local SQLite data is never deleted
+  or overwritten during deployment. When legacy `App_Data\Templates` already
+  contains one or more files, its template files are also preserved; an absent
+  or empty directory can still receive the published bootstrap templates.
 - The `Publish-To-IIS` target recycles the selected app pool after the file copy.
 - Use `-SkipTests` when you want a faster inner-loop deploy from a known-good branch.
 
