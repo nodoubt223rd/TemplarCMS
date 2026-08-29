@@ -68,7 +68,8 @@ public static class ApiRootEndpoints
         return PublicSitePageRenderer.RenderContentPage(
             home,
             "TemplarCMS sample site",
-            navigationItems);
+            navigationItems,
+            home.Path);
     }
 
     public static async Task<IResult> GetContentPageAsync(
@@ -81,9 +82,25 @@ public static class ApiRootEndpoints
             return TypedResults.NotFound();
         }
 
+        var home =
+            await contentItemService.GetItemAsync(
+                SystemSeedContentIds.Home,
+                new FieldValueResolutionContext(
+                    new ContentLanguage("en"),
+                    ContentVersion.First),
+                cancellationToken);
+
+        if (home == null)
+        {
+            return TypedResults.Problem(
+                statusCode: StatusCodes.Status503ServiceUnavailable,
+                title: "Sample content is initializing",
+                detail: "The TemplarCMS starter content is not available yet.");
+        }
+
         var item =
             await contentItemService.GetItemAsync(
-                new ContentPath(contentPath),
+                new ContentPath($"{home.Path.Value}/{contentPath}"),
                 new FieldValueResolutionContext(
                     new ContentLanguage("en"),
                     ContentVersion.First),
@@ -94,20 +111,17 @@ public static class ApiRootEndpoints
             return PublicSitePageRenderer.RenderNotFoundPage();
         }
 
-        var home =
-            await contentItemService.GetItemAsync(
-                SystemSeedContentIds.Home,
-                new FieldValueResolutionContext(
-                    new ContentLanguage("en"),
-                    ContentVersion.First),
-                cancellationToken);
         var navigationItems =
             await GetNavigationItemsAsync(
                 home,
                 contentItemService,
                 cancellationToken);
 
-        return PublicSitePageRenderer.RenderContentPage(item, "TemplarCMS", navigationItems);
+        return PublicSitePageRenderer.RenderContentPage(
+            item,
+            "TemplarCMS",
+            navigationItems,
+            home.Path);
     }
 
     private static async Task<IReadOnlyCollection<ResolvedContentItem>> GetNavigationItemsAsync(

@@ -45,12 +45,15 @@ public sealed class ApiRootEndpointsTests
     [Fact]
     public async Task GetContentPageAsync_ShouldRenderResolvedContent()
     {
-        var item = CreateResolvedItem();
-        var service = new FakeContentItemService(item);
+        var home = CreateHomeItem();
+        var item =
+            CreateResolvedItem(
+                path: "/templar/content/home/articles/hello-world");
+        var service = new FakeContentItemService(item, home: home);
 
         var result =
             await ApiRootEndpoints.GetContentPageAsync(
-                "home/articles/hello-world",
+                "articles/hello-world",
                 service,
                 TestContext.Current.CancellationToken);
 
@@ -58,7 +61,9 @@ public sealed class ApiRootEndpointsTests
 
         Assert.Equal(StatusCodes.Status200OK, response.StatusCode);
         Assert.Equal("text/html; charset=utf-8", response.ContentType);
-        Assert.Equal("/home/articles/hello-world", service.LastRequestedPath?.ToString());
+        Assert.Equal(
+            "/templar/content/home/articles/hello-world",
+            service.LastRequestedPath?.ToString());
         Assert.Contains("Hello &lt;world&gt;", response.Body);
         Assert.Contains("<p>Authored body.</p>", response.Body);
     }
@@ -69,7 +74,7 @@ public sealed class ApiRootEndpointsTests
         var result =
             await ApiRootEndpoints.GetContentPageAsync(
                 "missing",
-                new FakeContentItemService(null),
+                new FakeContentItemService(null, home: CreateHomeItem()),
                 TestContext.Current.CancellationToken);
 
         var response = await ExecuteResultAsync(result);
@@ -82,12 +87,12 @@ public sealed class ApiRootEndpointsTests
     [Fact]
     public async Task GetContentPageAsync_ShouldRenderHomeChildrenAsNavigation()
     {
-        var home = CreateResolvedItem("Home", "home", "/home");
+        var home = CreateHomeItem();
         var article =
             CreateResolvedItem(
                 "Article list",
                 "articles",
-                "/home/articles",
+                "/templar/content/home/articles",
                 navigationTitle: "Articles & updates");
         var service =
             new FakeContentItemService(
@@ -97,7 +102,7 @@ public sealed class ApiRootEndpointsTests
 
         var result =
             await ApiRootEndpoints.GetContentPageAsync(
-                "home/articles",
+                "articles",
                 service,
                 TestContext.Current.CancellationToken);
         var response = await ExecuteResultAsync(result);
@@ -105,7 +110,7 @@ public sealed class ApiRootEndpointsTests
         Assert.Equal(StatusCodes.Status200OK, response.StatusCode);
         Assert.Equal(home.Item.Id, service.LastRequestedChildrenParentId);
         Assert.Contains("<nav aria-label=\"Site navigation\">", response.Body);
-        Assert.Contains("href=\"/home/articles\"", response.Body);
+        Assert.Contains("href=\"/articles\"", response.Body);
         Assert.Contains("Articles &amp; updates", response.Body);
     }
 
@@ -141,6 +146,14 @@ public sealed class ApiRootEndpointsTests
             new ContentPath(path),
             fields,
             new Dictionary<string, TypedFieldValue>());
+    }
+
+    private static ResolvedContentItem CreateHomeItem()
+    {
+        return CreateResolvedItem(
+            name: "Home",
+            key: "home",
+            path: "/templar/content/home");
     }
 
     private static ContentFieldValue CreateFieldValue(
