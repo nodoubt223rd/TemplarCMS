@@ -11,6 +11,8 @@ public static class SystemSeedContentIds
 
     public static ContentItemId Home { get; } = new(new Guid("EF88F020-C20C-47E5-99A8-1E2F6F69506A"));
 
+    public static ContentItemId About { get; } = new(new Guid("CA374727-4355-4D6E-93E8-2A6EBAF68BD4"));
+
     public static ContentItemId SystemRoot { get; } = new(new Guid("5F27B5F5-20A7-4445-AEE4-7C955F804084"));
 
     public static ContentItemId Settings { get; } = new(new Guid("FE75ED5F-EE55-4839-AE36-D1E7AB7E4A3A"));
