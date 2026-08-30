@@ -5,7 +5,7 @@ var configuration = Argument("configuration", "Release");
 var runTests = Argument("runTests", true);
 var cleanOutput = Argument("cleanOutput", true);
 var recycleAppPool = Argument("recycleAppPool", false);
-var appPoolName = Argument("appPoolName", string.Empty);
+var appPoolName = Argument("appPoolName", "TemplarCMS.Api");
 var runtime = Argument("runtime", string.Empty);
 var selfContained = Argument("selfContained", false);
 var publishDirectoryArgument = Argument("publishDirectory", "./artifacts/publish/api");
@@ -71,7 +71,7 @@ Task("Publish-Api-To-Inetpub")
     .Does(() =>
 {
     PublishApi(publishDirectory);
-    DeployApiToInetpub(publishDirectory, inetpubDirectory);
+    DeployApiToIis(publishDirectory, inetpubDirectory, appPoolName);
 });
 
 Task("Publish-Admin")
@@ -103,30 +103,15 @@ Task("Recycle-IIS-AppPool")
         throw new CakeException("Provide --appPoolName when recycleAppPool=true.");
     }
 
-    StartProcess(
-        "powershell",
-        new ProcessSettings
-        {
-            Arguments =
-                new ProcessArgumentBuilder()
-                    .Append("-NoProfile")
-                    .Append("-ExecutionPolicy")
-                    .Append("Bypass")
-                    .Append("-Command")
-                    .AppendQuoted(
-                        "Import-Module WebAdministration; " +
-                        $"if (-not (Test-Path \"IIS:\\AppPools\\{appPoolName}\")) " +
-                        "{ throw \"IIS app pool was not found.\" } " +
-                        $"Restart-WebAppPool -Name \"{appPoolName}\"")
-        });
+    StopIisAppPool(appPoolName);
+    StartIisAppPool(appPoolName);
 });
 
 Task("Default")
     .IsDependentOn("Publish-Api");
 
 Task("Publish-To-IIS")
-    .IsDependentOn("Publish-Api-To-Inetpub")
-    .IsDependentOn("Recycle-IIS-AppPool");
+    .IsDependentOn("Publish-Api-To-Inetpub");
 
 RunTarget(target);
 
@@ -193,6 +178,85 @@ void DeployApiToInetpub(DirectoryPath sourceDirectory, DirectoryPath destination
     Information(
         "Deployed publish files to {0} while preserving RuntimeData and populated App_Data\\Templates.",
         destinationDirectory.FullPath);
+}
+
+void DeployApiToIis(
+    DirectoryPath sourceDirectory,
+    DirectoryPath destinationDirectory,
+    string targetAppPoolName)
+{
+    EnsureIisAppPoolName(targetAppPoolName);
+    Information("Stopping IIS app pool '{0}' before deployment.", targetAppPoolName);
+    StopIisAppPool(targetAppPoolName);
+
+    try
+    {
+        Information("Deploying API files to {0}.", destinationDirectory.FullPath);
+        DeployApiToInetpub(sourceDirectory, destinationDirectory);
+    }
+    finally
+    {
+        Information("Starting IIS app pool '{0}' after deployment.", targetAppPoolName);
+        StartIisAppPool(targetAppPoolName);
+    }
+}
+
+void EnsureIisAppPoolName(string targetAppPoolName)
+{
+    if (string.IsNullOrWhiteSpace(targetAppPoolName))
+    {
+        throw new CakeException("Provide --appPoolName for IIS API deployment.");
+    }
+}
+
+void StopIisAppPool(string targetAppPoolName)
+{
+    RunIisAppPoolCommand(
+        targetAppPoolName,
+        "stop",
+        allowFailure: true);
+}
+
+void StartIisAppPool(string targetAppPoolName)
+{
+    RunIisAppPoolCommand(
+        targetAppPoolName,
+        "start",
+        allowFailure: false);
+}
+
+void RunIisAppPoolCommand(
+    string targetAppPoolName,
+    string operation,
+    bool allowFailure)
+{
+    var exitCode =
+        StartProcess(
+            @"C:\Windows\System32\inetsrv\appcmd.exe",
+            new ProcessSettings
+            {
+                Arguments =
+                    new ProcessArgumentBuilder()
+                        .Append(operation)
+                        .Append("apppool")
+                        .Append($"/apppool.name:{targetAppPoolName}")
+            });
+
+    if (exitCode != 0)
+    {
+        if (allowFailure)
+        {
+            Warning(
+                "IIS app pool {0} command returned exit code {1} for '{2}'. Continuing because the pool may already be stopped.",
+                operation,
+                exitCode,
+                targetAppPoolName);
+            return;
+        }
+
+        throw new CakeException(
+            $"IIS app pool {operation} command failed for '{targetAppPoolName}'.");
+    }
 }
 
 bool ShouldPreserveDestinationFile(string relativePath, DirectoryPath destinationDirectory)

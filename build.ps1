@@ -5,7 +5,7 @@ param(
     [string]$AdminPublishDirectory,
     [string]$InetpubDirectory = "C:\inetpub\wwwroot\TemplarCMS.Api",
     [string]$AdminInetpubDirectory = "C:\inetpub\wwwroot\TemplarCMS.Api\author-workspace",
-    [string]$AppPoolName,
+    [string]$AppPoolName = "TemplarCMS.Api",
     [string]$Runtime,
     [switch]$RecycleAppPool,
     [switch]$SkipTests,
