@@ -89,7 +89,19 @@ app.MapWhen(
     });
 
 app.UseDefaultFiles();
-app.UseStaticFiles();
+app.UseStaticFiles(
+    new StaticFileOptions
+    {
+        OnPrepareResponse = context =>
+        {
+            if (context.File.Name.Equals("index.html", StringComparison.OrdinalIgnoreCase))
+            {
+                context.Context.Response.Headers.CacheControl = "no-cache, no-store, must-revalidate";
+                context.Context.Response.Headers.Pragma = "no-cache";
+                context.Context.Response.Headers.Expires = "0";
+            }
+        }
+    });
 
 app.UseHttpsRedirection();
 

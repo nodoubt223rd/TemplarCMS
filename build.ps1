@@ -6,6 +6,7 @@ param(
     [string]$InetpubDirectory = "C:\inetpub\wwwroot\TemplarCMS.Api",
     [string]$AdminInetpubDirectory = "C:\inetpub\wwwroot\TemplarCMS.Api\author-workspace",
     [string]$AppPoolName = "TemplarCMS.Api",
+    [string]$AdminAppPoolName = "TemplarCMS.Admin",
     [string]$Runtime,
     [switch]$RecycleAppPool,
     [switch]$SkipTests,
@@ -46,6 +47,10 @@ try {
 
     if ($AppPoolName) {
         $cakeArguments += @('--appPoolName', $AppPoolName)
+    }
+
+    if ($AdminAppPoolName) {
+        $cakeArguments += @('--adminAppPoolName', $AdminAppPoolName)
     }
 
     if ($Runtime) {

@@ -95,7 +95,7 @@ import {
 
 const language = ref('en')
 const version = ref(1)
-const activeWorkspace = ref<'content' | 'templates'>('content')
+const activeWorkspace = ref<'content' | 'templates' | 'media' | 'system'>('content')
 const treeFilter = ref('')
 const isBootstrapping = ref(false)
 const isSubmitting = ref(false)
@@ -106,8 +106,37 @@ const rootNodes = ref<TreeNode[]>([])
 const selectedItemId = ref<string | null>(null)
 const selectedNode = computed(() => findTreeNodeById(rootNodes.value, selectedItemId.value))
 const selectedItem = computed(() => selectedNode.value?.item ?? null)
-const visibleRootNodes = computed(() =>
-  rootNodes.value.filter(node => treeNodeMatchesFilter(node, treeFilter.value)))
+const contentRootNodes = computed(() =>
+  rootNodes.value.filter(node => node.item.path.toLocaleLowerCase().endsWith('/content')))
+const visibleContentRootNodes = computed(() =>
+  contentRootNodes.value.filter(node => treeNodeMatchesFilter(node, treeFilter.value)))
+const contentWorkspaceRoot = computed<TreeNode>(() => ({
+  item: {
+    id: 'workspace-root:content',
+    name: 'Content',
+    templateId: '',
+    path: '/content',
+    language: language.value,
+    version: version.value,
+    fields: {},
+    _links: {
+      self: { href: '/api/v1/content/root/branch' },
+      template: { href: '' },
+      children: { href: '/api/v1/content/root/branch' },
+      dependencies: { href: '' },
+      'set-values': { href: '' },
+      rename: { href: '' },
+      move: { href: '' },
+      delete: { href: '' },
+      branch: { href: '/api/v1/content/root/branch' }
+    }
+  },
+  children: visibleContentRootNodes.value,
+  isExpanded: true,
+  isBranchLoaded: true,
+  isBranchLoading: false,
+  isWorkspaceRoot: true
+}))
 
 const createForm = reactive({
   name: '',
@@ -133,6 +162,7 @@ const isLoadingTemplateFields = ref(false)
 const selectedItemDependencies = ref<ContentItemDependencyResponse | null>(null)
 const isLoadingItemDependencies = ref(false)
 const selectedTemplateId = ref<string | null>(null)
+const isNewTemplateDraftOpen = ref(false)
 const selectedTemplateDetail = ref<TemplateResponse | null>(null)
 const selectedTemplateDependencies = ref<TemplateDependencyResponse | null>(null)
 const isLoadingTemplateDetail = ref(false)
@@ -192,7 +222,6 @@ const editorFields = computed<EditorFieldModel[]>(() =>
   buildEditorFields(fieldForm, templateFields.value, fieldTypeLookup.value))
 
 onMounted(async () => {
-  startNewTemplateDraft()
   await loadFieldTypes()
   await loadTemplates()
   await refreshRootBranch()
@@ -509,8 +538,12 @@ async function loadTemplates() {
       templateDesignerForm.baseTemplateId = getDefaultTemplateDesignerBaseTemplateId(availableTemplates.value)
     }
 
-    if (selectedTemplateId.value == null || selectedTemplateSummary.value == null || !isAuthorVisibleTemplate(selectedTemplateSummary.value)) {
-      selectedTemplateId.value = visibleTemplates.value[0]?.id ?? null
+    if (selectedTemplateId.value != null) {
+      const selectedTemplate = selectedTemplateSummary.value
+
+      if (selectedTemplate == null || !isAuthorVisibleTemplate(selectedTemplate)) {
+        selectedTemplateId.value = null
+      }
     }
   } catch {
     availableTemplates.value = []
@@ -578,6 +611,8 @@ async function loadContentDependencies(item: ContentItemResponse) {
 }
 
 async function selectTemplate(templateId: string) {
+  isNewTemplateDraftOpen.value = false
+
   if (selectedTemplateId.value === templateId && selectedTemplateDetail.value != null) {
     return
   }
@@ -656,6 +691,11 @@ async function applyTemplateToCreate() {
 }
 
 function startNewTemplateDraft() {
+  isNewTemplateDraftOpen.value = true
+  selectedTemplateId.value = null
+  selectedTemplateDetail.value = null
+  selectedTemplateDependencies.value = null
+
   const state = createNewTemplateDesignerState(
     getDefaultTemplateDesignerBaseTemplateId(availableTemplates.value)
   )
@@ -970,7 +1010,15 @@ function countNodes(nodes: TreeNode[]): number {
 
       <div class="workspace-toolbar__search" aria-label="Current workspace location">
         <span class="workspace-toolbar__search-mark" aria-hidden="true">⌕</span>
-        <span>{{ activeWorkspace === 'content' ? selectedItem?.path ?? 'Search content…' : 'Search templates…' }}</span>
+        <span>
+          {{
+            activeWorkspace === 'content'
+              ? selectedItem?.path ?? 'Search content…'
+              : activeWorkspace === 'templates'
+                ? 'Search templates…'
+                : `Search ${activeWorkspace}…`
+          }}
+        </span>
       </div>
 
       <div class="workspace-toolbar__context">
@@ -1012,13 +1060,36 @@ function countNodes(nodes: TreeNode[]): number {
         <span aria-hidden="true">▧</span>
         <span>Templates</span>
       </button>
+      <button
+        :class="['workspace-rail__item', { 'workspace-rail__item--active': activeWorkspace === 'media' }]"
+        type="button"
+        title="Media"
+        aria-label="Media workspace"
+        :aria-pressed="activeWorkspace === 'media'"
+        @click="activeWorkspace = 'media'"
+      >
+        <span aria-hidden="true">▣</span>
+        <span>Media</span>
+      </button>
+      <button
+        :class="['workspace-rail__item', { 'workspace-rail__item--active': activeWorkspace === 'system' }]"
+        type="button"
+        title="System"
+        aria-label="System workspace"
+        :aria-pressed="activeWorkspace === 'system'"
+        @click="activeWorkspace = 'system'"
+      >
+        <span aria-hidden="true">⚙</span>
+        <span>System</span>
+      </button>
     </nav>
 
     <aside class="workspace-sidebar">
-      <div class="navigator-heading">
+      <template v-if="activeWorkspace === 'content'">
+        <div class="navigator-heading">
         <div>
           <p class="eyebrow">Content</p>
-          <h2>Navigator</h2>
+          <h2>Content</h2>
         </div>
         <span class="panel-pill">{{ treeCount }}</span>
       </div>
@@ -1037,50 +1108,115 @@ function countNodes(nodes: TreeNode[]): number {
         Loading the root content branch…
       </div>
 
-      <div v-else-if="rootNodes.length === 0" class="empty-state">
-        No root content items have been loaded yet.
+      <div v-else-if="contentRootNodes.length === 0" class="empty-state">
+        The Content root has not been loaded yet.
       </div>
 
-      <div v-else-if="visibleRootNodes.length === 0" class="empty-state">
+      <div v-else-if="visibleContentRootNodes.length === 0" class="empty-state">
         No loaded content items match “{{ treeFilter }}”.
       </div>
 
       <ul v-else class="tree-list">
         <TreeBranch
-          v-for="node in visibleRootNodes"
-          :key="node.item.id"
-          :node="node"
+          :node="contentWorkspaceRoot"
           :selected-item-id="selectedItemId"
           :filter-text="treeFilter"
           @toggle="toggleNode"
           @select="selectNode"
         />
       </ul>
+      </template>
+
+      <template v-else-if="activeWorkspace === 'templates'">
+        <div class="navigator-heading">
+          <div>
+            <p class="eyebrow">Template</p>
+            <h2>Template</h2>
+          </div>
+          <span class="panel-pill">{{ visibleTemplates.length }}</span>
+        </div>
+
+        <button class="button workspace-sidebar__new-template" type="button" @click="startNewTemplateDraft">
+          New template
+        </button>
+
+        <div v-if="isLoadingTemplates" class="empty-state">
+          Loading templates...
+        </div>
+
+        <div v-else-if="visibleTemplates.length === 0" class="empty-state">
+          No templates are available.
+        </div>
+
+        <ul v-else class="template-list workspace-template-list">
+          <li v-for="template in visibleTemplates" :key="template.id">
+            <button
+              type="button"
+              :class="['template-entry', { 'template-entry--selected': selectedTemplateId === template.id }]"
+              @click="selectTemplate(template.id)"
+            >
+              <span class="template-entry__name">{{ template.name }}</span>
+              <span class="template-entry__meta">{{ template.key }}</span>
+            </button>
+          </li>
+        </ul>
+      </template>
+
+      <template v-else>
+        <div class="navigator-heading">
+          <div>
+            <p class="eyebrow">{{ activeWorkspace }}</p>
+            <h2>{{ activeWorkspace === 'media' ? 'Media' : 'System' }}</h2>
+          </div>
+        </div>
+
+        <div class="empty-state">
+          {{ activeWorkspace === 'media' ? 'Media items are not available yet.' : 'System items are not available yet.' }}
+        </div>
+      </template>
     </aside>
 
     <main class="workspace-main">
       <header class="top-panel">
-        <div>
-          <p class="eyebrow">
-            {{ activeWorkspace === 'content' ? selectedItem == null ? 'Content workspace' : 'Editing content' : 'Template workspace' }}
-          </p>
-          <h2>
-            {{
-              activeWorkspace === 'content'
-                ? selectedItem == null ? 'Select a content item to begin.' : selectedItem.name
-                : 'Model the structure behind every content item.'
-            }}
-          </h2>
-        </div>
-        <p class="top-panel__copy">
-          {{
-            activeWorkspace === 'templates'
-              ? 'Inspect effective fields, author inheritance-aware definitions, and validate templates before they reach content authors.'
-              : selectedItem == null
-                ? 'The content tree, request context, and template tools remain in sync as you author.'
-                : `${selectedItemTemplateName ?? 'Template'} · ${language} · version ${version}`
-          }}
-        </p>
+        <template v-if="activeWorkspace === 'content'">
+          <div class="top-panel__title">
+            <p class="eyebrow">Content editor</p>
+            <h2>{{ selectedItem?.name ?? 'Select a content item to begin.' }}</h2>
+          </div>
+
+          <dl v-if="selectedItem != null" class="top-panel__metadata" aria-label="Content item context">
+            <div>
+              <dt>Template</dt>
+              <dd>{{ selectedItemTemplateName ?? 'Loading template' }}</dd>
+            </div>
+            <div>
+              <dt>Language</dt>
+              <dd>{{ language }}</dd>
+            </div>
+            <div>
+              <dt>Version</dt>
+              <dd>v{{ version }}</dd>
+            </div>
+            <div>
+              <dt>Publishing</dt>
+              <dd><span class="top-panel__status">Not published</span></dd>
+            </div>
+          </dl>
+        </template>
+
+        <template v-else-if="activeWorkspace === 'templates'">
+          <div class="top-panel__title">
+            <p class="eyebrow">Template workspace</p>
+            <h2>{{ selectedTemplateSummary?.name ?? 'Template designer' }}</h2>
+          </div>
+        </template>
+
+        <template v-else>
+          <div class="top-panel__title">
+            <p class="eyebrow">{{ activeWorkspace }}</p>
+            <h2>{{ activeWorkspace === 'media' ? 'Media workspace' : 'System workspace' }}</h2>
+          </div>
+        </template>
       </header>
 
       <div v-if="pageError != null" class="banner banner--error">
@@ -1092,7 +1228,7 @@ function countNodes(nodes: TreeNode[]): number {
       </div>
 
       <template v-if="activeWorkspace === 'content'">
-        <section class="content-grid">
+        <section v-if="selectedItem != null" class="content-grid">
           <ContentInspectorPane
             :selected-item="selectedItem"
             :selected-item-template-name="selectedItemTemplateName"
@@ -1122,7 +1258,7 @@ function countNodes(nodes: TreeNode[]): number {
           />
         </section>
 
-        <section class="panel composer-panel">
+        <section v-if="selectedItem != null" class="panel composer-panel">
         <div class="panel-header">
           <div>
             <p class="eyebrow">Create</p>
@@ -1184,7 +1320,10 @@ function countNodes(nodes: TreeNode[]): number {
         </section>
       </template>
 
-      <section v-else class="template-grid">
+      <section
+        v-else-if="activeWorkspace === 'templates' && (selectedTemplateId != null || isNewTemplateDraftOpen)"
+        class="template-grid"
+      >
         <TemplateCatalogPane
           :available-templates="visibleTemplates"
           :selected-template-id="selectedTemplateId"
@@ -1247,7 +1386,13 @@ function countNodes(nodes: TreeNode[]): number {
     </main>
 
     <footer class="workspace-statusbar">
-      <span>{{ activeWorkspace === 'content' ? selectedItem?.path ?? 'No item selected' : 'Template workspace' }}</span>
+      <span>
+        {{
+          activeWorkspace === 'content'
+            ? selectedItem?.path ?? 'No item selected'
+            : `${activeWorkspace.charAt(0).toUpperCase()}${activeWorkspace.slice(1)} workspace`
+        }}
+      </span>
       <span>TemplarCMS v0.1.0</span>
     </footer>
   </div>

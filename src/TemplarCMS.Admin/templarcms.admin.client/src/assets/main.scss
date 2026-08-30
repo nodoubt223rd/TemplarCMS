@@ -1203,6 +1203,38 @@ button {
   font-size: 0.72rem;
 }
 
+.workspace-sidebar__new-template {
+  width: calc(100% - 0.5rem);
+  margin: 0.65rem 0.25rem 0.5rem;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.72rem;
+}
+
+.workspace-template-list {
+  padding: 0 0.25rem;
+}
+
+.workspace-template-list .template-entry {
+  padding: 0.6rem 0.65rem;
+  border-radius: 6px;
+}
+
+.tree-row--workspace-root {
+  margin-bottom: 0.2rem;
+  padding: 0.3rem 0.4rem;
+  border-bottom: 1px solid #dedad3;
+}
+
+.tree-toggle--workspace-root {
+  color: #5970e3;
+  background: #e8eaf8;
+  cursor: default;
+}
+
+.tree-entry--workspace-root {
+  cursor: default;
+}
+
 .workspace-main {
   grid-row: 2;
   padding: 0;
@@ -1211,10 +1243,10 @@ button {
 }
 
 .top-panel {
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.75rem;
+  display: flex;
+  gap: 1.25rem;
   align-items: center;
-  min-height: 70px;
+  min-height: 66px;
   margin: 0;
   padding: 0.85rem 1.25rem;
   border: 0;
@@ -1234,14 +1266,58 @@ button {
   max-width: none;
   color: #302d29;
   font-size: 1rem;
+  font-weight: 600;
   line-height: 1.2;
 }
 
-.top-panel__copy {
-  max-width: 340px;
+.top-panel__title {
+  min-width: 0;
+}
+
+.top-panel__metadata {
+  display: flex;
+  gap: 0;
+  align-items: center;
+  margin: 0 0 0 auto;
+}
+
+.top-panel__metadata > div {
+  display: grid;
+  gap: 0.18rem;
+  min-width: 5.75rem;
+  padding: 0 0.9rem;
+  border-left: 1px solid #e6e1da;
+}
+
+.top-panel__metadata dt {
   color: #918b84;
-  font-size: 0.71rem;
-  text-align: right;
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.top-panel__metadata dd {
+  margin: 0;
+  color: #5c5751;
+  font-family: "JetBrains Mono", Consolas, monospace;
+  font-size: 0.68rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.top-panel__status {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 0.16rem 0.4rem;
+  border-radius: 999px;
+  color: #a16207;
+  background: #fffbeb;
+  box-shadow: inset 0 0 0 1px #fde68a;
+  font-family: "DM Sans", "Aptos", "Segoe UI Variable", sans-serif;
+  font-size: 0.62rem;
+  font-weight: 600;
 }
 
 .content-grid,
@@ -1345,5 +1421,22 @@ button {
   .workspace-avatar,
   .workspace-statusbar {
     display: none;
+  }
+
+  .top-panel {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .top-panel__metadata {
+    width: 100%;
+    margin-left: 0;
+    overflow-x: auto;
+  }
+
+  .top-panel__metadata > div:first-child {
+    padding-left: 0;
+    border-left: 0;
   }
 }

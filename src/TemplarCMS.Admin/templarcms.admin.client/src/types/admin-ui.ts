@@ -6,6 +6,7 @@ export type TreeNode = {
   isExpanded: boolean
   isBranchLoaded: boolean
   isBranchLoading: boolean
+  isWorkspaceRoot?: boolean
 }
 
 export type EditorFieldModel = {
