@@ -6,6 +6,7 @@ var runTests = Argument("runTests", true);
 var cleanOutput = Argument("cleanOutput", true);
 var recycleAppPool = Argument("recycleAppPool", false);
 var appPoolName = Argument("appPoolName", "TemplarCMS.Api");
+var adminAppPoolName = Argument("adminAppPoolName", "TemplarCMS.Admin");
 var runtime = Argument("runtime", string.Empty);
 var selfContained = Argument("selfContained", false);
 var publishDirectoryArgument = Argument("publishDirectory", "./artifacts/publish/api");
@@ -71,7 +72,7 @@ Task("Publish-Api-To-Inetpub")
     .Does(() =>
 {
     PublishApi(publishDirectory);
-    DeployApiToIis(publishDirectory, inetpubDirectory, appPoolName);
+    DeployProjectToIis(publishDirectory, inetpubDirectory, appPoolName);
 });
 
 Task("Publish-Admin")
@@ -86,7 +87,7 @@ Task("Publish-Admin-To-Inetpub")
     .Does(() =>
 {
     PublishProject(adminProject, adminPublishDirectory);
-    DeployApiToInetpub(adminPublishDirectory, adminInetpubDirectory);
+    DeployProjectToIis(adminPublishDirectory, adminInetpubDirectory, adminAppPoolName);
 });
 
 Task("Recycle-IIS-AppPool")
@@ -180,7 +181,7 @@ void DeployApiToInetpub(DirectoryPath sourceDirectory, DirectoryPath destination
         destinationDirectory.FullPath);
 }
 
-void DeployApiToIis(
+void DeployProjectToIis(
     DirectoryPath sourceDirectory,
     DirectoryPath destinationDirectory,
     string targetAppPoolName)
