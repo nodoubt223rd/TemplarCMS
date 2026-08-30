@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
 :root {
   color-scheme: light;
   font-family: "Aptos", "Segoe UI Variable", sans-serif;
@@ -1004,5 +1006,344 @@ button {
 
   .workspace-main {
     padding: 0.8rem;
+  }
+}
+
+// The authoring shell follows the Figma's compact, desktop-first workbench.
+:root {
+  font-family: "DM Sans", "Aptos", "Segoe UI Variable", sans-serif;
+  background: #f5f3ef;
+  --surface: #ffffff;
+  --surface-strong: #ffffff;
+  --surface-muted: #f7f5f1;
+  --surface-border: #dedad3;
+  --accent: #5970e3;
+  --accent-strong: #4256bb;
+  --accent-soft: #e8eaf8;
+  --ink-soft: #6e6b66;
+  --ink-faint: #96918a;
+  --shadow: none;
+}
+
+.workspace-shell {
+  grid-template-columns: 56px minmax(220px, 240px) minmax(0, 1fr);
+  grid-template-rows: 44px minmax(0, 1fr) 28px;
+  height: 100vh;
+  min-height: 620px;
+  background: #f5f3ef;
+}
+
+.workspace-toolbar {
+  gap: 0.85rem;
+  height: 44px;
+  padding: 0 1rem;
+  background: #1e1c18;
+}
+
+.workspace-toolbar .brand {
+  display: flex;
+  min-width: auto;
+  gap: 0.55rem;
+  align-items: center;
+}
+
+.workspace-toolbar .brand-mark {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  background: #5970e3;
+  color: #ffffff;
+  font-size: 0.62rem;
+  letter-spacing: 0.03em;
+}
+
+.workspace-toolbar .brand h1 {
+  color: #f5f3ef;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.workspace-toolbar__search {
+  display: flex;
+  flex: 1;
+  gap: 0.45rem;
+  align-items: center;
+  width: min(100%, 260px);
+  max-width: 360px;
+  padding: 0.42rem 0.65rem;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 6px;
+  color: #918a82;
+  background: rgba(255, 255, 255, 0.07);
+  font-size: 0.72rem;
+}
+
+.workspace-toolbar__search-mark {
+  color: #bcb5ad;
+  font-size: 1rem;
+}
+
+.workspace-toolbar__context {
+  gap: 0.4rem;
+}
+
+.workspace-toolbar__context label {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+  padding: 0.15rem 0.4rem 0.15rem 0.55rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.workspace-toolbar__label {
+  color: #a9a29a;
+  font-size: 0.63rem;
+  font-weight: 600;
+}
+
+.workspace-toolbar__context input {
+  width: 2.35rem;
+  padding: 0.12rem 0;
+  border: 0;
+  color: #ddd8d1;
+  background: transparent;
+  font-size: 0.7rem;
+}
+
+.workspace-toolbar__context input:focus {
+  outline: 0;
+}
+
+.workspace-toolbar .button--secondary {
+  padding: 0.36rem 0.55rem;
+  border-radius: 6px;
+  color: #d8d3cc;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.workspace-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  color: #ffffff;
+  background: #5970e3;
+  font-size: 0.62rem;
+  font-weight: 700;
+}
+
+.workspace-rail {
+  grid-row: 2;
+  gap: 0.25rem;
+  padding: 0.55rem 0.45rem;
+  background: #1e1c18;
+}
+
+.workspace-rail__item {
+  flex-direction: column;
+  gap: 0.08rem;
+  width: 40px;
+  height: 40px;
+  border-radius: 7px;
+  color: #817971;
+  font-size: 0.55rem;
+  font-weight: 600;
+}
+
+.workspace-rail__item > span:first-child {
+  font-size: 0.95rem;
+  line-height: 0.8;
+}
+
+.workspace-rail__item--active {
+  background: #5970e3;
+}
+
+.workspace-sidebar {
+  grid-row: 2;
+  padding: 0.9rem 0.5rem;
+  border-color: #dbd6ce;
+  background: #f0ede7;
+}
+
+.navigator-heading {
+  padding: 0 0.25rem;
+}
+
+.navigator-heading h2 {
+  color: #625d56;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.navigator-heading .eyebrow,
+.navigator-heading .panel-pill,
+.navigator-state {
+  display: none;
+}
+
+.navigator-filter {
+  margin: 0.65rem 0.25rem 0.5rem;
+  border-radius: 6px;
+  background: #e5e1db;
+}
+
+.navigator-filter input {
+  padding: 0.44rem 0.55rem;
+  border-radius: 6px;
+  font-size: 0.72rem;
+}
+
+.workspace-main {
+  grid-row: 2;
+  padding: 0;
+  background: #ffffff;
+  overflow: auto;
+}
+
+.top-panel {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: center;
+  min-height: 70px;
+  margin: 0;
+  padding: 0.85rem 1.25rem;
+  border: 0;
+  border-bottom: 1px solid #e6e1da;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.top-panel .eyebrow {
+  margin-bottom: 0.2rem;
+  color: #8d877f;
+  font-size: 0.59rem;
+  letter-spacing: 0.13em;
+}
+
+.top-panel h2 {
+  max-width: none;
+  color: #302d29;
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
+.top-panel__copy {
+  max-width: 340px;
+  color: #918b84;
+  font-size: 0.71rem;
+  text-align: right;
+}
+
+.content-grid,
+.template-grid {
+  margin: 0;
+  gap: 0;
+}
+
+.content-grid {
+  display: block;
+}
+
+.template-grid {
+  grid-template-columns: minmax(230px, 270px) minmax(0, 1fr);
+}
+
+.panel,
+.context-panel,
+.summary-card,
+.editor-card {
+  border-color: #e6e1da;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.inspector-panel,
+.composer-panel {
+  border-width: 0 0 1px;
+}
+
+.panel {
+  padding: 1rem 1.25rem;
+}
+
+.panel-header {
+  margin-bottom: 0.85rem;
+}
+
+.panel-header h3 {
+  color: #413d37;
+  font-size: 0.9rem;
+}
+
+.editor-card {
+  padding: 0;
+  border-width: 0;
+}
+
+.editor-card__header,
+.field-editor {
+  border-bottom: 1px solid #ebe7e1;
+}
+
+.field-editor {
+  padding: 0.85rem 1.25rem;
+  border-radius: 0;
+  background: #ffffff;
+}
+
+.field input,
+.field select,
+.field-textarea {
+  border-radius: 6px;
+  border-color: #dedad3;
+  font-size: 0.8rem;
+}
+
+.button {
+  border-radius: 6px;
+  background: #5970e3;
+  font-size: 0.78rem;
+}
+
+.button--secondary {
+  color: #555049;
+  background: #f1eee9;
+}
+
+.workspace-statusbar {
+  display: flex;
+  grid-column: 1 / -1;
+  grid-row: 3;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  padding: 0 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  color: #7d756d;
+  background: #1e1c18;
+  font-family: "JetBrains Mono", Consolas, monospace;
+  font-size: 0.6rem;
+}
+
+@media (max-width: 720px) {
+  .workspace-shell {
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .workspace-toolbar__search,
+  .workspace-avatar,
+  .workspace-statusbar {
+    display: none;
   }
 }

@@ -965,45 +965,27 @@ function countNodes(nodes: TreeNode[]): number {
     <header class="workspace-toolbar">
       <div class="brand">
         <span class="brand-mark">TC</span>
-        <div>
-          <h1>TemplarCMS</h1>
-          <p>Authoring workspace</p>
-        </div>
+        <h1>TemplarCMS</h1>
       </div>
 
-      <div class="workspace-toolbar__title">
+      <div class="workspace-toolbar__search" aria-label="Current workspace location">
         <span class="workspace-toolbar__search-mark" aria-hidden="true">⌕</span>
-        <span>{{ activeWorkspace === 'content' ? selectedItem?.path ?? 'Content workspace' : 'Template workspace' }}</span>
+        <span>{{ activeWorkspace === 'content' ? selectedItem?.path ?? 'Search content…' : 'Search templates…' }}</span>
       </div>
 
       <div class="workspace-toolbar__context">
-        <div class="workspace-toolbar__areas" aria-label="Workspace area">
-          <button
-            :class="['workspace-area-button', { 'workspace-area-button--active': activeWorkspace === 'content' }]"
-            type="button"
-            @click="activeWorkspace = 'content'"
-          >
-            Content
-          </button>
-          <button
-            :class="['workspace-area-button', { 'workspace-area-button--active': activeWorkspace === 'templates' }]"
-            type="button"
-            @click="activeWorkspace = 'templates'"
-          >
-            Templates
-          </button>
-        </div>
         <label>
-          <span class="sr-only">Language</span>
+          <span class="workspace-toolbar__label">Language</span>
           <input v-model="language" type="text" aria-label="Language" />
         </label>
         <label>
-          <span class="sr-only">Version</span>
+          <span class="workspace-toolbar__label">Version</span>
           <input v-model.number="version" type="number" min="1" aria-label="Version" />
         </label>
         <button class="button button--secondary" type="button" @click="refreshRootBranch">
           Refresh
         </button>
+        <span class="workspace-avatar" title="Author workspace">TC</span>
       </div>
     </header>
 
@@ -1016,7 +998,8 @@ function countNodes(nodes: TreeNode[]): number {
         :aria-pressed="activeWorkspace === 'content'"
         @click="activeWorkspace = 'content'"
       >
-        C
+        <span aria-hidden="true">▤</span>
+        <span>Content</span>
       </button>
       <button
         :class="['workspace-rail__item', { 'workspace-rail__item--active': activeWorkspace === 'templates' }]"
@@ -1026,7 +1009,8 @@ function countNodes(nodes: TreeNode[]): number {
         :aria-pressed="activeWorkspace === 'templates'"
         @click="activeWorkspace = 'templates'"
       >
-        T
+        <span aria-hidden="true">▧</span>
+        <span>Templates</span>
       </button>
     </nav>
 
@@ -1260,6 +1244,11 @@ function countNodes(nodes: TreeNode[]): number {
 	                @update-field-unversioned="onTemplateFieldUnversionedUpdate"
 	              />
 	      </section>
-	    </main>
-	  </div>
-	</template>
+    </main>
+
+    <footer class="workspace-statusbar">
+      <span>{{ activeWorkspace === 'content' ? selectedItem?.path ?? 'No item selected' : 'Template workspace' }}</span>
+      <span>TemplarCMS v0.1.0</span>
+    </footer>
+  </div>
+</template>
