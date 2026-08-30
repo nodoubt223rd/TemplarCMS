@@ -70,6 +70,14 @@ public sealed class DefaultContentBootstrapper : IDefaultContentBootstrapper
                 itemTemplate.Id,
                 content.Id,
                 cancellationToken);
+        var about =
+            await EnsureItemAsync(
+                SystemSeedContentIds.About,
+                "About",
+                "about",
+                itemTemplate.Id,
+                home.Id,
+                cancellationToken);
         var system =
             await EnsureItemAsync(
                 SystemSeedContentIds.SystemRoot,
@@ -127,6 +135,9 @@ public sealed class DefaultContentBootstrapper : IDefaultContentBootstrapper
 
         await EnsureHomeFieldValuesAsync(
             home.Id,
+            cancellationToken);
+        await EnsureAboutFieldValuesAsync(
+            about.Id,
             cancellationToken);
     }
 
@@ -230,6 +241,48 @@ public sealed class DefaultContentBootstrapper : IDefaultContentBootstrapper
 
         await _contentItemService.SaveFieldValuesAsync(
             homeItemId,
+            context,
+            missingDefaults,
+            cancellationToken);
+    }
+
+    private async Task EnsureAboutFieldValuesAsync(
+        ContentItemId aboutItemId,
+        CancellationToken cancellationToken)
+    {
+        var context =
+            new FieldValueResolutionContext(
+                new ContentLanguage("en"),
+                ContentVersion.First);
+        var existingFieldValues =
+            await _contentRepository.GetFieldValuesAsync(
+                aboutItemId,
+                cancellationToken);
+        var existingFieldKeys =
+            existingFieldValues
+                .Select(value => value.FieldKey)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var missingDefaults =
+            new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["title"] = "About Templar CMS",
+                ["navigationTitle"] = "About",
+                ["metaDescription"] = "Learn about the Templar CMS starter site.",
+                ["body"] = "<p>Templar CMS is a template-driven, API-first headless CMS built for clear content modeling and flexible delivery.</p>"
+            }
+            .Where(pair => !existingFieldKeys.Contains(pair.Key))
+            .ToDictionary(
+                pair => pair.Key,
+                pair => pair.Value,
+                StringComparer.OrdinalIgnoreCase);
+
+        if (missingDefaults.Count == 0)
+        {
+            return;
+        }
+
+        await _contentItemService.SaveFieldValuesAsync(
+            aboutItemId,
             context,
             missingDefaults,
             cancellationToken);

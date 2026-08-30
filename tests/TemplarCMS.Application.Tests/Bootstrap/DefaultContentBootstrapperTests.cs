@@ -119,6 +119,10 @@ public sealed class DefaultContentBootstrapperTests
             await contentRepository.GetItemAsync(
                 new ContentPath("/templar/content/home"),
                 TestContext.Current.CancellationToken);
+        var about =
+            await contentRepository.GetItemAsync(
+                new ContentPath("/templar/content/home/about"),
+                TestContext.Current.CancellationToken);
         var settings =
             await contentRepository.GetItemAsync(
                 new ContentPath("/templar/system/settings"),
@@ -138,18 +142,22 @@ public sealed class DefaultContentBootstrapperTests
 
         Assert.NotNull(templar);
         Assert.NotNull(home);
+        Assert.NotNull(about);
         Assert.NotNull(settings);
         Assert.NotNull(images);
         Assert.NotNull(files);
         Assert.NotNull(standardItem);
         Assert.Equal(SystemSeedContentIds.TemplarRoot, templar.Id);
         Assert.Equal(SystemSeedContentIds.Home, home.Id);
+        Assert.Equal(SystemSeedContentIds.About, about.Id);
         Assert.Equal(SystemSeedContentIds.Settings, settings.Id);
         Assert.Equal(SystemSeedContentIds.Images, images.Id);
         Assert.Equal(SystemSeedContentIds.Files, files.Id);
         Assert.Equal(SystemSeedContentIds.StandardTemplateItem, standardItem.Id);
         Assert.Equal(folderTemplate.Id, templar.TemplateId);
         Assert.Equal(itemTemplate.Id, home.TemplateId);
+        Assert.Equal(itemTemplate.Id, about.TemplateId);
+        Assert.Equal(home.Id, about.ParentId);
 
         var homeValues =
             await contentRepository.GetFieldValuesAsync(
@@ -160,6 +168,20 @@ public sealed class DefaultContentBootstrapperTests
         Assert.Contains(homeValues, value => value.FieldKey == "navigationTitle" && value.Value == "Home");
         Assert.Contains(homeValues, value => value.FieldKey == "metaDescription" && value.Value == "Starter home item for Templar CMS.");
         Assert.Contains(homeValues, value => value.FieldKey == "body" && value.Value == "<p>Welcome to Templar CMS.</p>");
+
+        var aboutValues =
+            await contentRepository.GetFieldValuesAsync(
+                about.Id,
+                TestContext.Current.CancellationToken);
+
+        Assert.Contains(aboutValues, value => value.FieldKey == "title" && value.Value == "About Templar CMS");
+        Assert.Contains(aboutValues, value => value.FieldKey == "navigationTitle" && value.Value == "About");
+        Assert.Contains(aboutValues, value => value.FieldKey == "metaDescription" && value.Value == "Learn about the Templar CMS starter site.");
+        Assert.Contains(
+            aboutValues,
+            value =>
+                value.FieldKey == "body"
+                && value.Value == "<p>Templar CMS is a template-driven, API-first headless CMS built for clear content modeling and flexible delivery.</p>");
 
         var effectiveItemTemplate =
             await catalog.GetEffectiveTemplateAsync(
@@ -201,6 +223,14 @@ public sealed class DefaultContentBootstrapperTests
             await contentRepository.GetFieldValuesAsync(
                 home!.Id,
                 TestContext.Current.CancellationToken);
+        var about =
+            await contentRepository.GetItemAsync(
+                new ContentPath("/templar/content/home/about"),
+                TestContext.Current.CancellationToken);
+        var aboutValues =
+            await contentRepository.GetFieldValuesAsync(
+                about!.Id,
+                TestContext.Current.CancellationToken);
 
         Assert.Equal(3, templates.Count);
         Assert.Single(rootItems);
@@ -208,6 +238,8 @@ public sealed class DefaultContentBootstrapperTests
             ["content", "media", "system", "templates"],
             templarChildren.Select(item => item.Key.ToString()).ToArray());
         Assert.Equal(4, homeValues.Count);
+        Assert.Equal(SystemSeedContentIds.About, about.Id);
+        Assert.Equal(4, aboutValues.Count);
     }
 
     [Fact]

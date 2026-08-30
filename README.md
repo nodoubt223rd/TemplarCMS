@@ -158,6 +158,8 @@ discovery document is available at `/api/v1`.
 The public shell also renders a navigation menu from the direct children of the
 starter home item. Each link uses a path relative to the public home root and
 its authored `navigationTitle`, falling back to `title` and then the item name.
+New instances include an `About` page beneath the starter home item, making
+`/about` the first navigable public page in the out-of-box site.
 
 There is also a browser UI at:
 
