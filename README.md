@@ -41,16 +41,18 @@ Publish the author workspace to a local artifact folder:
 .\build.ps1 -Target Publish-Admin -AdminPublishDirectory .\artifacts\publish\author-workspace
 ```
 
-Deploy to the default IIS content path:
+Deploy the API to IIS using the default app pool. The target stops the pool
+before copying files and starts it after deployment so updated assemblies can
+never be held open by the active worker:
 
 ```powershell
 .\build.ps1 -Target Publish-Api-To-Inetpub
 ```
 
-Publish to IIS and recycle an app pool after the files land:
+`Publish-To-IIS` remains an alias for the same safe API deployment flow:
 
 ```powershell
-.\build.ps1 -Target Publish-To-IIS -AppPoolName TemplarCMS.Api
+.\build.ps1 -Target Publish-To-IIS
 ```
 
 Notes:
@@ -58,6 +60,8 @@ Notes:
 - The default IIS target path is `C:\inetpub\wwwroot\TemplarCMS.Api`.
 - Override it with `-InetpubDirectory` when the site uses a different root.
 - The IIS site and app pool should already exist before publishing.
+- IIS API deployment defaults to the `TemplarCMS.Api` app pool. Override it
+  with `-AppPoolName` for another site.
 - Run IIS deployment targets from an elevated PowerShell session. They write
   under `C:\inetpub` and can otherwise fail with `Access to the path
   '...\\appsettings.json' is denied`, even when the source publish succeeds.
@@ -67,7 +71,9 @@ Notes:
   or overwritten during deployment. When legacy `App_Data\Templates` already
   contains one or more files, its template files are also preserved; an absent
   or empty directory can still receive the published bootstrap templates.
-- The `Publish-To-IIS` target recycles the selected app pool after the file copy.
+- API deployment stops the selected pool before copying and starts it after the
+  copy, even when deployment fails, so locked assemblies do not leave the app
+  unavailable.
 - Use `-SkipTests` when you want a faster inner-loop deploy from a known-good branch.
 
 ### Author Workspace
