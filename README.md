@@ -24,6 +24,15 @@ If you hit local NuGet or profile-path issues, the repo includes helper scripts:
 .\scripts\dotnet-test.ps1 -Project .\tests\TemplarCMS.Application.Tests\TemplarCMS.Application.Tests.csproj
 ```
 
+### Admin Frontend
+
+The Vue authoring client lives in
+[src/TemplarCMS.Admin/templarcms.admin.client](src/TemplarCMS.Admin/templarcms.admin.client).
+Its application entry point is [src/main.ts](src/TemplarCMS.Admin/templarcms.admin.client/src/main.ts),
+with the root component in [App.vue](src/TemplarCMS.Admin/templarcms.admin.client/src/App.vue).
+The ASP.NET Core host for the client is
+[TemplarCMS.Admin.Server](src/TemplarCMS.Admin/TemplarCMS.Admin.Server).
+
 ## Publishing For IIS Smoke Testing
 
 The repo now includes a Cake-based publish wrapper for getting the API onto a
