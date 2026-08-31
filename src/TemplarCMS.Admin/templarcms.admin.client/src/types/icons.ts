@@ -1,4 +1,7 @@
-import type { IconKey } from '@/types'
+export type IconKey =
+  | 'house' | 'file' | 'folder' | 'article' | 'image' | 'tag' | 'user' | 'users'
+  | 'mail' | 'star' | 'shield' | 'calendar' | 'bookmark' | 'globe' | 'layers' | 'grid'
+  | 'layout' | 'video' | 'code' | 'chart' | 'link' | 'pin' | 'bell' | 'rocket' | 'settings'
 
 const S = 'stroke="currentColor" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"'
 const F = 'fill="currentColor" stroke="none"'

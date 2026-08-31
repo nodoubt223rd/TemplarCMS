@@ -382,6 +382,15 @@ metadata, and legacy unsupported template field types remain visible in
 the designer until an author explicitly replaces them.
 ```
 
+Icon authoring note:
+
+```text
+Templates use a catalog-backed icon key, and content items can optionally
+override that template icon. Both API write paths accept only keys shipped in
+the CMS icon catalog; adding an icon is a UX catalog release rather than an
+authoring action.
+```
+
 Runtime consumption note:
 
 ```text

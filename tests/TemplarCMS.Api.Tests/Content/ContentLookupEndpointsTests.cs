@@ -530,6 +530,86 @@ public sealed class ContentLookupEndpointsTests
     }
 
     [Fact]
+    public async Task GetContentWorkspaceBranchAsync_ShouldReturnContentRootAndChildren()
+    {
+        var contentRoot =
+            CreateResolvedItem(
+                itemId: SystemSeedContentIds.ContentRoot,
+                parentId: SystemSeedContentIds.TemplarRoot,
+                path: "/templar/content",
+                name: "Content",
+                key: "content",
+                title: "Content");
+        var home =
+            CreateResolvedItem(
+                itemId: SystemSeedContentIds.Home,
+                parentId: SystemSeedContentIds.ContentRoot,
+                path: "/templar/content/home",
+                name: "Home",
+                key: "home",
+                title: "Home");
+        var about =
+            CreateResolvedItem(
+                itemId: SystemSeedContentIds.About,
+                parentId: SystemSeedContentIds.ContentRoot,
+                path: "/templar/content/about",
+                name: "About",
+                key: "about",
+                title: "About");
+        var service =
+            new FakeContentItemService(
+                contentRoot,
+                [home, about]);
+        service.SetItem(contentRoot);
+        service.SetChildren(SystemSeedContentIds.ContentRoot, [home, about]);
+
+        var result =
+            await ContentLookupEndpoints.GetContentWorkspaceBranchAsync(
+                "EN",
+                1,
+                service,
+                TestContext.Current.CancellationToken);
+
+        var ok = Assert.IsType<Ok<ContentBranchResponse>>(result.Result);
+        Assert.NotNull(ok.Value);
+        Assert.NotNull(ok.Value.Item);
+        Assert.NotNull(ok.Value.Links.Item);
+
+        Assert.Equal(SystemSeedContentIds.ContentRoot.Value.ToString(), ok.Value.Item.Id);
+        Assert.Equal("/templar/content", ok.Value.Item.Path);
+        Assert.Equal(
+            "/api/v1/content/workspaces/content/branch?lang=en&version=1",
+            ok.Value.Links.Self.Href);
+        Assert.Equal(
+            $"/api/v1/content/{SystemSeedContentIds.ContentRoot.Value}?lang=en&version=1",
+            ok.Value.Links.Item.Href);
+        Assert.Equal(
+            new[] { "/templar/content/home", "/templar/content/about" },
+            ok.Value.Embedded.Children.Select(child => child.Path).ToArray());
+        Assert.Equal(SystemSeedContentIds.ContentRoot, service.LastRequestedItemId);
+        Assert.Equal(SystemSeedContentIds.ContentRoot, service.LastRequestedChildParentId);
+    }
+
+    [Fact]
+    public async Task GetContentWorkspaceBranchAsync_ShouldReturnProblem_WhenContentRootIsMissing()
+    {
+        var result =
+            await ContentLookupEndpoints.GetContentWorkspaceBranchAsync(
+                "en",
+                1,
+                new FakeContentItemService(null, []),
+                TestContext.Current.CancellationToken);
+
+        var problem = Assert.IsType<ProblemHttpResult>(result.Result);
+
+        Assert.Equal(StatusCodes.Status404NotFound, problem.StatusCode);
+        AssertProblem(
+            problem,
+            "Content item was not found",
+            "content-item-not-found");
+    }
+
+    [Fact]
     public async Task CreateAsync_ShouldReturnCreated_WhenRequestIsValid()
     {
         var templateId = Guid.NewGuid();

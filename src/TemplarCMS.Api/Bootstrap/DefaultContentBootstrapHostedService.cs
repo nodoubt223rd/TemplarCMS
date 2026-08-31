@@ -42,6 +42,7 @@ public sealed class DefaultContentBootstrapHostedService : IHostedService
         Directory.CreateDirectory(templateRepositoryOptions.Value.TemplatesPath);
 
         await dbContext.Database.EnsureCreatedAsync(cancellationToken);
+        await EnsureContentItemIconColumnAsync(dbContext, cancellationToken);
         await bootstrapper.EnsureInitializedAsync(cancellationToken);
 
         _logger.LogInformation("Default CMS content bootstrap completed.");
@@ -81,6 +82,22 @@ public sealed class DefaultContentBootstrapHostedService : IHostedService
         if (!string.IsNullOrWhiteSpace(directoryPath))
         {
             Directory.CreateDirectory(directoryPath);
+        }
+    }
+
+    private static async Task EnsureContentItemIconColumnAsync(
+        TemplarCmsDbContext dbContext,
+        CancellationToken cancellationToken)
+    {
+        var columns = await dbContext.Database
+            .SqlQueryRaw<string>("SELECT name AS Value FROM pragma_table_info('ContentItems')")
+            .ToListAsync(cancellationToken);
+
+        if (!columns.Contains("Icon", StringComparer.OrdinalIgnoreCase))
+        {
+            await dbContext.Database.ExecuteSqlRawAsync(
+                "ALTER TABLE ContentItems ADD COLUMN Icon TEXT NULL",
+                cancellationToken);
         }
     }
 }

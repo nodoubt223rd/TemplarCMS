@@ -1,14 +1,16 @@
 <script setup lang="ts">
 import type { TemplateResponse, TemplateSummaryResponse } from '@/types/admin-api'
+import { ALL_ICONS, ICON_LABELS } from '@/types/icons'
 
 defineProps<{
   templates: TemplateSummaryResponse[]
   selectedTemplateId: string | null
   selectedTemplate: TemplateResponse | null
   isLoading: boolean
+  isSubmitting: boolean
 }>()
 
-const emit = defineEmits<{ select: [templateId: string] }>()
+const emit = defineEmits<{ select: [templateId: string], updateIcon: [icon: string] }>()
 
 function scopeLabel(field: { isShared: boolean; isUnversioned: boolean }): string {
   if (field.isShared) return 'Shared'
@@ -42,6 +44,17 @@ function scopeLabel(field: { isShared: boolean; isUnversioned: boolean }): strin
           <h2 class="truncate text-base font-semibold text-stone-800">{{ selectedTemplate.name }}</h2>
           <p class="text-[11px] text-stone-400">Inherits from: <span class="text-stone-500">{{ selectedTemplate.baseTemplate?.name ?? 'None' }}</span></p>
         </div>
+        <label class="ml-auto text-xs text-stone-500">
+          <span class="mr-2">Icon</span>
+          <select
+            class="rounded border border-stone-200 bg-white px-2 py-1 text-xs"
+            :value="selectedTemplate.icon ?? 'file'"
+            :disabled="isSubmitting"
+            @change="emit('updateIcon', ($event.target as HTMLSelectElement).value)"
+          >
+            <option v-for="icon in ALL_ICONS" :key="icon" :value="icon">{{ ICON_LABELS[icon] }}</option>
+          </select>
+        </label>
       </div>
       <div v-else class="flex flex-1 items-center justify-center text-sm text-stone-400">Select a template to inspect it.</div>
 

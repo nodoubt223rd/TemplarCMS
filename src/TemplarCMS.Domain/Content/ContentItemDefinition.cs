@@ -18,7 +18,8 @@ public sealed class ContentItemDefinition
         string name,
         ContentItemKey key,
         TemplateId templateId,
-        ContentItemId? parentId = null)
+        ContentItemId? parentId = null,
+        string? icon = null)
     {
         if (string.IsNullOrWhiteSpace(name))
         {
@@ -37,6 +38,7 @@ public sealed class ContentItemDefinition
         Key = key;
         TemplateId = templateId;
         ParentId = parentId;
+        Icon = AuthoringIconCatalog.Normalize(icon);
     }
 
     /// <summary>
@@ -63,6 +65,9 @@ public sealed class ContentItemDefinition
     /// Gets the optional parent content item identifier.
     /// </summary>
     public ContentItemId? ParentId { get; }
+
+    /// <summary>Gets the optional icon override for this item.</summary>
+    public string? Icon { get; }
 
     /// <summary>
     /// Gets a value indicating whether the item is a root item.
@@ -100,7 +105,8 @@ public sealed class ContentItemDefinition
             name,
             Key,
             TemplateId,
-            ParentId);
+            ParentId,
+            Icon);
     }
 
     /// <summary>
@@ -115,7 +121,8 @@ public sealed class ContentItemDefinition
             name,
             key,
             TemplateId,
-            ParentId);
+            ParentId,
+            Icon);
     }
 
     /// <summary>
@@ -128,7 +135,8 @@ public sealed class ContentItemDefinition
             Name,
             Key,
             TemplateId,
-            parentId);
+            parentId,
+            Icon);
     }
 
     /// <summary>

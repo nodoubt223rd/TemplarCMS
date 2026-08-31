@@ -744,7 +744,7 @@ public static class TemplateEndpoints
                                     field.Metadata))
                             .ToArray()))
                 .ToArray(),
-            icon: request.Icon);
+            icon: AuthoringIconCatalog.Normalize(request.Icon));
     }
 
     private static TemplateFieldCollectionResponse MapFieldCollectionResponse(

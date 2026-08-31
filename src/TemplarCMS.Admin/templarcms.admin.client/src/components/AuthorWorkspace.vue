@@ -48,9 +48,11 @@ const emit = defineEmits<{
   toggleNode: [node: TreeNode]
   save: []
   delete: []
+  updateItemIcon: [icon: string | null]
   fieldInput: [key: string, value: string]
   checkboxInput: [key: string, checked: boolean]
   selectTemplate: [templateId: string]
+  updateTemplateIcon: [icon: string]
 }>()
 </script>
 
@@ -96,6 +98,7 @@ const emit = defineEmits<{
             @close="emit('close-actions')"
             @save="emit('save')"
             @delete="emit('delete')"
+            @update-icon="emit('updateItemIcon', $event)"
           />
         </template>
         <TemplateDesigner
@@ -104,7 +107,9 @@ const emit = defineEmits<{
           :selected-template-id="selectedTemplateId"
           :selected-template="selectedTemplate"
           :is-loading="isLoadingTemplates"
+          :is-submitting="isSubmitting"
           @select="emit('selectTemplate', $event)"
+          @update-icon="emit('updateTemplateIcon', $event)"
         />
         <section v-else class="flex flex-1 items-center justify-center text-sm text-stone-400">
           {{ activeWorkspace === 'media' ? 'Media authoring is not available yet.' : 'System authoring is not available yet.' }}

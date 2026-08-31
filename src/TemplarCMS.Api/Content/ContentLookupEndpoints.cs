@@ -66,6 +66,15 @@ public static class ContentLookupEndpoints
             .Produces<ContentBranchResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest);
 
+        endpoints.MapGet(
+                "/api/v1/content/workspaces/content/branch",
+                GetContentWorkspaceBranchAsync)
+            .WithName("GetContentWorkspaceBranch")
+            .WithTags("Content")
+            .Produces<ContentBranchResponse>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
         endpoints.MapPost(
                 "/api/v1/content",
                 CreateAsync)
@@ -389,6 +398,50 @@ public static class ContentLookupEndpoints
         }
     }
 
+    public static async Task<Results<Ok<ContentBranchResponse>, ProblemHttpResult>> GetContentWorkspaceBranchAsync(
+        string? lang,
+        int? version,
+        [FromServices] IContentItemService contentItemService,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(contentItemService);
+
+        try
+        {
+            var context =
+                CreateContext(
+                    lang,
+                    version);
+            var contentRoot =
+                await contentItemService.GetItemAsync(
+                    SystemSeedContentIds.ContentRoot,
+                    context,
+                    cancellationToken);
+
+            if (contentRoot == null)
+            {
+                return ApiProblems.ContentItemNotFound(SystemSeedContentIds.ContentRoot.Value);
+            }
+
+            var children =
+                await contentItemService.GetChildItemsAsync(
+                    SystemSeedContentIds.ContentRoot,
+                    context,
+                    cancellationToken);
+
+            return TypedResults.Ok(
+                MapWorkspaceBranchResponse(
+                    contentRoot,
+                    children,
+                    context,
+                    "content"));
+        }
+        catch (ArgumentException exception)
+        {
+            return ApiProblems.InvalidContentLookupRequest(exception.Message);
+        }
+    }
+
     public static async Task<Results<Created<ContentMutationResponse>, ProblemHttpResult>> CreateAsync(
         CreateContentItemRequest? request,
         [FromServices] IContentItemService contentItemService,
@@ -411,7 +464,8 @@ public static class ContentLookupEndpoints
                     request.Name,
                     ContentItemKey.FromDisplayName(request.Name),
                     new TemplateId(request.TemplateId),
-                    request.ParentId == null ? null : new ContentItemId(request.ParentId.Value));
+                    request.ParentId == null ? null : new ContentItemId(request.ParentId.Value),
+                    request.Icon);
 
             await contentItemService.SaveItemAsync(
                 item,
@@ -504,7 +558,8 @@ public static class ContentLookupEndpoints
                     request.Name,
                     existingItem.Item.Key,
                     existingItem.Item.TemplateId,
-                    existingItem.Item.ParentId);
+                    existingItem.Item.ParentId,
+                    request.Icon);
 
             await contentItemService.SaveItemAsync(
                 updatedItem,
@@ -935,6 +990,7 @@ public static class ContentLookupEndpoints
             Id = item.Item.Id.Value.ToString(),
             Name = item.Item.Name,
             TemplateId = item.Item.TemplateId.Value.ToString(),
+            Icon = item.Item.Icon,
             Path = canonicalPath,
             Language = context.Language.ToString(),
             Version = context.Version.Value,
@@ -1086,6 +1142,43 @@ public static class ContentLookupEndpoints
                     Href = $"/api/v1/content/root/branch?lang={context.Language}&version={context.Version.Value}"
                 },
                 Item = null
+            }
+        };
+    }
+
+    private static ContentBranchResponse MapWorkspaceBranchResponse(
+        ResolvedContentItem item,
+        IReadOnlyCollection<ResolvedContentItem> children,
+        FieldValueResolutionContext context,
+        string workspaceKey)
+    {
+        return new ContentBranchResponse
+        {
+            Item = MapResponse(
+                item,
+                context,
+                $"/api/v1/content/{item.Item.Id.Value}?lang={context.Language}&version={context.Version.Value}"),
+            Embedded = new ContentItemBranchEmbeddedResponse
+            {
+                Children = children
+                    .Select(
+                        child =>
+                            MapResponse(
+                                child,
+                                context,
+                                $"/api/v1/content/{child.Item.Id.Value}?lang={context.Language}&version={context.Version.Value}"))
+                    .ToArray()
+            },
+            Links = new ContentItemBranchLinksResponse
+            {
+                Self = new LinkResponse
+                {
+                    Href = $"/api/v1/content/workspaces/{workspaceKey}/branch?lang={context.Language}&version={context.Version.Value}"
+                },
+                Item = new LinkResponse
+                {
+                    Href = $"/api/v1/content/{item.Item.Id.Value}?lang={context.Language}&version={context.Version.Value}"
+                }
             }
         };
     }

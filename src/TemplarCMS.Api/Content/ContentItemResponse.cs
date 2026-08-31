@@ -8,12 +8,16 @@ public sealed class CreateContentItemRequest
 
     public required Guid TemplateId { get; init; }
 
+    public string? Icon { get; init; }
+
     public Guid? ParentId { get; init; }
 }
 
 public sealed class UpdateContentItemRequest
 {
     public required string Name { get; init; }
+
+    public string? Icon { get; init; }
 }
 
 public sealed class RenameContentItemRequest
@@ -42,6 +46,8 @@ public sealed class ContentItemResponse
     public required string Name { get; init; }
 
     public required string TemplateId { get; init; }
+
+    public string? Icon { get; init; }
 
     public required string Path { get; init; }
 

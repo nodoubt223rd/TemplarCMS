@@ -15,5 +15,7 @@ public sealed class PersistenceContentItem
 
     public Guid? ParentId { get; set; }
 
+    public string? Icon { get; set; }
+
     public List<PersistenceContentFieldValue> FieldValues { get; set; } = new();
 }
