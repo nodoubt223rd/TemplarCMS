@@ -5,6 +5,7 @@ import path from 'path';
 import { env } from 'process';
 import { defineConfig } from 'vite';
 import plugin from '@vitejs/plugin-vue';
+import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig(({ command }) => {
     const base = command === 'build'
@@ -13,7 +14,7 @@ export default defineConfig(({ command }) => {
 
     const config = {
         base,
-        plugins: [plugin()],
+        plugins: [plugin(), tailwindcss()],
         resolve: {
             alias: {
                 '@': fileURLToPath(new URL('./src', import.meta.url))

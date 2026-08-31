@@ -1,41 +1,33 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { TREE_ROOT_IDS } from '@/data/tree'
-import { filterTree } from '@/composables/useTree'
-import { useTreeState } from '@/composables/useTreeState'
+import { ref } from 'vue'
+import type { TreeNode } from '@/types/admin-ui'
+import TreeNodeItem from './Treenode.vue'
 
-const { tree } = useTreeState()
-import type { NavSection, IconKey } from '@/types'
-import TreeNode from './TreeNode.vue'
-import ScopeLegendPopover from '@/components/ui/ScopeLegendPopover.vue'
+withDefaults(defineProps<{
+  rootNode: TreeNode
+  selectedId: string | null
+  isLoading: boolean
+  templateIcons?: Record<string, string>
+}>(), {
+  templateIcons: () => ({})
+})
 
-const props = defineProps<{
-  navSection: NavSection
-  selectedId: string
-  iconOverrides: Record<string, IconKey>
+const emit = defineEmits<{
+  select: [node: TreeNode]
+  toggle: [node: TreeNode]
 }>()
 
-const emit = defineEmits<{ (e: 'select', id: string): void }>()
-
 const treeFilter = ref('')
-
-const rootId = computed(() => TREE_ROOT_IDS[props.navSection])
-const rootNode = computed(() => tree.value.find(n => n.id === rootId.value) ?? tree.value[0])
-
-const visibleNodes = computed(() => {
-  const nodes = rootNode.value.children ?? []
-  return filterTree(nodes, treeFilter.value)
-})
 </script>
 
 <template>
-  <aside class="w-60 flex flex-col bg-[#f0ede7] border-r border-[#dbd6ce]">
+  <aside class="figma-content-tree w-60 flex flex-col bg-[#f0ede7] border-r border-[#dbd6ce]">
     <!-- Tree header -->
     <div class="flex items-center justify-between px-3 pt-3 pb-1.5">
       <span class="text-[11px] font-semibold uppercase tracking-widest text-stone-400">
-        {{ rootNode.label }}
+        Content
       </span>
-      <ScopeLegendPopover v-if="navSection === 'content'" />
+      <span class="text-[10px] text-stone-400">Server tree</span>
     </div>
 
     <!-- Filter input -->
@@ -55,13 +47,30 @@ const visibleNodes = computed(() => {
 
     <!-- Tree nodes -->
     <div class="flex-1 overflow-y-auto px-1 pb-3">
-      <TreeNode
+      <div v-if="isLoading" class="px-3 py-4 text-xs text-stone-400">Loading content tree...</div>
+      <TreeNodeItem
+        v-else
         :node="rootNode"
         :depth="0"
-        :selectedId="selectedId"
-        :iconOverrides="iconOverrides"
+        :selected-id="selectedId"
+        :filter-text="treeFilter"
+        :template-icons="templateIcons"
         @select="emit('select', $event)"
+        @toggle="emit('toggle', $event)"
       />
     </div>
   </aside>
 </template>
+
+<style scoped>
+.figma-content-tree,
+.figma-content-tree button,
+.figma-content-tree input {
+  font-family: 'DM Sans', sans-serif;
+}
+
+.figma-content-tree {
+  font-size: 13px;
+  font-weight: 400;
+}
+</style>

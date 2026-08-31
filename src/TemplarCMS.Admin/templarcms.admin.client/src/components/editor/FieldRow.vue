@@ -1,84 +1,47 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import type { FieldDef } from '@/types'
-import ScopeBadge from '@/components/ui/ScopeBadge.vue'
-import { FIELD_TYPE_LABELS } from '@/data/content'
+import type { EditorFieldModel } from '@/types/admin-ui'
 
-const props = defineProps<{ field: FieldDef; readonly?: boolean }>()
-const emit = defineEmits<{ (e: 'update', id: string, v: string | boolean): void }>()
+defineProps<{
+  field: EditorFieldModel
+  value: string
+}>()
 
-const typeLabel = computed(() => FIELD_TYPE_LABELS[props.field.type] ?? props.field.type)
-const isReadonly = computed(() => props.readonly || props.field.system)
-
-function onInput(e: Event) {
-  emit('update', props.field.id, (e.target as HTMLInputElement).value)
-}
-function onCheck(e: Event) {
-  emit('update', props.field.id, (e.target as HTMLInputElement).checked)
-}
+const emit = defineEmits<{
+  input: [value: string]
+  checkbox: [checked: boolean]
+}>()
 </script>
 
 <template>
-  <div
-    class="grid gap-1.5 px-4 py-3 border-b border-stone-100 last:border-0"
-    :class="field.system ? 'bg-stone-50/60' : ''"
-  >
-    <!-- label row -->
+  <div class="grid gap-1.5 border-b border-stone-100 px-4 py-3 last:border-0">
     <div class="flex items-center gap-2">
-      <span class="text-[12px] font-semibold text-stone-700 mono tracking-tight">{{ field.name }}</span>
-      <ScopeBadge :scope="field.scope" />
-      <span class="text-[10px] text-stone-400 ml-auto">{{ typeLabel }}</span>
+      <label :for="`field-${field.key}`" class="text-[12px] font-semibold text-stone-700">{{ field.label }}</label>
+      <span class="rounded bg-stone-100 px-1.5 py-px text-[9px] font-semibold uppercase tracking-wider text-stone-500">{{ field.scopeLabel }}</span>
+      <span class="ml-auto text-[10px] text-stone-400">{{ field.type }}</span>
     </div>
-
-    <!-- checkbox -->
-    <label v-if="field.type === 'checkbox'" class="flex items-center gap-2 cursor-pointer w-fit">
-      <input
-        type="checkbox"
-        :checked="!!field.value"
-        :disabled="isReadonly"
-        @change="onCheck"
-        class="w-4 h-4 rounded accent-[#5970e3]"
-      />
-      <span class="text-xs text-stone-500">{{ field.value ? 'Yes' : 'No' }}</span>
+    <p v-if="field.helpText" class="text-[11px] text-stone-400">{{ field.helpText }}</p>
+    <label v-if="field.editorKind === 'checkbox'" class="flex w-fit items-center gap-2 text-xs text-stone-600">
+      <input :id="`field-${field.key}`" class="h-4 w-4 accent-[#5970e3]" type="checkbox" :checked="value === 'true'" @change="emit('checkbox', ($event.target as HTMLInputElement).checked)" />
+      Enabled
     </label>
-
-    <!-- richtext -->
-    <div v-else-if="field.type === 'richtext'"
-         class="relative rounded-lg ring-1 ring-stone-200 focus-within:ring-[#5970e3]/50 overflow-hidden">
-      <div class="flex items-center gap-1 px-2 py-1 bg-stone-50 border-b border-stone-100">
-        <button v-for="t in ['B','I','U','H2','—']" :key="t"
-          class="px-1.5 py-0.5 rounded text-[10px] font-bold text-stone-500 hover:bg-stone-200 transition-colors">{{ t }}</button>
-      </div>
-      <textarea
-        :value="String(field.value)"
-        :readonly="isReadonly"
-        @input="onInput"
-        rows="3"
-        class="w-full px-3 py-2 text-sm text-stone-700 bg-white outline-none resize-none"
-      />
-    </div>
-
-    <!-- droplist -->
-    <select
-      v-else-if="field.type === 'droplist'"
-      :value="String(field.value)"
-      :disabled="isReadonly"
-      @change="onInput"
-      class="w-full px-2.5 py-1.5 rounded-lg text-sm text-stone-700 bg-white ring-1 ring-stone-200 focus:ring-[#5970e3]/50 outline-none"
-    >
-      <option v-for="opt in (field.options ?? [])" :key="opt" :value="opt">{{ opt }}</option>
-    </select>
-
-    <!-- everything else -->
+    <textarea
+      v-else-if="field.editorKind === 'textarea'"
+      :id="`field-${field.key}`"
+      class="w-full resize-y rounded-lg bg-white px-2.5 py-1.5 text-sm text-stone-700 outline-none ring-1 ring-stone-200 focus:ring-[#5970e3]/50"
+      :rows="field.rows ?? 3"
+      :placeholder="field.placeholder ?? ''"
+      :value="value"
+      @input="emit('input', ($event.target as HTMLTextAreaElement).value)"
+    />
     <input
       v-else
-      :type="field.type === 'datetime' ? 'datetime-local' : field.type === 'integer' ? 'number' : 'text'"
-      :value="String(field.value)"
-      :readonly="isReadonly"
+      :id="`field-${field.key}`"
+      class="w-full rounded-lg bg-white px-2.5 py-1.5 text-sm text-stone-700 outline-none ring-1 ring-stone-200 focus:ring-[#5970e3]/50"
+      :type="field.inputType"
+      :step="field.step ?? undefined"
       :placeholder="field.placeholder ?? ''"
-      @input="onInput"
-      class="w-full px-2.5 py-1.5 rounded-lg text-sm text-stone-700 bg-white ring-1 ring-stone-200 focus:ring-[#5970e3]/50 outline-none transition-shadow"
-      :class="isReadonly ? 'bg-stone-50 text-stone-400' : ''"
+      :value="value"
+      @input="emit('input', ($event.target as HTMLInputElement).value)"
     />
   </div>
 </template>

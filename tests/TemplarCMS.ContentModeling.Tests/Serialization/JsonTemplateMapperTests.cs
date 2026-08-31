@@ -30,6 +30,17 @@ public sealed class JsonTemplateMapperTests
     }
 
     [Fact]
+    public void Map_ShouldMapTemplateIcon()
+    {
+        var jsonTemplate = CreateTemplate();
+        jsonTemplate.Icon = "layout";
+
+        var result = _mapper.Map(jsonTemplate);
+
+        Assert.Equal("layout", result.Icon);
+    }
+
+    [Fact]
     public void Map_ShouldMapSections()
     {
         var sectionId = Guid.NewGuid();

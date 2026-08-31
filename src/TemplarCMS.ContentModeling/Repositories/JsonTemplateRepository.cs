@@ -257,6 +257,7 @@ public sealed class JsonTemplateRepository : ITemplateRepository
             Id = template.Id.Value,
             Name = template.Name,
             Key = template.Key.ToString(),
+            Icon = template.Icon,
             BaseTemplates = template.BaseTemplate == null
                 ? []
                 : [template.BaseTemplate.Key.ToString()],
@@ -329,6 +330,7 @@ public sealed class JsonTemplateRepository : ITemplateRepository
             template.Name,
             template.Key,
             baseTemplate,
-            template.Sections);
+            template.Sections,
+            template.Icon);
     }
 }

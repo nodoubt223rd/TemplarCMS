@@ -94,6 +94,7 @@ export type TemplateSummaryResponse = {
   id: string
   name: string
   key: string
+  icon?: string
   _links: {
     self: LinkResponse
     fields: LinkResponse
@@ -125,6 +126,7 @@ export type TemplateResponse = {
   id: string
   name: string
   key: string
+  icon?: string
   baseTemplate?: {
     id: string
     name: string

@@ -95,7 +95,8 @@ public sealed class TemplateEndpointsTests
                 "Article Page",
                 new TemplateKey("article-page"),
                 null,
-                [section]);
+                [section],
+                icon: "layout");
         var template =
             new EffectiveTemplateDefinition(
                 authoredTemplate.Id,
@@ -119,6 +120,7 @@ public sealed class TemplateEndpointsTests
         Assert.Equal(template.Id.Value.ToString(), response.Id);
         Assert.Equal(template.Name, response.Name);
         Assert.Equal(template.Key.ToString(), response.Key);
+        Assert.Equal("layout", response.Icon);
         var responseSection = Assert.Single(response.Sections);
         Assert.NotNull(responseSection.Metadata);
         Assert.Equal(

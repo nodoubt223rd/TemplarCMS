@@ -28,7 +28,8 @@ public sealed class BuiltInTemplateProvider : IBuiltInTemplateProvider
                 new TemplateId(new Guid("95071327-4AAB-4827-9641-1C45EF6A1D37")),
                 "Standard",
                 BuiltInTemplateKeys.Standard,
-                sections: CreateStandardSections());
+                sections: CreateStandardSections(),
+                icon: "layout");
 
         var folderTemplate =
             new TemplateDefinition(
@@ -36,7 +37,8 @@ public sealed class BuiltInTemplateProvider : IBuiltInTemplateProvider
                 "Folder",
                 BuiltInTemplateKeys.Folder,
                 standardTemplate,
-                []);
+                [],
+                icon: "folder");
 
         var itemTemplate =
             new TemplateDefinition(
@@ -57,7 +59,8 @@ public sealed class BuiltInTemplateProvider : IBuiltInTemplateProvider
                                 "body",
                                 FieldType.RichText)
                         ])
-                ]);
+                ],
+                icon: "file");
 
         return [standardTemplate, folderTemplate, itemTemplate];
     }

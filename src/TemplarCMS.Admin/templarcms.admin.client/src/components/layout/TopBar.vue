@@ -3,18 +3,18 @@ import ModularMark from '@/components/ui/ModularMark.vue'
 
 defineProps<{
   language: string
-  version: string
+  version: number
   showActions: boolean
 }>()
 
 const emit = defineEmits<{
   (e: 'update:language', v: string): void
-  (e: 'update:version', v: string): void
+  (e: 'update:version', v: number): void
   (e: 'toggle-actions'): void
 }>()
 
 const languages = ['en', 'en-US', 'fr-FR', 'de-DE', 'es-ES', 'ja-JP']
-const versions = ['Latest', 'v1.2', 'v1.1', 'v1.0']
+const versions = [1, 2, 3]
 </script>
 
 <template>
@@ -53,11 +53,11 @@ const versions = ['Latest', 'v1.2', 'v1.1', 'v1.0']
     <!-- Version picker -->
     <select
       :value="version"
-      @change="emit('update:version', ($event.target as HTMLSelectElement).value)"
+      @change="emit('update:version', Number(($event.target as HTMLSelectElement).value))"
       class="text-xs bg-white/8 text-[#c8c3bc] border border-white/10 rounded-md px-2 py-1 outline-none
              hover:bg-white/12 transition-colors cursor-pointer"
     >
-      <option v-for="v in versions" :key="v" :value="v" class="bg-[#2a2824] text-stone-200">{{ v }}</option>
+      <option v-for="v in versions" :key="v" :value="v" class="bg-[#2a2824] text-stone-200">v{{ v }}</option>
     </select>
 
     <!-- Actions toggle -->

@@ -201,6 +201,11 @@ button {
   overflow-y: auto;
 }
 
+.workspace-sidebar--figma-tree {
+  padding: 0;
+  overflow: hidden;
+}
+
 .workspace-main {
   grid-column: 3;
   grid-row: 2;

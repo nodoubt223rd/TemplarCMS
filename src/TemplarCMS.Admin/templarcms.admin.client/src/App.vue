@@ -5,6 +5,13 @@ import TemplateCatalogPane from './components/TemplateCatalogPane.vue'
 import TemplateInspectorPane from './components/TemplateInspectorPane.vue'
 import TemplateDesignerPane from './components/TemplateDesignerPane.vue'
 import TreeBranch from './components/TreeBranch.vue'
+import AuthorWorkspace from './components/AuthorWorkspace.vue'
+import TopBar from './components/layout/TopBar.vue'
+import NavRail from './components/layout/NavRail.vue'
+import StatusBar from './components/layout/StatusBar.vue'
+import ContentTree from './components/tree/ContentTree.vue'
+import ContentEditor from './components/editor/ContentEditor.vue'
+import ActionSidebar from './components/sidebar/ActionSidebar.vue'
 import type {
   ContentBranchResponse,
   FieldTypeCollectionResponse,
@@ -40,7 +47,6 @@ import {
   createTreeNode,
   extractParentIdFromHref,
   findTreeNodeById,
-  treeNodeMatchesFilter,
   upsertTreeNode
 } from './utils/content-tree'
 import {
@@ -96,20 +102,16 @@ import {
 const language = ref('en')
 const version = ref(1)
 const activeWorkspace = ref<'content' | 'templates' | 'media' | 'system'>('content')
-const treeFilter = ref('')
 const isBootstrapping = ref(false)
 const isSubmitting = ref(false)
 const pageError = ref<string | null>(null)
 const successMessage = ref<string | null>(null)
+const showActions = ref(false)
 
 const rootNodes = ref<TreeNode[]>([])
 const selectedItemId = ref<string | null>(null)
 const selectedNode = computed(() => findTreeNodeById(rootNodes.value, selectedItemId.value))
 const selectedItem = computed(() => selectedNode.value?.item ?? null)
-const contentRootNodes = computed(() =>
-  rootNodes.value.filter(node => node.item.path.toLocaleLowerCase().endsWith('/content')))
-const visibleContentRootNodes = computed(() =>
-  contentRootNodes.value.filter(node => treeNodeMatchesFilter(node, treeFilter.value)))
 const contentWorkspaceRoot = computed<TreeNode>(() => ({
   item: {
     id: 'workspace-root:content',
@@ -131,7 +133,8 @@ const contentWorkspaceRoot = computed<TreeNode>(() => ({
       branch: { href: '/api/v1/content/root/branch' }
     }
   },
-  children: visibleContentRootNodes.value,
+  // The API owns the root hierarchy. This is only a visual label for the workspace.
+  children: rootNodes.value,
   isExpanded: true,
   isBranchLoaded: true,
   isBranchLoading: false,
@@ -1001,41 +1004,51 @@ function countNodes(nodes: TreeNode[]): number {
 </script>
 
 <template>
-  <div class="workspace-shell">
-    <header class="workspace-toolbar">
-      <div class="brand">
-        <span class="brand-mark">TC</span>
-        <h1>TemplarCMS</h1>
-      </div>
+  <AuthorWorkspace
+    :active-workspace="activeWorkspace"
+    :language="language"
+    :version="version"
+    :show-actions="showActions"
+    :root-node="contentWorkspaceRoot"
+    :selected-item="selectedItem"
+    :selected-item-id="selectedItemId"
+    :fields="editorFields"
+    :field-form="fieldForm"
+    :template-name="selectedItemTemplateName"
+    :is-loading-tree="isBootstrapping"
+    :is-loading-fields="isLoadingTemplateFields"
+    :is-submitting="isSubmitting"
+    :dependencies="selectedItemDependencies"
+    :templates="visibleTemplates"
+    :selected-template-id="selectedTemplateId"
+    :selected-template="selectedTemplateDetail"
+    :is-loading-templates="isLoadingTemplates"
+    :page-error="pageError"
+    :success-message="successMessage"
+    @update:active-workspace="activeWorkspace = $event"
+    @update:language="language = $event"
+    @update:version="version = $event"
+    @toggle-actions="showActions = !showActions"
+    @close-actions="showActions = false"
+    @select-node="selectNode"
+    @toggle-node="toggleNode"
+    @save="submitValues"
+    @delete="submitDelete"
+    @field-input="onFieldInput"
+    @checkbox-input="onCheckboxInput"
+    @select-template="selectTemplate"
+  />
 
-      <div class="workspace-toolbar__search" aria-label="Current workspace location">
-        <span class="workspace-toolbar__search-mark" aria-hidden="true">⌕</span>
-        <span>
-          {{
-            activeWorkspace === 'content'
-              ? selectedItem?.path ?? 'Search content…'
-              : activeWorkspace === 'templates'
-                ? 'Search templates…'
-                : `Search ${activeWorkspace}…`
-          }}
-        </span>
-      </div>
-
-      <div class="workspace-toolbar__context">
-        <label>
-          <span class="workspace-toolbar__label">Language</span>
-          <input v-model="language" type="text" aria-label="Language" />
-        </label>
-        <label>
-          <span class="workspace-toolbar__label">Version</span>
-          <input v-model.number="version" type="number" min="1" aria-label="Version" />
-        </label>
-        <button class="button button--secondary" type="button" @click="refreshRootBranch">
-          Refresh
-        </button>
-        <span class="workspace-avatar" title="Author workspace">TC</span>
-      </div>
-    </header>
+  <div v-if="false" class="workspace-shell">
+    <TopBar
+      class="workspace-toolbar"
+      :language="language"
+      :version="version"
+      :show-actions="showActions"
+      @update:language="language = $event"
+      @update:version="version = $event"
+      @toggle-actions="showActions = !showActions"
+    />
 
     <nav class="workspace-rail" aria-label="Primary workspace areas">
       <button
@@ -1084,47 +1097,15 @@ function countNodes(nodes: TreeNode[]): number {
       </button>
     </nav>
 
-    <aside class="workspace-sidebar">
+    <aside :class="['workspace-sidebar', { 'workspace-sidebar--figma-tree': activeWorkspace === 'content' }]">
       <template v-if="activeWorkspace === 'content'">
-        <div class="navigator-heading">
-        <div>
-          <p class="eyebrow">Content</p>
-          <h2>Content</h2>
-        </div>
-        <span class="panel-pill">{{ treeCount }}</span>
-      </div>
-
-      <label class="navigator-filter">
-        <span class="sr-only">Filter loaded content items</span>
-        <input v-model="treeFilter" type="search" placeholder="Filter loaded items" />
-      </label>
-
-      <section class="navigator-state">
-        <span>{{ isBootstrapping ? 'Refreshing content tree' : 'Tree-aware authoring' }}</span>
-        <span v-if="selectedItem != null">{{ selectedItem.name }}</span>
-      </section>
-
-      <div v-if="isBootstrapping" class="empty-state">
-        Loading the root content branch…
-      </div>
-
-      <div v-else-if="contentRootNodes.length === 0" class="empty-state">
-        The Content root has not been loaded yet.
-      </div>
-
-      <div v-else-if="visibleContentRootNodes.length === 0" class="empty-state">
-        No loaded content items match “{{ treeFilter }}”.
-      </div>
-
-      <ul v-else class="tree-list">
-        <TreeBranch
-          :node="contentWorkspaceRoot"
-          :selected-item-id="selectedItemId"
-          :filter-text="treeFilter"
-          @toggle="toggleNode"
-          @select="selectNode"
-        />
-      </ul>
+      <ContentTree
+        :root-node="contentWorkspaceRoot"
+        :selected-id="selectedItemId"
+        :is-loading="isBootstrapping"
+        @toggle="toggleNode"
+        @select="selectNode"
+      />
       </template>
 
       <template v-else-if="activeWorkspace === 'templates'">
@@ -1229,32 +1210,25 @@ function countNodes(nodes: TreeNode[]): number {
 
       <template v-if="activeWorkspace === 'content'">
         <section v-if="selectedItem != null" class="content-grid">
-          <ContentInspectorPane
-            :selected-item="selectedItem"
-            :selected-item-template-name="selectedItemTemplateName"
-            :is-loading-template-fields="isLoadingTemplateFields"
-            :editor-fields="editorFields"
+          <ContentEditor
+            :item="selectedItem"
+            :template-name="selectedItemTemplateName"
+            :fields="editorFields"
             :field-form="fieldForm"
+            :is-loading-fields="isLoadingTemplateFields"
             :is-submitting="isSubmitting"
-            :rename-name="renameForm.name"
-            :move-parent-id="moveForm.parentId"
-            :selected-item-dependencies="selectedItemDependencies"
-            :is-loading-item-dependencies="isLoadingItemDependencies"
-            :get-general-link-draft="getGeneralLinkDraft"
-            :get-checkbox-value="getCheckboxValue"
-            @submit-values="submitValues"
-            @submit-rename="submitRename"
-            @submit-move="submitMove"
-            @submit-delete="submitDelete"
-            @update-rename-name="renameForm.name = $event"
-            @update-move-parent-id="moveForm.parentId = $event"
+            @save="submitValues"
             @field-input="onFieldInput"
             @checkbox-input="onCheckboxInput"
-            @general-link-kind-input="onGeneralLinkKindInput"
-            @general-link-item-id-input="onGeneralLinkItemIdInput"
-            @general-link-url-input="onGeneralLinkUrlInput"
-            @general-link-text-input="onGeneralLinkTextInput"
-            @general-link-target-input="onGeneralLinkTargetInput"
+          />
+          <ActionSidebar
+            :item="selectedItem"
+            :show="showActions"
+            :is-submitting="isSubmitting"
+            :can-delete="selectedItemDependencies?.canDelete ?? false"
+            @close="showActions = false"
+            @save="submitValues"
+            @delete="submitDelete"
           />
         </section>
 
@@ -1298,7 +1272,7 @@ function countNodes(nodes: TreeNode[]): number {
               {{
                 selectedCreateTemplate == null
                   ? 'Creatable template ids are loaded from /api/v1/templates.'
-                  : `Selected id: ${selectedCreateTemplate.id}`
+                  : `Selected id: ${selectedCreateTemplate?.id ?? ''}`
               }}
             </small>
           </label>
@@ -1385,15 +1359,6 @@ function countNodes(nodes: TreeNode[]): number {
 	      </section>
     </main>
 
-    <footer class="workspace-statusbar">
-      <span>
-        {{
-          activeWorkspace === 'content'
-            ? selectedItem?.path ?? 'No item selected'
-            : `${activeWorkspace.charAt(0).toUpperCase()}${activeWorkspace.slice(1)} workspace`
-        }}
-      </span>
-      <span>TemplarCMS v0.1.0</span>
-    </footer>
+    <StatusBar class="workspace-statusbar" :selected-item="selectedItem" />
   </div>
 </template>

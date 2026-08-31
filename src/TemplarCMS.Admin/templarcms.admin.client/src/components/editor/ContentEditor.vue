@@ -1,114 +1,85 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { findItem } from '@/composables/useTree'
-import { HOME_SECTIONS } from '@/data/content'
-import type { IconKey, SectionDef } from '@/types'
+import { computed, ref } from 'vue'
+import type { ContentItemResponse } from '@/types/admin-api'
+import type { EditorFieldModel } from '@/types/admin-ui'
 import FieldRow from './FieldRow.vue'
-import StatusPill from '@/components/ui/StatusPill.vue'
-import IconPicker from '@/components/ui/IconPicker.vue'
-import ContentInspector from './ContentInspector.vue'
 
 const props = defineProps<{
-  selectedId: string
-  language: string
-  version: string
-  iconOverrides: Record<string, IconKey>
+  item: ContentItemResponse | null
+  templateName: string | null
+  fields: EditorFieldModel[]
+  fieldForm: Record<string, string>
+  isLoadingFields: boolean
+  isSubmitting: boolean
 }>()
 
 const emit = defineEmits<{
-  (e: 'update-icon', id: string, key: IconKey): void
+  save: []
+  fieldInput: [key: string, value: string]
+  checkboxInput: [key: string, checked: boolean]
 }>()
 
-const item = computed(() => findItem(props.selectedId))
-const openSections = ref<Record<string, boolean>>({ 's-content': true, 's-cta': true, 's-seo': false, 's-nav': false, 's-system': false })
-
-const sections = computed<SectionDef[]>(() => {
-  if (!item.value) return []
-  return HOME_SECTIONS
+const openSections = ref<Record<string, boolean>>({})
+const sections = computed(() => {
+  const groups = new Map<string, EditorFieldModel[]>()
+  for (const field of props.fields) {
+    groups.set(field.sectionName, [...(groups.get(field.sectionName) ?? []), field])
+  }
+  return [...groups.entries()].map(([name, fields]) => ({ name, fields }))
 })
 
-function toggleSection(id: string) {
-  openSections.value[id] = !openSections.value[id]
+function isOpen(name: string) {
+  return openSections.value[name] !== false
 }
 
-const iconModel = computed({
-  get: () => (props.iconOverrides[props.selectedId] ?? item.value?.iconKey ?? 'file') as IconKey,
-  set: (v: IconKey) => emit('update-icon', props.selectedId, v),
-})
+function toggleSection(name: string) {
+  openSections.value[name] = !isOpen(name)
+}
 </script>
 
 <template>
-  <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
-    <!-- Editor header -->
-    <div v-if="item" class="flex items-center gap-3 px-5 py-3 border-b border-stone-200 bg-white">
-      <IconPicker v-model="iconModel" />
-      <div class="flex-1 min-w-0">
-        <h2 class="text-base font-semibold text-stone-800 leading-tight truncate">{{ item.label }}</h2>
-        <p class="text-[11px] text-stone-400 mt-0.5">
-          Template: <span class="text-stone-500">{{ item.template ?? '—' }}</span>
-          <span class="mx-2 text-stone-200">|</span>
-          Lang: <span class="text-stone-500">{{ language }}</span>
-          <span class="mx-2 text-stone-200">|</span>
-          Version: <span class="text-stone-500">{{ version }}</span>
+  <div class="flex min-w-0 flex-1 flex-col overflow-hidden bg-white">
+    <div v-if="item" class="flex items-center gap-3 border-b border-stone-200 px-5 py-3">
+      <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-[#e8eaf8] text-[#5970e3]">□</span>
+      <div class="min-w-0 flex-1">
+        <h2 class="truncate text-base font-semibold text-stone-800">{{ item.name }}</h2>
+        <p class="mt-0.5 text-[11px] text-stone-400">
+          Template: <span class="text-stone-500">{{ templateName ?? item.templateId }}</span>
+          <span class="mx-2 text-stone-200">|</span>{{ item.language }} <span class="mx-2 text-stone-200">|</span>v{{ item.version }}
         </p>
       </div>
-      <StatusPill v-if="item.status" :status="item.status" />
     </div>
 
-    <!-- Content Inspector -->
-    <ContentInspector
-      v-if="item"
-      :selectedId="selectedId"
-      :language="language"
-      :version="version"
-    />
+    <div v-if="!item" class="flex flex-1 items-center justify-center text-sm text-stone-400">
+      Select an item to edit
+    </div>
 
-    <!-- Sections -->
-    <div class="flex-1 overflow-y-auto bg-white">
-      <div v-if="!item" class="flex items-center justify-center h-full text-stone-400 text-sm">
-        Select an item to edit
-      </div>
-
-      <template v-for="section in sections" :key="section.id">
-        <!-- Section header -->
-        <button
-          @click="toggleSection(section.id)"
-          class="w-full flex items-center justify-between px-4 py-2.5 bg-stone-50 border-b border-stone-200 hover:bg-stone-100 transition-colors"
-          :class="section.system ? 'opacity-70' : ''"
-        >
-          <div class="flex items-center gap-2">
-            <svg width="10" height="10" viewBox="0 0 8 8" fill="none" stroke="currentColor" stroke-width="1.8"
-                 stroke-linecap="round" stroke-linejoin="round" class="text-stone-400 transition-transform"
-                 :class="openSections[section.id] ? 'rotate-90' : ''">
-              <path d="M2 1.5l3 2.5-3 2.5"/>
-            </svg>
-            <span class="text-xs font-semibold text-stone-600 tracking-wide">{{ section.name }}</span>
-            <span v-if="section.system" class="text-[9px] uppercase tracking-wider text-stone-400 font-medium">System</span>
-          </div>
+    <div v-else class="flex-1 overflow-y-auto">
+      <div v-if="isLoadingFields" class="px-5 py-4 text-sm text-stone-400">Loading field definitions...</div>
+      <div v-else-if="fields.length === 0" class="px-5 py-4 text-sm text-stone-400">This item has no editable fields.</div>
+      <template v-else v-for="section in sections" :key="section.name">
+        <button class="flex w-full items-center justify-between border-y border-stone-200 bg-stone-50 px-4 py-2.5 text-left" type="button" @click="toggleSection(section.name)">
+          <span class="text-xs font-semibold tracking-wide text-stone-600">{{ section.name }}</span>
           <span class="text-[10px] text-stone-400">{{ section.fields.length }} fields</span>
         </button>
-
-        <!-- Fields -->
-        <div v-if="openSections[section.id]">
+        <div v-if="isOpen(section.name)">
           <FieldRow
             v-for="field in section.fields"
-            :key="field.id"
+            :key="field.key"
             :field="field"
-            :readonly="!!section.system"
+            :value="fieldForm[field.key] ?? ''"
+            @input="emit('fieldInput', field.key, $event)"
+            @checkbox="emit('checkboxInput', field.key, $event)"
           />
         </div>
       </template>
     </div>
 
-    <!-- Save toolbar -->
-    <div v-if="item" class="flex items-center gap-2 px-4 py-2.5 bg-stone-50 border-t border-stone-200">
-      <button class="px-4 py-1.5 rounded-lg bg-[#5970e3] text-white text-sm font-medium hover:bg-[#4a5ed4] transition-colors shadow-sm">
-        Save
+    <div v-if="item" class="flex items-center gap-2 border-t border-stone-200 bg-stone-50 px-4 py-2.5">
+      <button class="rounded-lg bg-[#5970e3] px-4 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-[#4a5ed4] disabled:opacity-60" type="button" :disabled="isSubmitting" @click="emit('save')">
+        {{ isSubmitting ? 'Saving...' : 'Save' }}
       </button>
-      <button class="px-3 py-1.5 rounded-lg text-stone-600 text-sm hover:bg-stone-100 transition-colors">
-        Discard
-      </button>
-      <span class="ml-auto text-[11px] text-stone-400">Auto-saved 2 min ago</span>
+      <span class="ml-auto text-[11px] text-stone-400">Changes are saved to the current language and version.</span>
     </div>
   </div>
 </template>

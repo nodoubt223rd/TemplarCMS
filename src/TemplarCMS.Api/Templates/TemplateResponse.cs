@@ -11,6 +11,8 @@ public sealed class TemplateResponse
 
     public required string Key { get; init; }
 
+    public string Icon { get; init; } = "file";
+
     public TemplateBaseTemplateResponse? BaseTemplate { get; init; }
 
     public required IReadOnlyCollection<TemplateSectionResponse> Sections { get; init; }
@@ -51,6 +53,8 @@ public sealed class CreateTemplateRequest
     public required string Key { get; init; }
 
     public IReadOnlyCollection<string>? BaseTemplateKeys { get; init; }
+
+    public string? Icon { get; init; }
 
     public required IReadOnlyCollection<CreateTemplateSectionRequest> Sections { get; init; }
 }
@@ -93,6 +97,8 @@ public sealed class TemplateSummaryResponse
     public required string Name { get; init; }
 
     public required string Key { get; init; }
+
+    public string Icon { get; init; } = "file";
 
     [JsonPropertyName("_links")]
     public required TemplateLinksResponse Links { get; init; }

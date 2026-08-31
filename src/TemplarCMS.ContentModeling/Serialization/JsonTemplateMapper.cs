@@ -55,7 +55,8 @@ namespace TemplarCMS.ContentModeling.Serialization
                 new TemplateId(template.Id),
                 GetRequiredValue(template.Name, "name"),
                 new TemplateKey(GetRequiredValue(template.Key, "key")),
-                sections: sections);
+                sections: sections,
+                icon: template.Icon);
         }
 
         private IReadOnlyCollection<TemplateSectionDefinition> MapSections(IReadOnlyCollection<JsonTemplateSectionDefinition>? sections)
