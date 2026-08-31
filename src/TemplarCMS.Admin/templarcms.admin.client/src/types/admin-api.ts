@@ -6,6 +6,7 @@ export type ContentItemResponse = {
   id: string
   name: string
   templateId: string
+  icon?: string | null
   path: string
   language: string
   version: number

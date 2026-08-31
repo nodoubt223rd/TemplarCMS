@@ -22,7 +22,7 @@ const isWorkspaceRoot = computed(() => props.node.isWorkspaceRoot === true)
 const visibleChildren = computed(() =>
   props.node.children.filter(child => treeNodeMatchesFilter(child, props.filterText)))
 const iconPath = computed(() => {
-  switch (props.templateIcons[props.node.item.templateId] ?? 'file') {
+  switch (props.node.item.icon ?? props.templateIcons[props.node.item.templateId] ?? 'file') {
     case 'folder': return 'M2.5 4.5h4l1.3 1.5h5.7v6.5a1 1 0 0 1-1 1h-10a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1Z'
     case 'layout': return 'M2.5 2.5h11v11h-11zM2.5 6h11M6 6v7'
     case 'image': return 'M2.5 3.5h11v9h-11zM4.5 10l2-2 1.5 1.5 1.5-2 2.5 2.5'

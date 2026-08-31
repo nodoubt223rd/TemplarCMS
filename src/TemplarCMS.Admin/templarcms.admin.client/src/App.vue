@@ -112,34 +112,7 @@ const rootNodes = ref<TreeNode[]>([])
 const selectedItemId = ref<string | null>(null)
 const selectedNode = computed(() => findTreeNodeById(rootNodes.value, selectedItemId.value))
 const selectedItem = computed(() => selectedNode.value?.item ?? null)
-const contentWorkspaceRoot = computed<TreeNode>(() => ({
-  item: {
-    id: 'workspace-root:content',
-    name: 'Content',
-    templateId: '',
-    path: '/content',
-    language: language.value,
-    version: version.value,
-    fields: {},
-    _links: {
-      self: { href: '/api/v1/content/root/branch' },
-      template: { href: '' },
-      children: { href: '/api/v1/content/root/branch' },
-      dependencies: { href: '' },
-      'set-values': { href: '' },
-      rename: { href: '' },
-      move: { href: '' },
-      delete: { href: '' },
-      branch: { href: '/api/v1/content/root/branch' }
-    }
-  },
-  // The API owns the root hierarchy. This is only a visual label for the workspace.
-  children: rootNodes.value,
-  isExpanded: true,
-  isBranchLoaded: true,
-  isBranchLoading: false,
-  isWorkspaceRoot: true
-}))
+const contentWorkspaceRoot = computed<TreeNode>(() => rootNodes.value[0] ?? createFallbackContentWorkspaceRoot())
 
 const createForm = reactive({
   name: '',
@@ -247,7 +220,7 @@ async function refreshRootBranch() {
 
   try {
     const branch = await getRootBranch()
-    rootNodes.value = branch.embedded.children.map(createTreeNode)
+    rootNodes.value = branch.item == null ? [] : [createWorkspaceRootNode(branch)]
 
     if (selectedItemId.value != null) {
       const currentNode = findTreeNodeById(rootNodes.value, selectedItemId.value)
@@ -452,12 +425,99 @@ async function submitValues() {
   }
 }
 
+async function updateSelectedItemIcon(icon: string | null) {
+  if (isSubmitting.value || selectedItem.value == null) {
+    return
+  }
+
+  isSubmitting.value = true
+  pageError.value = null
+
+  try {
+    const response = await fetchJson<ContentItemResponse>(
+      selectedItem.value._links.self.href,
+      withJsonDefaults({
+        method: 'PUT',
+        body: JSON.stringify({ name: selectedItem.value.name, icon })
+      })
+    )
+
+    rootNodes.value = upsertTreeNode(
+      rootNodes.value,
+      extractParentIdFromHref(response._links.parent?.href),
+      response
+    )
+    await syncInspectorFromItem(response)
+    successMessage.value = icon == null
+      ? `Cleared the icon override for ${response.name}.`
+      : `Updated the icon for ${response.name}.`
+  } catch (error) {
+    pageError.value = getErrorMessage(error)
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
+async function updateSelectedTemplateIcon(icon: string) {
+  if (isSubmitting.value || selectedTemplateDetail.value == null) {
+    return
+  }
+
+  const template = selectedTemplateDetail.value
+  isSubmitting.value = true
+  pageError.value = null
+
+  try {
+    const response = await fetchJson<TemplateResponse>(
+      template._links.self.href,
+      withJsonDefaults({
+        method: 'PUT',
+        body: JSON.stringify({
+          name: template.name,
+          key: template.key,
+          icon,
+          baseTemplateKeys: template.baseTemplate == null ? [] : [template.baseTemplate.key],
+          sections: template.sections.map(section => ({
+            name: section.name,
+            key: section.key,
+            sortOrder: section.sortOrder,
+            fields: section.fields.map(field => ({
+              name: field.name,
+              key: field.key,
+              type: field.type,
+              isShared: field.isShared,
+              isUnversioned: field.isUnversioned
+            }))
+          }))
+        })
+      })
+    )
+
+    await loadTemplates()
+    selectedTemplateDetail.value = response
+    successMessage.value = `Updated the icon for ${response.name}.`
+  } catch (error) {
+    pageError.value = getErrorMessage(error)
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
 async function applyMutationResponse(response: ContentMutationResponse) {
   for (const affected of response.affectedBranches) {
-    rootNodes.value = applyBranchToContentTree(rootNodes.value, affected.branch)
+    if (shouldApplyWorkspaceBranch(affected.branch)) {
+      rootNodes.value = applyBranchToContentTree(rootNodes.value, affected.branch)
+    }
   }
 
   const refreshedItem = await getItem(response.item.id)
+
+  if (!isWithinContentWorkspace(refreshedItem.path)) {
+    selectedItemId.value = null
+    resetInspectorForms()
+    return
+  }
+
   rootNodes.value = upsertTreeNode(rootNodes.value, extractParentIdFromHref(refreshedItem._links.parent?.href), refreshedItem)
   selectedItemId.value = response.item.id
   await syncInspectorFromItem(refreshedItem)
@@ -465,7 +525,9 @@ async function applyMutationResponse(response: ContentMutationResponse) {
 
 function applyDeletedMutationResponse(response: ContentMutationResponse) {
   for (const affected of response.affectedBranches) {
-    rootNodes.value = applyBranchToContentTree(rootNodes.value, affected.branch)
+    if (shouldApplyWorkspaceBranch(affected.branch)) {
+      rootNodes.value = applyBranchToContentTree(rootNodes.value, affected.branch)
+    }
   }
 
   const parentId = extractParentIdFromHref(response.item._links.parent?.href)
@@ -521,7 +583,57 @@ function clearFieldForm() {
 }
 
 async function getRootBranch() {
-  return await fetchJson<ContentBranchResponse>(withContext('/api/v1/content/root/branch'))
+  return await fetchJson<ContentBranchResponse>(withContext('/api/v1/content/workspaces/content/branch'))
+}
+
+function createWorkspaceRootNode(branch: ContentBranchResponse): TreeNode {
+  if (branch.item == null) {
+    return createFallbackContentWorkspaceRoot()
+  }
+
+  const rootNode = createTreeNode(branch.item)
+  rootNode.children = branch.embedded.children.map(createTreeNode)
+  rootNode.isExpanded = true
+  rootNode.isBranchLoaded = true
+  return rootNode
+}
+
+function createFallbackContentWorkspaceRoot(): TreeNode {
+  return {
+    item: {
+      id: 'workspace-root:content',
+      name: 'Content',
+      templateId: '',
+      path: '/templar/content',
+      language: language.value,
+      version: version.value,
+      fields: {},
+      _links: {
+        self: { href: '/api/v1/content/workspaces/content/branch' },
+        template: { href: '' },
+        children: { href: '/api/v1/content/workspaces/content/branch' },
+        dependencies: { href: '' },
+        'set-values': { href: '' },
+        rename: { href: '' },
+        move: { href: '' },
+        delete: { href: '' },
+        branch: { href: '/api/v1/content/workspaces/content/branch' }
+      }
+    },
+    children: [],
+    isExpanded: true,
+    isBranchLoaded: true,
+    isBranchLoading: false
+  }
+}
+
+function shouldApplyWorkspaceBranch(branch: ContentBranchResponse): boolean {
+  return branch.item != null && isWithinContentWorkspace(branch.item.path)
+}
+
+function isWithinContentWorkspace(path: string): boolean {
+  const workspacePath = contentWorkspaceRoot.value.item.path
+  return path === workspacePath || path.startsWith(`${workspacePath}/`)
 }
 
 async function loadTemplates() {
@@ -1034,9 +1146,11 @@ function countNodes(nodes: TreeNode[]): number {
     @toggle-node="toggleNode"
     @save="submitValues"
     @delete="submitDelete"
+    @update-item-icon="updateSelectedItemIcon"
     @field-input="onFieldInput"
     @checkbox-input="onCheckboxInput"
     @select-template="selectTemplate"
+    @update-template-icon="updateSelectedTemplateIcon"
   />
 
   <div v-if="false" class="workspace-shell">

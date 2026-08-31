@@ -58,7 +58,12 @@ function toggleSection(name: string) {
       <div v-if="isLoadingFields" class="px-5 py-4 text-sm text-stone-400">Loading field definitions...</div>
       <div v-else-if="fields.length === 0" class="px-5 py-4 text-sm text-stone-400">This item has no editable fields.</div>
       <template v-else v-for="section in sections" :key="section.name">
-        <button class="flex w-full items-center justify-between border-y border-stone-200 bg-stone-50 px-4 py-2.5 text-left" type="button" @click="toggleSection(section.name)">
+        <button
+          class="flex w-full items-center justify-between border-y border-stone-200 bg-stone-50 px-4 py-2.5 text-left"
+          type="button"
+          :aria-expanded="isOpen(section.name)"
+          @click="toggleSection(section.name)"
+        >
           <span class="text-xs font-semibold tracking-wide text-stone-600">{{ section.name }}</span>
           <span class="text-[10px] text-stone-400">{{ section.fields.length }} fields</span>
         </button>

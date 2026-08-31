@@ -134,7 +134,8 @@ public sealed class EfContentRepository : IContentRepository
                     Name = item.Name,
                     Key = item.Key.Value,
                     TemplateId = item.TemplateId.Value,
-                    ParentId = item.ParentId?.Value
+                    ParentId = item.ParentId?.Value,
+                    Icon = item.Icon
                 });
         }
         else
@@ -143,6 +144,7 @@ public sealed class EfContentRepository : IContentRepository
             existing.Key = item.Key.Value;
             existing.TemplateId = item.TemplateId.Value;
             existing.ParentId = item.ParentId?.Value;
+            existing.Icon = item.Icon;
         }
 
         await _dbContext.SaveChangesAsync(cancellationToken);
@@ -237,7 +239,8 @@ public sealed class EfContentRepository : IContentRepository
             item.Name,
             new ContentItemKey(item.Key),
             new TemplateId(item.TemplateId),
-            item.ParentId == null ? null : new ContentItemId(item.ParentId.Value));
+            item.ParentId == null ? null : new ContentItemId(item.ParentId.Value),
+            item.Icon);
     }
 
     private static ContentFieldValue MapFieldValue(

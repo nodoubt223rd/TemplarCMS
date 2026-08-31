@@ -30,7 +30,7 @@ public sealed class EfContentRepositoryTests : IDisposable
     public async Task SaveItemAsync_ThenGetItemAsync_ShouldRoundTripItem()
     {
         var repository = CreateRepository();
-        var item = CreateItem();
+        var item = CreateItem(icon: "article");
 
         await repository.SaveItemAsync(item, TestContext.Current.CancellationToken);
 
@@ -45,6 +45,7 @@ public sealed class EfContentRepositoryTests : IDisposable
         Assert.Equal(item.Key, stored.Key);
         Assert.Equal(item.TemplateId, stored.TemplateId);
         Assert.Equal(item.ParentId, stored.ParentId);
+        Assert.Equal("article", stored.Icon);
     }
 
     [Fact]
@@ -267,14 +268,16 @@ public sealed class EfContentRepositoryTests : IDisposable
         ContentItemId? parentId = null,
         string name = "Home",
         string key = "home",
-        TemplateId? templateId = null)
+        TemplateId? templateId = null,
+        string? icon = null)
     {
         return new ContentItemDefinition(
             new ContentItemId(Guid.NewGuid()),
             name,
             new ContentItemKey(key),
             templateId ?? new TemplateId(Guid.NewGuid()),
-            parentId);
+            parentId,
+            icon);
     }
 
     private static ContentFieldValue CreateValue(
