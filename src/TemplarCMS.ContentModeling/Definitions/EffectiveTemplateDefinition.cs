@@ -11,7 +11,8 @@ public sealed class EffectiveTemplateDefinition
         TemplateId id,
         string name,
         TemplateKey key,
-        IReadOnlyCollection<TemplateSectionDefinition>? sections = null)
+        IReadOnlyCollection<TemplateSectionDefinition>? sections = null,
+        string? icon = null)
     {
         if (string.IsNullOrWhiteSpace(name))
         {
@@ -25,6 +26,7 @@ public sealed class EffectiveTemplateDefinition
         Fields = Sections
             .SelectMany(section => section.Fields)
             .ToArray();
+        Icon = string.IsNullOrWhiteSpace(icon) ? "file" : icon.Trim();
     }
 
     public TemplateId Id { get; }
@@ -36,4 +38,6 @@ public sealed class EffectiveTemplateDefinition
     public IReadOnlyList<TemplateSectionDefinition> Sections { get; }
 
     public IReadOnlyList<FieldDefinition> Fields { get; }
+
+    public string Icon { get; }
 }

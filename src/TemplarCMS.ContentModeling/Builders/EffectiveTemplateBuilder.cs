@@ -34,13 +34,18 @@ public sealed class EffectiveTemplateBuilder : IEffectiveTemplateBuilder
 
         var sections = BuildSections(
             inheritanceResult.Value.InheritanceChain);
+        var icon = inheritanceResult.Value.InheritanceChain
+            .Reverse()
+            .Select(candidate => candidate.Icon)
+            .FirstOrDefault(candidate => !string.IsNullOrWhiteSpace(candidate));
 
         var effectiveTemplate =
             new EffectiveTemplateDefinition(
                 template.Id,
                 template.Name,
                 template.Key,
-                sections);
+                sections,
+                icon);
 
         return new ValidationResult<EffectiveTemplateDefinition>(
             effectiveTemplate);

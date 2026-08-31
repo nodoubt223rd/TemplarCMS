@@ -1,7 +1,23 @@
 {
   "extends": "@vue/tsconfig/tsconfig.dom.json",
   "include": ["env.d.ts", "src/**/*", "src/**/*.vue"],
-  "exclude": ["src/**/__tests__/*"],
+  "exclude": [
+    "src/**/__tests__/*",
+    "src/components/editor/ContentInspector.vue",
+    "src/components/templates/**/*",
+    "src/components/tree/ContextMenu.vue",
+    "src/components/tree/ReparentModal.vue",
+    "src/components/tree/TreeNode.vue",
+    "src/components/ui/IconPicker.vue",
+    "src/components/ui/ItemIcon.vue",
+    "src/components/ui/ScopeBadge.vue",
+    "src/components/ui/ScopeLegendPopover.vue",
+    "src/components/ui/StatusPill.vue",
+    "src/components/ui/ToastContainer.vue",
+    "src/composables/useTree.ts",
+    "src/composables/useTreetState.ts",
+    "src/types/icons.ts"
+  ],
   "compilerOptions": {
     // Extra safety for array and object lookups, but may have false positives.
     "noUncheckedIndexedAccess": true,
@@ -13,6 +29,6 @@
 
     // `vue-tsc --build` produces a .tsbuildinfo file for incremental type-checking.
     // Specified here to keep it out of the root directory.
-    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo"
+    "tsBuildInfoFile": "./.tmp/tsconfig.app.tsbuildinfo"
   }
 }

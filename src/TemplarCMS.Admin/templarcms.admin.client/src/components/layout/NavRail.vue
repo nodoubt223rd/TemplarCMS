@@ -1,15 +1,14 @@
 <script setup lang="ts">
-import { ICON_SVG } from '@/data/icons'
-import type { NavSection } from '@/types'
+type Workspace = 'content' | 'templates' | 'media' | 'system'
 
-defineProps<{ active: NavSection }>()
-const emit = defineEmits<{ (e: 'change', s: NavSection): void }>()
+defineProps<{ active: Workspace }>()
+const emit = defineEmits<{ (e: 'change', s: Workspace): void }>()
 
-const items: { key: NavSection; label: string; icon: string }[] = [
-  { key: 'content',   label: 'Content',   icon: ICON_SVG['layers']   },
-  { key: 'templates', label: 'Templates', icon: ICON_SVG['layout']   },
-  { key: 'media',     label: 'Media',     icon: ICON_SVG['image']    },
-  { key: 'system',    label: 'System',    icon: ICON_SVG['settings'] },
+const items: { key: Workspace; label: string; icon: string }[] = [
+  { key: 'content', label: 'Content', icon: '▤' },
+  { key: 'templates', label: 'Templates', icon: '⌘' },
+  { key: 'media', label: 'Media', icon: '◫' },
+  { key: 'system', label: 'System', icon: '⚙' }
 ]
 </script>
 
@@ -25,8 +24,7 @@ const items: { key: NavSection; label: string; icon: string }[] = [
         ? 'bg-[#5970e3] text-white'
         : 'text-[#7a7268] hover:bg-white/8 hover:text-[#c8c3bc]'"
     >
-      <svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"
-           v-html="item.icon" />
+      <span class="text-base leading-none" aria-hidden="true">{{ item.icon }}</span>
       <span class="text-[8px] leading-none tracking-wide font-medium">{{ item.label }}</span>
     </button>
   </nav>

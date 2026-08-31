@@ -1,87 +1,40 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { findItem } from '@/composables/useTree'
-import type { ItemStatus } from '@/types'
-import StatusPill from '@/components/ui/StatusPill.vue'
+import type { ContentItemResponse } from '@/types/admin-api'
 
-const props = defineProps<{
-  selectedId: string
+defineProps<{
+  item: ContentItemResponse | null
   show: boolean
+  isSubmitting: boolean
+  canDelete: boolean
 }>()
 
-const emit = defineEmits<{ (e: 'close'): void }>()
-
-const item = computed(() => findItem(props.selectedId))
-
-type Action = { label: string; icon: string; variant: 'default' | 'danger' | 'accent'; description: string }
-const actions: Action[] = [
-  { label: 'Publish',          icon: '↑', variant: 'accent',  description: 'Publish this item to all targets' },
-  { label: 'Unpublish',        icon: '↓', variant: 'default', description: 'Remove from published targets' },
-  { label: 'Create Version',   icon: '+', variant: 'default', description: 'Snapshot the current state' },
-  { label: 'Duplicate',        icon: '⧉', variant: 'default', description: 'Clone this item and its children' },
-  { label: 'Rename',           icon: '✎', variant: 'default', description: 'Rename this item' },
-  { label: 'Move',             icon: '↗', variant: 'default', description: 'Move to a different location' },
-  { label: 'Lock',             icon: '🔒', variant: 'default', description: 'Prevent editing by other users' },
-  { label: 'Set Workflow',     icon: '◎', variant: 'default', description: 'Assign to a workflow state' },
-  { label: 'Delete',           icon: '×', variant: 'danger',  description: 'Permanently delete this item' },
-]
+const emit = defineEmits<{
+  close: []
+  save: []
+  delete: []
+}>()
 </script>
 
 <template>
-  <aside
-    v-if="show"
-    class="w-56 flex flex-col bg-white border-l border-stone-200 overflow-y-auto"
-  >
-    <div class="flex items-center justify-between px-4 py-3 border-b border-stone-100">
-      <span class="text-xs font-semibold text-stone-600 uppercase tracking-wider">Actions</span>
-      <button @click="emit('close')" class="text-stone-400 hover:text-stone-600 text-lg leading-none">×</button>
+  <aside v-if="show" class="flex w-56 flex-col overflow-y-auto border-l border-stone-200 bg-white">
+    <div class="flex items-center justify-between border-b border-stone-100 px-4 py-3">
+      <span class="text-xs font-semibold uppercase tracking-wider text-stone-600">Actions</span>
+      <button class="text-lg leading-none text-stone-400 hover:text-stone-600" type="button" @click="emit('close')">×</button>
     </div>
-
-    <div v-if="item" class="px-3 py-2.5 bg-stone-50 border-b border-stone-100">
-      <p class="text-[12px] font-semibold text-stone-700 truncate">{{ item.label }}</p>
-      <div class="flex items-center gap-2 mt-1">
-        <StatusPill v-if="item.status" :status="item.status as ItemStatus" />
-        <span class="text-[10px] text-stone-400 truncate">{{ item.template ?? item.type }}</span>
-      </div>
+    <div v-if="item" class="border-b border-stone-100 bg-stone-50 px-3 py-2.5">
+      <p class="truncate text-[12px] font-semibold text-stone-700">{{ item.name }}</p>
+      <p class="mt-1 truncate text-[10px] text-stone-400">{{ item.path }}</p>
     </div>
-
-    <div class="flex-1 px-2 py-2">
-      <button
-        v-for="action in actions"
-        :key="action.label"
-        class="w-full flex items-start gap-2.5 px-3 py-2.5 rounded-lg mb-0.5 text-left transition-colors group"
-        :class="{
-          'hover:bg-rose-50': action.variant === 'danger',
-          'hover:bg-[#f0f0fd]': action.variant === 'accent',
-          'hover:bg-stone-50': action.variant === 'default',
-        }"
-      >
-        <span class="w-5 h-5 flex items-center justify-center text-base shrink-0 mt-0.5"
-              :class="{
-                'text-rose-500': action.variant === 'danger',
-                'text-[#5970e3]': action.variant === 'accent',
-                'text-stone-400 group-hover:text-stone-600': action.variant === 'default',
-              }">
-          {{ action.icon }}
-        </span>
-        <div>
-          <p class="text-[13px] font-medium leading-tight"
-             :class="{
-               'text-rose-600': action.variant === 'danger',
-               'text-[#5970e3]': action.variant === 'accent',
-               'text-stone-700': action.variant === 'default',
-             }">
-            {{ action.label }}
-          </p>
-          <p class="text-[10px] text-stone-400 mt-0.5 leading-tight">{{ action.description }}</p>
-        </div>
-      </button>
+    <div v-else class="px-4 py-5 text-xs text-stone-400">Select content to use item actions.</div>
+    <div v-if="item" class="flex-1 px-2 py-2">
+      <button class="mb-1 w-full rounded-lg px-3 py-2.5 text-left text-[13px] font-medium text-[#5970e3] hover:bg-[#f0f0fd] disabled:opacity-60" type="button" :disabled="isSubmitting" @click="emit('save')">Save changes</button>
+      <button class="mb-1 w-full rounded-lg px-3 py-2.5 text-left text-[13px] font-medium text-rose-600 hover:bg-rose-50 disabled:opacity-60" type="button" :disabled="isSubmitting || !canDelete" @click="emit('delete')">Delete item</button>
+      <p v-if="!canDelete" class="px-3 text-[10px] leading-relaxed text-stone-400">Delete is available after direct children are removed.</p>
     </div>
-
-    <div class="px-4 pb-4">
+    <div v-if="item" class="px-4 pb-4">
       <div class="rounded-lg bg-stone-50 p-3 ring-1 ring-stone-100">
-        <p class="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-1.5">API Path</p>
-        <p class="text-[10px] font-mono text-stone-600 break-all leading-relaxed">/api/items/{{ selectedId }}</p>
+        <p class="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-stone-400">API Path</p>
+        <p class="break-all font-mono text-[10px] leading-relaxed text-stone-600">{{ item._links.self.href }}</p>
       </div>
     </div>
   </aside>

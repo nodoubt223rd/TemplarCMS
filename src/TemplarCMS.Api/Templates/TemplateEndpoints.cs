@@ -569,6 +569,7 @@ public static class TemplateEndpoints
             Id = template.Id.Value.ToString(),
             Name = template.Name,
             Key = template.Key.ToString(),
+            Icon = template.Icon ?? "file",
             BaseTemplate = template.BaseTemplate == null
                 ? null
                 : new TemplateBaseTemplateResponse
@@ -642,6 +643,7 @@ public static class TemplateEndpoints
             Id = template.Id.Value.ToString(),
             Name = template.Name,
             Key = template.Key.ToString(),
+            Icon = template.Icon,
             Links = new TemplateLinksResponse
             {
                 Self = new LinkResponse
@@ -741,7 +743,8 @@ public static class TemplateEndpoints
                                     field.IsUnversioned,
                                     field.Metadata))
                             .ToArray()))
-                .ToArray());
+                .ToArray(),
+            icon: request.Icon);
     }
 
     private static TemplateFieldCollectionResponse MapFieldCollectionResponse(

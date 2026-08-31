@@ -16,6 +16,9 @@ public sealed class JsonTemplateDefinition
     [JsonPropertyName("key")]
     public string? Key { get; set; }
 
+    [JsonPropertyName("icon")]
+    public string? Icon { get; set; }
+
     [JsonPropertyName("baseTemplates")]
     public List<string> BaseTemplates { get; set; } = new();
 

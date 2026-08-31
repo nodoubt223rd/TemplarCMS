@@ -20,7 +20,8 @@ namespace TemplarCMS.ContentModeling.Definitions
             string name,
             TemplateKey key,
             TemplateDefinition? baseTemplate = null,
-            IReadOnlyCollection<TemplateSectionDefinition>? sections = null)
+            IReadOnlyCollection<TemplateSectionDefinition>? sections = null,
+            string? icon = null)
         {
             if (string.IsNullOrWhiteSpace(name))
             {
@@ -32,6 +33,7 @@ namespace TemplarCMS.ContentModeling.Definitions
             Key = key;
             BaseTemplate = baseTemplate;
             Sections = sections?.ToArray() ?? [];
+            Icon = string.IsNullOrWhiteSpace(icon) ? null : icon.Trim();
         }
 
         /// <summary>
@@ -58,5 +60,7 @@ namespace TemplarCMS.ContentModeling.Definitions
         /// Gets the local sections defined on this template.
         /// </summary>
         public IReadOnlyCollection<TemplateSectionDefinition> Sections { get; }
+
+        public string? Icon { get; }
     }
 }
