@@ -68,5 +68,10 @@ public enum FieldType
     /// <summary>
     /// A general-purpose link value.
     /// </summary>
-    GeneralLink = 12
+    GeneralLink = 12,
+
+    /// <summary>
+    /// A single value selected from template-defined options.
+    /// </summary>
+    Droplist = 13
 }

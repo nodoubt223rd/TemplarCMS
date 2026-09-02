@@ -13,6 +13,8 @@ const defaultFieldTypeDefinition: FieldTypeResponse = {
   helpText: null
 }
 
+const droplistOptionsMetadataKey = 'templar.droplist.options'
+
 export function createFieldTypeLookup(fieldTypes: FieldTypeResponse[]): Map<string, FieldTypeResponse> {
   return new Map(fieldTypes.map(fieldType => [fieldType.value, fieldType]))
 }
@@ -69,6 +71,10 @@ export function buildEditorFields(
       const type = templateField?.type ?? 'SingleLineText'
       const editor = getFieldTypeDefinition(type, fieldTypeLookup)
 
+      const options = editor.editorKind === 'select'
+        ? getDroplistOptions(templateField?.metadata?.[droplistOptionsMetadataKey])
+        : undefined
+
       return {
         key,
         label: templateField?.name ?? key,
@@ -81,9 +87,26 @@ export function buildEditorFields(
         placeholder: editor.placeholder,
         rows: editor.rows,
         step: editor.step,
-        helpText: editor.helpText
+        helpText: editor.helpText,
+        ...(options == null ? {} : { options })
       }
     })
+}
+
+function getDroplistOptions(value: string | undefined): Array<{ value: string; label: string }> {
+  if (value == null) return []
+
+  try {
+    const options: unknown = JSON.parse(value)
+    return Array.isArray(options)
+      ? options.filter((option): option is { value: string; label: string } =>
+        typeof option === 'object' && option !== null &&
+        typeof (option as { value?: unknown }).value === 'string' &&
+        typeof (option as { label?: unknown }).label === 'string')
+      : []
+  } catch {
+    return []
+  }
 }
 
 function getScopeLabel(templateField: TemplateFieldItemResponse | undefined): string {

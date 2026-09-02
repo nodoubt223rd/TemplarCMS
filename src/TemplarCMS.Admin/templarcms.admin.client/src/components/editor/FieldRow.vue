@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { EditorFieldModel } from '@/types/admin-ui'
+import RichTextField from '@/components/fields/RichTextField.vue'
 
 defineProps<{
   field: EditorFieldModel
@@ -33,6 +34,17 @@ const emit = defineEmits<{
       :value="value"
       @input="emit('input', ($event.target as HTMLTextAreaElement).value)"
     />
+    <RichTextField v-else-if="field.editorKind === 'rich-text'" :model-value="value" @update:model-value="emit('input', $event)" />
+    <select
+      v-else-if="field.editorKind === 'select'"
+      :id="`field-${field.key}`"
+      class="w-full rounded-lg bg-white px-2.5 py-1.5 text-sm text-stone-700 outline-none ring-1 ring-stone-200 focus:ring-[#5970e3]/50"
+      :value="value"
+      @change="emit('input', ($event.target as HTMLSelectElement).value)"
+    >
+      <option value="">Select an option</option>
+      <option v-for="option in field.options ?? []" :key="option.value" :value="option.value">{{ option.label }}</option>
+    </select>
     <input
       v-else
       :id="`field-${field.key}`"

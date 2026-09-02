@@ -74,7 +74,7 @@ export type ContentItemDependencyResponse = {
 export type FieldTypeResponse = {
   value: string
   label: string
-  editorKind: 'checkbox' | 'date-time' | 'general-link' | 'number' | 'textarea' | 'text'
+  editorKind: 'checkbox' | 'date-time' | 'general-link' | 'number' | 'rich-text' | 'select' | 'textarea' | 'text'
   inputType: 'checkbox' | 'datetime-local' | 'number' | 'text'
   placeholder: string | null
   rows: number | null

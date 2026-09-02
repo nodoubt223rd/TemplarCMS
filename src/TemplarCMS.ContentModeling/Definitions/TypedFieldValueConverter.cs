@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.Json;
 using TemplarCMS.ContentModeling.Abstractions;
 using TemplarCMS.ContentModeling.Validation;
 using TemplarCMS.Domain.Content;
@@ -32,6 +33,7 @@ public sealed class TypedFieldValueConverter : ITypedFieldValueConverter
             FieldType.SingleLineText => ConvertAsString(fieldDefinition, value),
             FieldType.MultiLineText => ConvertAsString(fieldDefinition, value),
             FieldType.RichText => ConvertAsString(fieldDefinition, value),
+            FieldType.Droplist => ConvertAsDroplist(fieldDefinition, value),
             FieldType.GeneralLink => ConvertAsGeneralLink(fieldDefinition, value),
             FieldType.DateTime => ConvertAsDateTime(fieldDefinition, value),
             FieldType.Integer => ConvertAsInteger(fieldDefinition, value),
@@ -50,6 +52,37 @@ public sealed class TypedFieldValueConverter : ITypedFieldValueConverter
                     fieldDefinition,
                     value,
                     new StringTypedFieldValue(value.Value!)));
+    }
+
+    private static ValidationResult<ConvertedFieldValue> ConvertAsDroplist(
+        FieldDefinition fieldDefinition,
+        ContentFieldValue value)
+    {
+        const string optionsKey = "templar.droplist.options";
+
+        if (!fieldDefinition.Metadata.TryGetValue(optionsKey, out var optionsJson))
+        {
+            return InvalidValue(fieldDefinition, value, "DroplistOptionsRequired", $"Field '{fieldDefinition.Key}' requires configured choice options.");
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(optionsJson);
+            var containsValue = document.RootElement.ValueKind == JsonValueKind.Array &&
+                document.RootElement.EnumerateArray().Any(option =>
+                    option.ValueKind == JsonValueKind.Object &&
+                    option.TryGetProperty("value", out var configuredValue) &&
+                    configuredValue.ValueKind == JsonValueKind.String &&
+                    string.Equals(configuredValue.GetString(), value.Value, StringComparison.Ordinal));
+
+            return containsValue
+                ? ConvertAsString(fieldDefinition, value)
+                : InvalidValue(fieldDefinition, value, "InvalidDroplistFieldValue", $"Field '{fieldDefinition.Key}' value '{value.Value}' is not a configured choice.");
+        }
+        catch (JsonException)
+        {
+            return InvalidValue(fieldDefinition, value, "InvalidDroplistOptions", $"Field '{fieldDefinition.Key}' has invalid choice option metadata.");
+        }
     }
 
     private static ValidationResult<ConvertedFieldValue> ConvertAsInteger(

@@ -130,6 +130,8 @@ public sealed class JsonTemplateMapperTests
     [InlineData("droplink", FieldType.Droplink)]
     [InlineData("DropTree", FieldType.Droplink)]
     [InlineData("multilist", FieldType.Multilist)]
+    [InlineData("Droplist", FieldType.Droplist)]
+    [InlineData("choice", FieldType.Droplist)]
     [InlineData("TreeListEx", FieldType.Multilist)]
     [InlineData("Checklist", FieldType.Multilist)]
     [InlineData("Multilist with Search", FieldType.Multilist)]
