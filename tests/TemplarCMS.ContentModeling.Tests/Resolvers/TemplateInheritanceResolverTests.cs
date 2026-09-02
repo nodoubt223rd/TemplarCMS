@@ -89,5 +89,31 @@ namespace TemplarCMS.ContentModeling.Tests.Resolvers
                 item => Assert.Equal(new TemplateKey("base-metadata"), item.Key),
                 item => Assert.Equal(new TemplateKey("article"), item.Key));
         }
+
+        [Fact]
+        public async Task ResolveAsync_ResolvesDiamondInheritance_WithoutDuplicatingTheSharedAncestor()
+        {
+            var sharedBase = new TemplateDefinitionBuilder()
+                .WithNameAndKey("Shared", "shared")
+                .Build();
+            var contentBase = TestTemplateFactory.Create("Content", "content", sharedBase);
+            var metadataBase = TestTemplateFactory.Create("Metadata", "metadata", sharedBase);
+            var article = new TemplateDefinition(
+                new TemplateId(Guid.NewGuid()),
+                "Article",
+                new TemplateKey("article"),
+                baseTemplates: [contentBase, metadataBase]);
+
+            var result = await new TemplateInheritanceResolver()
+                .ResolveAsync(article, TestContext.Current.CancellationToken);
+
+            Assert.True(result.Succeeded);
+            Assert.Collection(
+                result.Value!.InheritanceChain,
+                item => Assert.Equal(new TemplateKey("shared"), item.Key),
+                item => Assert.Equal(new TemplateKey("content"), item.Key),
+                item => Assert.Equal(new TemplateKey("metadata"), item.Key),
+                item => Assert.Equal(new TemplateKey("article"), item.Key));
+        }
     }
 }
