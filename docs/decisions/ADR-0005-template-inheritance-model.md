@@ -177,17 +177,21 @@ Controllers, API contracts, and persistence entities must not implement inherita
 
 Inheritance resolution follows this order:
 
-1. Resolve base templates.
-2. Resolve inherited fields.
-3. Resolve local template fields.
+1. Resolve base templates depth-first in their authored order.
+2. Apply inherited fields from the first base template through the last.
+3. Apply local template fields.
 4. Apply overrides.
 5. Produce Effective Template.
 
-This guarantees deterministic results.
+This guarantees deterministic results. When base templates define the same
+section or field key, the later selected base template wins. The local template
+always wins over inherited definitions. Shared ancestors in a diamond graph are
+applied only once, at their first encounter, while cycles remain invalid.
 
 ## Override Rules
 
-Local template fields take precedence over inherited fields.
+Local template fields take precedence over inherited fields. Between base
+templates, later selected templates take precedence over earlier selections.
 
 Example:
 

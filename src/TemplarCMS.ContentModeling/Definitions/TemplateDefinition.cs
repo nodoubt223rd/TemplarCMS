@@ -13,7 +13,7 @@ namespace TemplarCMS.ContentModeling.Definitions
         /// <param name="id">The id of the template</param>
         /// <param name="name">The display name of the template.</param>
         /// <param name="key">The unique template key used for lookup and serialization.</param>
-        /// <param name="baseTemplate">The base template this template inherits from.</param>
+        /// <param name="baseTemplate">The single base template this template inherits from. Retained for compatibility.</param>
         /// <param name="sections">The local sections defined on this template.</param>
         public TemplateDefinition(
             TemplateId id,
@@ -21,7 +21,8 @@ namespace TemplarCMS.ContentModeling.Definitions
             TemplateKey key,
             TemplateDefinition? baseTemplate = null,
             IReadOnlyCollection<TemplateSectionDefinition>? sections = null,
-            string? icon = null)
+            string? icon = null,
+            IReadOnlyList<TemplateDefinition>? baseTemplates = null)
         {
             if (string.IsNullOrWhiteSpace(name))
             {
@@ -31,7 +32,15 @@ namespace TemplarCMS.ContentModeling.Definitions
             Id = id;
             Name = name.Trim();
             Key = key;
-            BaseTemplate = baseTemplate;
+            if (baseTemplate != null && baseTemplates != null)
+            {
+                throw new ArgumentException(
+                    "Specify either a single base template or an ordered collection of base templates, not both.",
+                    nameof(baseTemplates));
+            }
+
+            BaseTemplates = baseTemplates?.ToArray()
+                ?? (baseTemplate == null ? [] : [baseTemplate]);
             Sections = sections?.ToArray() ?? [];
             Icon = string.IsNullOrWhiteSpace(icon) ? null : icon.Trim();
         }
@@ -52,9 +61,16 @@ namespace TemplarCMS.ContentModeling.Definitions
         public TemplateKey Key { get; }
 
         /// <summary>
-        /// Gets the base template this template inherits from.
+        /// Gets the ordered base templates this template inherits from. Later templates take precedence.
         /// </summary>
-        public TemplateDefinition? BaseTemplate { get; }
+        public IReadOnlyList<TemplateDefinition> BaseTemplates { get; }
+
+        /// <summary>
+        /// Gets the base template when exactly one base template is configured.
+        /// </summary>
+        public TemplateDefinition? BaseTemplate => BaseTemplates.Count == 1
+            ? BaseTemplates.Single()
+            : null;
 
         /// <summary>
         /// Gets the local sections defined on this template.

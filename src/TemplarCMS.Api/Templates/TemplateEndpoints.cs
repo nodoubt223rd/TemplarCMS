@@ -490,7 +490,7 @@ public static class TemplateEndpoints
                     cancellationToken);
             var dependentTemplate =
                 templates.FirstOrDefault(
-                    candidate => candidate.BaseTemplate?.Id == template.Id);
+                    candidate => candidate.BaseTemplates.Any(baseTemplate => baseTemplate.Id == template.Id));
 
             if (dependentTemplate != null)
             {
@@ -570,21 +570,22 @@ public static class TemplateEndpoints
             Name = template.Name,
             Key = template.Key.ToString(),
             Icon = template.Icon ?? "file",
-            BaseTemplate = template.BaseTemplate == null
-                ? null
-                : new TemplateBaseTemplateResponse
-                {
-                    Id = template.BaseTemplate.Id.Value.ToString(),
-                    Name = template.BaseTemplate.Name,
-                    Key = template.BaseTemplate.Key.ToString(),
-                    Links = new TemplateBaseTemplateLinksResponse
+            BaseTemplates = template.BaseTemplates
+                .Select(
+                    baseTemplate => new TemplateBaseTemplateResponse
                     {
-                        Self = new LinkResponse
+                        Id = baseTemplate.Id.Value.ToString(),
+                        Name = baseTemplate.Name,
+                        Key = baseTemplate.Key.ToString(),
+                        Links = new TemplateBaseTemplateLinksResponse
                         {
-                            Href = $"/api/v1/templates/{template.BaseTemplate.Id.Value}"
+                            Self = new LinkResponse
+                            {
+                                Href = $"/api/v1/templates/{baseTemplate.Id.Value}"
+                            }
                         }
-                    }
-                },
+                    })
+                .ToArray(),
             Sections = template.Sections
                 .Select(
                     section => new TemplateSectionResponse
@@ -693,36 +694,45 @@ public static class TemplateEndpoints
                 nameof(request));
         }
 
-        TemplateDefinition? baseTemplate = null;
+        var baseTemplates = new List<TemplateDefinition>();
+        var baseTemplateKeys = new HashSet<TemplateKey>();
 
-        if (request.BaseTemplateKeys != null && request.BaseTemplateKeys.Count > 1)
+        foreach (var baseTemplateKeyValue in request.BaseTemplateKeys ?? [])
         {
-            throw new InvalidOperationException(
-                "Multiple base templates are not supported yet. Provide zero or one base template key.");
-        }
+            if (string.IsNullOrWhiteSpace(baseTemplateKeyValue))
+            {
+                throw new ArgumentException(
+                    "Base template keys cannot be blank.",
+                    nameof(request));
+            }
 
-        var baseTemplateKey =
-            request.BaseTemplateKeys?.SingleOrDefault();
+            var baseTemplateKey = new TemplateKey(baseTemplateKeyValue);
 
-        if (!string.IsNullOrWhiteSpace(baseTemplateKey))
-        {
-            baseTemplate =
+            if (!baseTemplateKeys.Add(baseTemplateKey))
+            {
+                throw new ArgumentException(
+                    $"Base template '{baseTemplateKey}' was selected more than once.",
+                    nameof(request));
+            }
+
+            var baseTemplate =
                 await contentModelCatalog.GetTemplateAsync(
-                    new TemplateKey(baseTemplateKey),
+                    baseTemplateKey,
                     cancellationToken);
 
             if (baseTemplate == null)
             {
                 throw new InvalidOperationException(
-                    $"Base template '{baseTemplateKey.Trim()}' was not found.");
+                    $"Base template '{baseTemplateKey}' was not found.");
             }
+
+            baseTemplates.Add(baseTemplate);
         }
 
         return new TemplateDefinition(
             templateId,
             request.Name,
             new TemplateKey(request.Key),
-            baseTemplate,
             sections: request.Sections
                 .Select(
                     section => new TemplateSectionDefinition(
@@ -744,7 +754,8 @@ public static class TemplateEndpoints
                                     field.Metadata))
                             .ToArray()))
                 .ToArray(),
-            icon: AuthoringIconCatalog.Normalize(request.Icon));
+            icon: AuthoringIconCatalog.Normalize(request.Icon),
+            baseTemplates: baseTemplates);
     }
 
     private static TemplateFieldCollectionResponse MapFieldCollectionResponse(
@@ -813,11 +824,13 @@ public static class TemplateEndpoints
     {
         var dependentsByBaseTemplateId =
             templates
-                .Where(candidate => candidate.BaseTemplate != null)
-                .GroupBy(candidate => candidate.BaseTemplate!.Id)
+                .SelectMany(
+                    candidate => candidate.BaseTemplates.Select(
+                        baseTemplate => new { BaseTemplateId = baseTemplate.Id, Dependent = candidate }))
+                .GroupBy(candidate => candidate.BaseTemplateId)
                 .ToDictionary(
                     group => group.Key,
-                    group => group.ToArray());
+                    group => group.Select(candidate => candidate.Dependent).ToArray());
         var dependentTemplates =
             new List<TemplateDefinition>();
         var visited =

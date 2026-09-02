@@ -53,6 +53,7 @@ const emit = defineEmits<{
   checkboxInput: [key: string, checked: boolean]
   selectTemplate: [templateId: string]
   updateTemplateIcon: [icon: string]
+  updateTemplateBaseTemplateIds: [templateIds: string[]]
 }>()
 </script>
 
@@ -110,6 +111,7 @@ const emit = defineEmits<{
           :is-submitting="isSubmitting"
           @select="emit('selectTemplate', $event)"
           @update-icon="emit('updateTemplateIcon', $event)"
+          @update-base-template-ids="emit('updateTemplateBaseTemplateIds', $event)"
         />
         <section v-else class="flex flex-1 items-center justify-center text-sm text-stone-400">
           {{ activeWorkspace === 'media' ? 'Media authoring is not available yet.' : 'System authoring is not available yet.' }}

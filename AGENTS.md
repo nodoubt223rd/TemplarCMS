@@ -25,7 +25,7 @@ Use this file as the quick-start memory for coding sessions in this repo. Keep i
 - `TemplarCMS.Abstractions` owns shared contracts like `IContentRepository`.
 - Stored field values remain `string?` at the persistence boundary. Typed values are projected and validated above storage.
 - Content paths are computed at runtime, not stored. Existing item key and parent changes are intentionally blocked until explicit rename/move semantics exist.
-- Single template inheritance only. Child definitions override parent definitions by key.
+- Ordered multiple template inheritance. Base templates are applied left-to-right, later bases override earlier bases by key, and local definitions override every inherited definition.
 - Built-in system templates and starter content should remain source-controlled bootstrap data, not drift into instance-local `App_Data` truth.
 
 ## Working Conventions

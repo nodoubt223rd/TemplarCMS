@@ -600,9 +600,9 @@ Content update note:
 ```
 
 The authored JSON repository format is documented separately. It uses
-`baseTemplates` in JSON, but the repository resolves that into the single
-`BaseTemplate` domain relationship. Zero or one base template key is supported;
-multiple entries are rejected.
+`baseTemplates` in JSON, and the repository resolves those entries into the
+ordered `BaseTemplates` domain relationship. Bases are applied left-to-right;
+later bases override earlier bases and local definitions override all bases.
 
 ### Template Dependency Response
 

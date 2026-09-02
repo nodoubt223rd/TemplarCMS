@@ -1,3 +1,4 @@
+using TemplarCMS.ContentModeling.Definitions;
 using TemplarCMS.ContentModeling.Resolvers;
 using TemplarCMS.ContentModeling.Tests.TestUtilities;
 using TemplarCMS.Domain.Content;
@@ -60,6 +61,32 @@ namespace TemplarCMS.ContentModeling.Tests.Resolvers
                 result.Value!.InheritanceChain,
                 item => Assert.Equal(new TemplateKey("base-content"), item.Key),
                 item => Assert.Equal(new TemplateKey("base-seo"), item.Key),
+                item => Assert.Equal(new TemplateKey("article"), item.Key));
+        }
+
+        [Fact]
+        public async Task ResolveAsync_ReturnsOrderedChain_ForMultipleBaseTemplates()
+        {
+            var firstBase = new TemplateDefinitionBuilder()
+                .WithNameAndKey("Base Content", "base-content")
+                .Build();
+            var secondBase = new TemplateDefinitionBuilder()
+                .WithNameAndKey("Base Metadata", "base-metadata")
+                .Build();
+            var article = new TemplateDefinition(
+                new TemplateId(Guid.NewGuid()),
+                "Article",
+                new TemplateKey("article"),
+                baseTemplates: [firstBase, secondBase]);
+
+            var result = await new TemplateInheritanceResolver()
+                .ResolveAsync(article, TestContext.Current.CancellationToken);
+
+            Assert.True(result.Succeeded);
+            Assert.Collection(
+                result.Value!.InheritanceChain,
+                item => Assert.Equal(new TemplateKey("base-content"), item.Key),
+                item => Assert.Equal(new TemplateKey("base-metadata"), item.Key),
                 item => Assert.Equal(new TemplateKey("article"), item.Key));
         }
     }

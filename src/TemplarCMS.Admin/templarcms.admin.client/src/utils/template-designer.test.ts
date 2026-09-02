@@ -95,6 +95,7 @@ describe('template designer utilities', () => {
       id: 'template-1',
       name: 'Article',
       key: 'article',
+      baseTemplates: [],
       baseTemplate: {
         id: 'base-1',
         name: 'Base',

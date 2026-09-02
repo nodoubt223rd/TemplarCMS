@@ -41,6 +41,7 @@ describe('buildTemplateWorkspaceViewModel', () => {
       id: 'template-1',
       name: 'Article',
       key: 'article',
+      baseTemplates: [],
       sections: [
         createSection({
           id: 'section-hidden',

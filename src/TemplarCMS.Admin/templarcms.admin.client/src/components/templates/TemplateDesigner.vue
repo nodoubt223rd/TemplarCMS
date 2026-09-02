@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import type { TemplateResponse, TemplateSummaryResponse } from '@/types/admin-api'
 import { ALL_ICONS, ICON_LABELS } from '@/types/icons'
+import MultilistWithSearchField, { type MultilistOption } from '@/components/fields/MultilistWithSearchField.vue'
 
-defineProps<{
+const props = defineProps<{
   templates: TemplateSummaryResponse[]
   selectedTemplateId: string | null
   selectedTemplate: TemplateResponse | null
@@ -10,7 +11,17 @@ defineProps<{
   isSubmitting: boolean
 }>()
 
-const emit = defineEmits<{ select: [templateId: string], updateIcon: [icon: string] }>()
+const emit = defineEmits<{
+  select: [templateId: string]
+  updateIcon: [icon: string]
+  updateBaseTemplateIds: [templateIds: string[]]
+}>()
+
+function baseTemplateOptions(): MultilistOption[] {
+  return props.templates
+    .filter(template => template.id !== props.selectedTemplate?.id)
+    .map(template => ({ value: template.id, label: template.name, description: template.key }))
+}
 
 function scopeLabel(field: { isShared: boolean; isUnversioned: boolean }): string {
   if (field.isShared) return 'Shared'
@@ -42,7 +53,7 @@ function scopeLabel(field: { isShared: boolean; isUnversioned: boolean }): strin
         <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-[#e8eaf8] text-[#5970e3]">▧</span>
         <div class="min-w-0">
           <h2 class="truncate text-base font-semibold text-stone-800">{{ selectedTemplate.name }}</h2>
-          <p class="text-[11px] text-stone-400">Inherits from: <span class="text-stone-500">{{ selectedTemplate.baseTemplate?.name ?? 'None' }}</span></p>
+          <p class="text-[11px] text-stone-400">{{ selectedTemplate.baseTemplates.length === 0 ? 'No inherited templates' : `${selectedTemplate.baseTemplates.length} inherited template${selectedTemplate.baseTemplates.length === 1 ? '' : 's'}` }}</p>
         </div>
         <label class="ml-auto text-xs text-stone-500">
           <span class="mr-2">Icon</span>
@@ -59,6 +70,16 @@ function scopeLabel(field: { isShared: boolean; isUnversioned: boolean }): strin
       <div v-else class="flex flex-1 items-center justify-center text-sm text-stone-400">Select a template to inspect it.</div>
 
       <div v-if="selectedTemplate" class="flex-1 overflow-y-auto">
+        <section class="border-b border-stone-200 p-4">
+          <h3 class="text-xs font-semibold text-stone-700">Base templates</h3>
+          <p class="mb-3 mt-1 text-[11px] text-stone-400">Choose templates in precedence order. Local sections and fields override all inherited definitions.</p>
+          <MultilistWithSearchField
+            :available="baseTemplateOptions()"
+            :model-value="selectedTemplate.baseTemplates.map(template => template.id)"
+            :readonly="isSubmitting"
+            @update:model-value="emit('updateBaseTemplateIds', $event)"
+          />
+        </section>
         <section v-for="section in selectedTemplate.sections" :key="section.id" class="border-b border-stone-100">
           <div class="flex items-center gap-2 bg-stone-50 px-4 py-2.5">
             <span class="text-xs font-semibold text-stone-600">{{ section.name }}</span>

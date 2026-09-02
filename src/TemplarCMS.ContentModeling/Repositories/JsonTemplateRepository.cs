@@ -122,7 +122,7 @@ public sealed class JsonTemplateRepository : ITemplateRepository
         return mappedTemplates
             .Select(
                 pair =>
-                    ResolveBaseTemplate(
+                    ResolveBaseTemplates(
                         pair.Dto,
                         pair.Template,
                         templatesByKey))
@@ -258,9 +258,9 @@ public sealed class JsonTemplateRepository : ITemplateRepository
             Name = template.Name,
             Key = template.Key.ToString(),
             Icon = template.Icon,
-            BaseTemplates = template.BaseTemplate == null
-                ? []
-                : [template.BaseTemplate.Key.ToString()],
+            BaseTemplates = template.BaseTemplates
+                .Select(baseTemplate => baseTemplate.Key.ToString())
+                .ToList(),
             Sections = template.Sections
                 .Select(
                     section => new JsonTemplateSectionDefinition
@@ -300,7 +300,7 @@ public sealed class JsonTemplateRepository : ITemplateRepository
             $"{key}.json");
     }
 
-    private static TemplateDefinition ResolveBaseTemplate(
+    private static TemplateDefinition ResolveBaseTemplates(
         JsonTemplateDefinition dto,
         TemplateDefinition template,
         IReadOnlyDictionary<TemplateKey, TemplateDefinition> templatesByKey)
@@ -310,27 +310,34 @@ public sealed class JsonTemplateRepository : ITemplateRepository
             return template;
         }
 
-        if (dto.BaseTemplates.Count > 1)
-        {
-            throw new InvalidOperationException(
-                $"Template '{template.Key}' declares multiple base templates, but only single inheritance is supported.");
-        }
+        var baseTemplates = new List<TemplateDefinition>();
+        var baseTemplateKeys = new HashSet<TemplateKey>();
 
-        var baseTemplateKey =
-            new TemplateKey(dto.BaseTemplates[0]);
-
-        if (!templatesByKey.TryGetValue(baseTemplateKey, out var baseTemplate))
+        foreach (var baseTemplateKeyValue in dto.BaseTemplates)
         {
-            throw new InvalidOperationException(
-                $"Template '{template.Key}' references missing base template '{baseTemplateKey}'.");
+            var baseTemplateKey = new TemplateKey(baseTemplateKeyValue);
+
+            if (!baseTemplateKeys.Add(baseTemplateKey))
+            {
+                throw new InvalidOperationException(
+                    $"Template '{template.Key}' declares base template '{baseTemplateKey}' more than once.");
+            }
+
+            if (!templatesByKey.TryGetValue(baseTemplateKey, out var baseTemplate))
+            {
+                throw new InvalidOperationException(
+                    $"Template '{template.Key}' references missing base template '{baseTemplateKey}'.");
+            }
+
+            baseTemplates.Add(baseTemplate);
         }
 
         return new TemplateDefinition(
             template.Id,
             template.Name,
             template.Key,
-            baseTemplate,
-            template.Sections,
-            template.Icon);
+            sections: template.Sections,
+            icon: template.Icon,
+            baseTemplates: baseTemplates);
     }
 }
