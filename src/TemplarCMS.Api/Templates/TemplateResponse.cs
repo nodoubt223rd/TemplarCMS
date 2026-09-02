@@ -13,7 +13,7 @@ public sealed class TemplateResponse
 
     public string Icon { get; init; } = "file";
 
-    public TemplateBaseTemplateResponse? BaseTemplate { get; init; }
+    public required IReadOnlyCollection<TemplateBaseTemplateResponse> BaseTemplates { get; init; }
 
     public required IReadOnlyCollection<TemplateSectionResponse> Sections { get; init; }
 

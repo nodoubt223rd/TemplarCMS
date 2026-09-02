@@ -101,10 +101,10 @@ public sealed class TemplateInheritanceResolver : ITemplateInheritanceResolver
 
         visiting.Add(templateId);
 
-        if (template.BaseTemplate != null)
+        foreach (var baseTemplate in template.BaseTemplates)
         {
             ResolveTemplate(
-                template.BaseTemplate,
+                baseTemplate,
                 resolvedTemplates,
                 errors,
                 visiting,

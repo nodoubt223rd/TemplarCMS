@@ -128,6 +128,15 @@ export type TemplateResponse = {
   name: string
   key: string
   icon?: string
+  baseTemplates: Array<{
+    id: string
+    name: string
+    key: string
+    _links: {
+      self: LinkResponse
+    }
+  }>
+  /** @deprecated The API now returns the ordered baseTemplates collection. */
   baseTemplate?: {
     id: string
     name: string

@@ -12,6 +12,39 @@ namespace TemplarCMS.ContentModeling.Tests.Builders;
 public sealed class EffectiveTemplateBuilderTests
 {
     [Fact]
+    public async Task BuildEffectiveTemplateAsync_LaterBaseTemplateOverridesEarlierBaseTemplate()
+    {
+        var firstBase = CreateTemplate(
+            "Base Content",
+            "base-content",
+            sections:
+            [
+                CreateSection("Content", "content", 100, CreateField("Plain Title", "title"))
+            ]);
+        var secondBase = CreateTemplate(
+            "Base Metadata",
+            "base-metadata",
+            sections:
+            [
+                CreateSection("Content", "content", 100, CreateField("Rich Title", "title", FieldType.RichText))
+            ]);
+        var article = new TemplateDefinition(
+            new TemplateId(Guid.NewGuid()),
+            "Article",
+            new TemplateKey("article"),
+            sections: [],
+            baseTemplates: [firstBase, secondBase]);
+
+        var result = await CreateBuilder()
+            .BuildEffectiveTemplateAsync(article, TestContext.Current.CancellationToken);
+
+        Assert.True(result.Succeeded);
+        var field = Assert.Single(Assert.Single(result.Value!.Sections).Fields);
+        Assert.Equal("Rich Title", field.Name);
+        Assert.Equal(FieldType.RichText, field.FieldType);
+    }
+
+    [Fact]
     public async Task BuildEffectiveTemplateAsync_ReturnsEffectiveTemplate_ForSimpleTemplate()
     {
         var cancellationToken = TestContext.Current.CancellationToken;

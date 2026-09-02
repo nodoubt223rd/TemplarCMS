@@ -130,7 +130,7 @@ public sealed class TemplateEndpointsTests
         Assert.Equal($"/api/v1/templates/{template.Id.Value}/fields", response.Links.Fields.Href);
         Assert.Equal($"/api/v1/templates/{template.Id.Value}/dependencies", response.Links.Dependencies.Href);
         Assert.Equal("/api/v1/content", response.Links.CreateItem.Href);
-        Assert.Null(response.BaseTemplate);
+        Assert.Empty(response.BaseTemplates);
         Assert.Null(catalog.LastRequestedTemplateId);
     }
 
@@ -158,7 +158,7 @@ public sealed class TemplateEndpointsTests
 
         var ok = Assert.IsType<Ok<TemplateResponse>>(result.Result);
         var response = Assert.IsType<TemplateResponse>(ok.Value);
-        var responseBaseTemplate = Assert.IsType<TemplateBaseTemplateResponse>(response.BaseTemplate);
+        var responseBaseTemplate = Assert.Single(response.BaseTemplates);
         Assert.Equal(baseTemplate.Id.Value.ToString(), responseBaseTemplate.Id);
         Assert.Equal(baseTemplate.Name, responseBaseTemplate.Name);
         Assert.Equal(baseTemplate.Key.ToString(), responseBaseTemplate.Key);
@@ -462,8 +462,23 @@ public sealed class TemplateEndpointsTests
     }
 
     [Fact]
-    public async Task CreateAsync_ShouldReturnProblem_WhenMultipleBaseTemplateKeysAreProvided()
+    public async Task CreateAsync_ShouldAssignMultipleBaseTemplates_InProvidedOrder()
     {
+        var basePage = CreateAuthoredTemplate("Base Page", "base-page");
+        var metadata = CreateAuthoredTemplate("Metadata", "metadata");
+        var catalog = new FakeContentModelCatalog(authoredTemplates: [basePage, metadata]);
+        var repository = new FakeTemplateRepository();
+        repository.OnCreateTemplateAsync = template =>
+        {
+            catalog.AddAuthoredTemplate(template);
+            catalog.AddTemplate(new EffectiveTemplateDefinition(
+                template.Id,
+                template.Name,
+                template.Key,
+                template.Sections.ToArray()));
+
+            return Task.CompletedTask;
+        };
         var result =
             await TemplateEndpoints.CreateAsync(
                 new CreateTemplateRequest
@@ -477,17 +492,16 @@ public sealed class TemplateEndpointsTests
                     ],
                     Sections = []
                 },
-                new FakeTemplateRepository(),
-                new FakeContentModelCatalog(),
+                repository,
+                catalog,
                 TestContext.Current.CancellationToken);
 
-        var problem = Assert.IsType<ProblemHttpResult>(result.Result);
-
-        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
-        AssertProblem(
-            problem,
-            "Invalid template create request",
-            "invalid-template-create-request");
+        Assert.IsType<Created<TemplateResponse>>(result.Result);
+        Assert.NotNull(repository.LastCreatedTemplate);
+        Assert.Collection(
+            repository.LastCreatedTemplate.BaseTemplates,
+            template => Assert.Equal(new TemplateKey("base-page"), template.Key),
+            template => Assert.Equal(new TemplateKey("metadata"), template.Key));
     }
 
     [Fact]

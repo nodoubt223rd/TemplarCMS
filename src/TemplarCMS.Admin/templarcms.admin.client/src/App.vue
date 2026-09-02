@@ -476,7 +476,7 @@ async function updateSelectedTemplateIcon(icon: string) {
           name: template.name,
           key: template.key,
           icon,
-          baseTemplateKeys: template.baseTemplate == null ? [] : [template.baseTemplate.key],
+          baseTemplateKeys: template.baseTemplates.map(baseTemplate => baseTemplate.key),
           sections: template.sections.map(section => ({
             name: section.name,
             key: section.key,
@@ -496,6 +496,60 @@ async function updateSelectedTemplateIcon(icon: string) {
     await loadTemplates()
     selectedTemplateDetail.value = response
     successMessage.value = `Updated the icon for ${response.name}.`
+  } catch (error) {
+    pageError.value = getErrorMessage(error)
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
+async function updateSelectedTemplateBaseTemplates(templateIds: string[]) {
+  if (isSubmitting.value || selectedTemplateDetail.value == null) {
+    return
+  }
+
+  const template = selectedTemplateDetail.value
+  const baseTemplateKeys = templateIds
+    .map(templateId => availableTemplates.value.find(candidate => candidate.id === templateId)?.key)
+    .filter((key): key is string => key != null)
+
+  if (baseTemplateKeys.length !== templateIds.length) {
+    pageError.value = 'One or more selected base templates could not be resolved.'
+    return
+  }
+
+  isSubmitting.value = true
+  pageError.value = null
+
+  try {
+    const response = await fetchJson<TemplateResponse>(
+      template._links.self.href,
+      withJsonDefaults({
+        method: 'PUT',
+        body: JSON.stringify({
+          name: template.name,
+          key: template.key,
+          icon: template.icon,
+          baseTemplateKeys,
+          sections: template.sections.map(section => ({
+            name: section.name,
+            key: section.key,
+            sortOrder: section.sortOrder,
+            fields: section.fields.map(field => ({
+              name: field.name,
+              key: field.key,
+              type: field.type,
+              isShared: field.isShared,
+              isUnversioned: field.isUnversioned
+            }))
+          }))
+        })
+      })
+    )
+
+    await loadTemplates()
+    selectedTemplateDetail.value = response
+    successMessage.value = `Updated inherited templates for ${response.name}.`
   } catch (error) {
     pageError.value = getErrorMessage(error)
   } finally {
@@ -1151,6 +1205,7 @@ function countNodes(nodes: TreeNode[]): number {
     @checkbox-input="onCheckboxInput"
     @select-template="selectTemplate"
     @update-template-icon="updateSelectedTemplateIcon"
+    @update-template-base-template-ids="updateSelectedTemplateBaseTemplates"
   />
 
   <div v-if="false" class="workspace-shell">

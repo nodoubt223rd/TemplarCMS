@@ -232,7 +232,7 @@ public sealed class JsonTemplateRepositoryTests
     }
 
     [Fact]
-    public async Task GetTemplatesAsync_ShouldThrow_WhenMultipleBaseTemplatesAreDeclared()
+    public async Task GetTemplatesAsync_ShouldResolveMultipleBaseTemplates_InDeclaredOrder()
     {
         using var directory = new TemporaryDirectory();
 
@@ -275,8 +275,15 @@ public sealed class JsonTemplateRepositoryTests
         var repository =
             CreateRepository(directory.Path);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            repository.GetTemplatesAsync(TestContext.Current.CancellationToken));
+        var result = await repository.GetTemplatesAsync(TestContext.Current.CancellationToken);
+
+        var article = Assert.Single(
+            result,
+            template => template.Key == new TemplateKey("article-page"));
+        Assert.Collection(
+            article.BaseTemplates,
+            template => Assert.Equal(new TemplateKey("base-page"), template.Key),
+            template => Assert.Equal(new TemplateKey("metadata"), template.Key));
     }
 
     [Fact]
