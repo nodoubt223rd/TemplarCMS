@@ -69,6 +69,16 @@ describe('editor field utilities', () => {
       rows: 6,
       step: null,
       helpText: 'JSON is not schema-aware yet.'
+    },
+    {
+      value: 'Droplist',
+      label: 'Choice / Droplist',
+      editorKind: 'select',
+      inputType: 'text',
+      placeholder: null,
+      rows: null,
+      step: null,
+      helpText: 'Options are configured in the template field source.'
     }
   ]
 
@@ -279,6 +289,30 @@ describe('editor field utilities', () => {
         helpText: null
       }
     ])
+  })
+
+  it('parses configured droplist options without adding them to other editor kinds', () => {
+    const result = buildEditorFields(
+      { status: 'published' },
+      [createTemplateField({
+        key: 'status',
+        name: 'Status',
+        type: 'Droplist',
+        metadata: {
+          'templar.droplist.options': '[{"value":"draft","label":"Draft"},{"value":"published","label":"Published"}]'
+        }
+      })],
+      lookup
+    )
+
+    expect(result).toEqual([expect.objectContaining({
+      key: 'status',
+      editorKind: 'select',
+      options: [
+        { value: 'draft', label: 'Draft' },
+        { value: 'published', label: 'Published' }
+      ]
+    })])
   })
 })
 

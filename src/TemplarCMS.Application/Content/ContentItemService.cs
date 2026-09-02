@@ -263,6 +263,8 @@ public sealed class ContentItemService : IContentItemService
             template.Fields.ToDictionary(
                 field => field.Id);
 
+        var normalizedValues = new List<ContentFieldValue>(values.Count);
+
         foreach (var value in values)
         {
             ArgumentNullException.ThrowIfNull(value);
@@ -299,11 +301,15 @@ public sealed class ContentItemService : IContentItemService
 
                 throw new InvalidOperationException(error.Message);
             }
+
+            normalizedValues.Add(field.FieldType == FieldType.RichText && value.Value != null
+                ? new ContentFieldValue(value.ItemId, value.FieldId, value.FieldKey, value.Language, value.Version, RichTextHtmlSanitizer.Sanitize(value.Value))
+                : value);
         }
 
         await _contentRepository.SaveFieldValuesAsync(
             itemId,
-            values,
+            normalizedValues,
             cancellationToken);
     }
 

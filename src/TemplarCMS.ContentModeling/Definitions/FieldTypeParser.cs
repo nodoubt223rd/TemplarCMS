@@ -29,7 +29,9 @@ public static class FieldTypeParser
             ["file"] = FieldType.File,
             ["serverfile"] = FieldType.File,
             ["json"] = FieldType.Json,
-            ["generallink"] = FieldType.GeneralLink
+            ["generallink"] = FieldType.GeneralLink,
+            ["droplist"] = FieldType.Droplist,
+            ["choice"] = FieldType.Droplist
         };
 
     private static readonly IReadOnlyDictionary<string, string> UnsupportedFieldTypeHints =

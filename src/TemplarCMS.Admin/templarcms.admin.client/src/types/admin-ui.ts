@@ -16,12 +16,13 @@ export type EditorFieldModel = {
   type: string
   sectionName: string
   scopeLabel: string
-  editorKind: 'checkbox' | 'date-time' | 'general-link' | 'number' | 'textarea' | 'text'
+  editorKind: 'checkbox' | 'date-time' | 'general-link' | 'number' | 'rich-text' | 'select' | 'textarea' | 'text'
   inputType: 'checkbox' | 'datetime-local' | 'number' | 'text'
   placeholder: string | null
   rows: number | null
   step: string | null
   helpText: string | null
+  options?: Array<{ value: string; label: string }>
 }
 
 export type TemplateFieldViewModel = {
