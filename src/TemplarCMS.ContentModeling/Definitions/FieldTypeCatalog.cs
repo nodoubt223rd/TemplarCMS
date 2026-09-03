@@ -18,7 +18,7 @@ public static class FieldTypeCatalog
         new(FieldType.Multilist, "Multilist", "textarea", "text", "Enter one or more referenced values", 3, null, "Multiple references are still authored as string content for now."),
         new(FieldType.Droplist, "Choice / Droplist", "select", "text", null, null, null, "Options are configured in the template field source."),
         new(FieldType.GeneralLink, "General Link", "general-link", "text", null, null, null, "General links can point to an internal content item or an external URL."),
-        new(FieldType.Image, "Image", "text", "text", "Enter media reference", null, null, "Image fields still store a string reference today."),
+        new(FieldType.Image, "Image", "image-picker", "text", null, null, null, "Select an image from the CMS media library."),
         new(FieldType.File, "File", "text", "text", "Enter file reference", null, null, "File fields still store a string reference today."),
         new(FieldType.Json, "JSON", "textarea", "text", "{ }", 6, null, "JSON is not schema-aware yet, but the editor keeps the field distinct.")
     ];

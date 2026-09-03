@@ -4,6 +4,7 @@ using TemplarCMS.Api.Bootstrap;
 using TemplarCMS.Api.Content;
 using TemplarCMS.Api.Security;
 using TemplarCMS.Api.Templates;
+using TemplarCMS.Api.Media;
 
 var builder = WebApplication.CreateBuilder(args);
 var openApiEnabled =
@@ -67,6 +68,7 @@ app.MapApiRootEndpoints(openApiEnabled);
 app.MapContentLookupEndpoints();
 app.MapFieldTypeEndpoints();
 app.MapTemplateEndpoints();
+app.MapMediaEndpoints();
 
 app.Run();
 

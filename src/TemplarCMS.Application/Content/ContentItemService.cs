@@ -1,6 +1,7 @@
 using TemplarCMS.ContentModeling.Abstractions;
 using TemplarCMS.ContentModeling.Definitions;
 using TemplarCMS.Abstractions.Content;
+using TemplarCMS.Abstractions.Media;
 using TemplarCMS.Domain.Content;
 
 namespace TemplarCMS.Application.Content;
@@ -17,6 +18,7 @@ public sealed class ContentItemService : IContentItemService
     private readonly IContentItemResolver _contentItemResolver;
     private readonly IContentPathResolver _contentPathResolver;
     private readonly ITypedFieldValueConverter _typedFieldValueConverter;
+    private readonly IMediaAssetRepository? _mediaAssetRepository;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ContentItemService"/> class.
@@ -26,13 +28,15 @@ public sealed class ContentItemService : IContentItemService
         IContentModelCatalog contentModelCatalog,
         IContentItemResolver contentItemResolver,
         IContentPathResolver contentPathResolver,
-        ITypedFieldValueConverter typedFieldValueConverter)
+        ITypedFieldValueConverter typedFieldValueConverter,
+        IMediaAssetRepository? mediaAssetRepository = null)
     {
         _contentRepository = contentRepository ?? throw new ArgumentNullException(nameof(contentRepository));
         _contentModelCatalog = contentModelCatalog ?? throw new ArgumentNullException(nameof(contentModelCatalog));
         _contentItemResolver = contentItemResolver ?? throw new ArgumentNullException(nameof(contentItemResolver));
         _contentPathResolver = contentPathResolver ?? throw new ArgumentNullException(nameof(contentPathResolver));
         _typedFieldValueConverter = typedFieldValueConverter ?? throw new ArgumentNullException(nameof(typedFieldValueConverter));
+        _mediaAssetRepository = mediaAssetRepository;
     }
 
     /// <inheritdoc />
@@ -300,6 +304,16 @@ public sealed class ContentItemService : IContentItemService
                 var error = conversion.Errors.First();
 
                 throw new InvalidOperationException(error.Message);
+            }
+
+            if (field.FieldType == FieldType.Image && value.Value != null)
+            {
+                if (!Guid.TryParse(value.Value, out var mediaAssetId) ||
+                    _mediaAssetRepository == null ||
+                    await _mediaAssetRepository.GetAsync(mediaAssetId, cancellationToken) == null)
+                {
+                    throw new InvalidOperationException($"Field '{field.Key}' must reference an existing media asset.");
+                }
             }
 
             normalizedValues.Add(field.FieldType == FieldType.RichText && value.Value != null
