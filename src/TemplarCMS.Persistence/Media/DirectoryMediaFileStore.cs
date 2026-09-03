@@ -17,4 +17,11 @@ public sealed class DirectoryMediaFileStore : IMediaFileStore
         var path = Path.Combine(_rootPath, Path.GetFileName(storedFileName));
         return Task.FromResult<Stream?>(File.Exists(path) ? File.OpenRead(path) : null);
     }
+
+    public Task DeleteAsync(string storedFileName, CancellationToken cancellationToken = default)
+    {
+        var path = Path.Combine(_rootPath, Path.GetFileName(storedFileName));
+        if (File.Exists(path)) File.Delete(path);
+        return Task.CompletedTask;
+    }
 }

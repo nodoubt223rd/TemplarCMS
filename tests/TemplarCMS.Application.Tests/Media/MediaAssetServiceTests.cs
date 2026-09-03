@@ -54,6 +54,7 @@ public sealed class MediaAssetServiceTests
     {
         private readonly Dictionary<string, byte[]> _files = [];
         public async Task SaveAsync(string storedFileName, Stream source, CancellationToken cancellationToken = default) { await using var buffer = new MemoryStream(); await source.CopyToAsync(buffer, cancellationToken); _files.Add(storedFileName, buffer.ToArray()); }
+        public Task DeleteAsync(string storedFileName, CancellationToken cancellationToken = default) { _files.Remove(storedFileName); return Task.CompletedTask; }
         public Task<Stream?> OpenReadAsync(string storedFileName, CancellationToken cancellationToken = default) => Task.FromResult<Stream?>(_files.TryGetValue(storedFileName, out var value) ? new MemoryStream(value) : null);
     }
 }
