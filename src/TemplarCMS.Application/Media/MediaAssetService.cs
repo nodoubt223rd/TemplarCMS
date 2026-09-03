@@ -29,7 +29,15 @@ public sealed class MediaAssetService : IMediaAssetService
         var id = Guid.NewGuid();
         var asset = new MediaAsset(id, folderId, Path.GetFileName(fileName), id + extension, contentType, length, altText?.Trim(), title?.Trim(), DateTimeOffset.UtcNow);
         await _fileStore.SaveAsync(asset.StoredFileName, content, cancellationToken);
-        await _repository.SaveAsync(asset, cancellationToken);
+        try
+        {
+            await _repository.SaveAsync(asset, cancellationToken);
+        }
+        catch
+        {
+            await _fileStore.DeleteAsync(asset.StoredFileName, cancellationToken);
+            throw;
+        }
         return asset;
     }
 
