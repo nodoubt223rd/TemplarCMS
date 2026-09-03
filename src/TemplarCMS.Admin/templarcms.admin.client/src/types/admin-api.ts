@@ -74,7 +74,7 @@ export type ContentItemDependencyResponse = {
 export type FieldTypeResponse = {
   value: string
   label: string
-  editorKind: 'checkbox' | 'date-time' | 'general-link' | 'number' | 'rich-text' | 'select' | 'textarea' | 'text'
+  editorKind: 'checkbox' | 'date-time' | 'general-link' | 'image-picker' | 'number' | 'rich-text' | 'select' | 'textarea' | 'text'
   inputType: 'checkbox' | 'datetime-local' | 'number' | 'text'
   placeholder: string | null
   rows: number | null
@@ -90,6 +90,9 @@ export type FieldTypeCollectionResponse = {
     self: LinkResponse
   }
 }
+
+export type MediaAssetResponse = { id: string; folderId: string; fileName: string; contentType: string; length: number; altText: string | null; title: string | null; createdUtc: string; contentUrl: string }
+export type MediaAssetCollectionResponse = { assets: MediaAssetResponse[] }
 
 export type TemplateSummaryResponse = {
   id: string

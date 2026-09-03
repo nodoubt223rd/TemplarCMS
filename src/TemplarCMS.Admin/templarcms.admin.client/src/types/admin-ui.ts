@@ -16,7 +16,7 @@ export type EditorFieldModel = {
   type: string
   sectionName: string
   scopeLabel: string
-  editorKind: 'checkbox' | 'date-time' | 'general-link' | 'number' | 'rich-text' | 'select' | 'textarea' | 'text'
+  editorKind: 'checkbox' | 'date-time' | 'general-link' | 'image-picker' | 'number' | 'rich-text' | 'select' | 'textarea' | 'text'
   inputType: 'checkbox' | 'datetime-local' | 'number' | 'text'
   placeholder: string | null
   rows: number | null

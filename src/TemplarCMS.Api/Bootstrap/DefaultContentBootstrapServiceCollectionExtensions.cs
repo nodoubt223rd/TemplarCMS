@@ -13,6 +13,9 @@ using TemplarCMS.ContentModeling.Serialization;
 using TemplarCMS.ContentModeling.Validation;
 using TemplarCMS.Persistence;
 using TemplarCMS.Persistence.Content;
+using TemplarCMS.Persistence.Media;
+using TemplarCMS.Abstractions.Media;
+using TemplarCMS.Application.Media;
 
 namespace TemplarCMS.Api.Bootstrap;
 
@@ -65,6 +68,9 @@ internal static class DefaultContentBootstrapServiceCollectionExtensions
         services.AddSingleton<IContentModelCatalog, ContentModelCatalog>();
 
         services.AddScoped<IContentRepository, EfContentRepository>();
+        services.AddScoped<IMediaAssetRepository, EfMediaAssetRepository>();
+        services.AddScoped<IMediaAssetService, MediaAssetService>();
+        services.AddSingleton<IMediaFileStore>(_ => new DirectoryMediaFileStore(Path.Combine(runtimeDataPath, "Media")));
         services.AddScoped<IContentPathResolver, ContentPathResolver>();
         services.AddScoped<IContentItemService, ContentItemService>();
         services.AddScoped<IDefaultContentBootstrapper, DefaultContentBootstrapper>();

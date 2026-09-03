@@ -43,6 +43,7 @@ public sealed class DefaultContentBootstrapHostedService : IHostedService
 
         await dbContext.Database.EnsureCreatedAsync(cancellationToken);
         await EnsureContentItemIconColumnAsync(dbContext, cancellationToken);
+        await EnsureMediaAssetsTableAsync(dbContext, cancellationToken);
         await bootstrapper.EnsureInitializedAsync(cancellationToken);
 
         _logger.LogInformation("Default CMS content bootstrap completed.");
@@ -100,4 +101,24 @@ public sealed class DefaultContentBootstrapHostedService : IHostedService
                 cancellationToken);
         }
     }
+
+    private static Task EnsureMediaAssetsTableAsync(
+        TemplarCmsDbContext dbContext,
+        CancellationToken cancellationToken) =>
+        dbContext.Database.ExecuteSqlRawAsync(
+            """
+            CREATE TABLE IF NOT EXISTS MediaAssets (
+                Id TEXT NOT NULL CONSTRAINT PK_MediaAssets PRIMARY KEY,
+                FolderId TEXT NOT NULL,
+                FileName TEXT NOT NULL,
+                StoredFileName TEXT NOT NULL,
+                ContentType TEXT NOT NULL,
+                Length INTEGER NOT NULL,
+                AltText TEXT NULL,
+                Title TEXT NULL,
+                CreatedUtc TEXT NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS IX_MediaAssets_FolderId ON MediaAssets (FolderId);
+            """,
+            cancellationToken);
 }

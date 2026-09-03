@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { EditorFieldModel } from '@/types/admin-ui'
 import RichTextField from '@/components/fields/RichTextField.vue'
+import ImagePickerField from '@/components/fields/ImagePickerField.vue'
 
 defineProps<{
   field: EditorFieldModel
@@ -35,6 +36,7 @@ const emit = defineEmits<{
       @input="emit('input', ($event.target as HTMLTextAreaElement).value)"
     />
     <RichTextField v-else-if="field.editorKind === 'rich-text'" :model-value="value" @update:model-value="emit('input', $event)" />
+    <ImagePickerField v-else-if="field.editorKind === 'image-picker'" :model-value="value" @update:model-value="emit('input', $event)" />
     <select
       v-else-if="field.editorKind === 'select'"
       :id="`field-${field.key}`"

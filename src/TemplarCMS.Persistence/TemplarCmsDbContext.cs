@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TemplarCMS.Persistence.Content;
+using TemplarCMS.Persistence.Media;
 
 namespace TemplarCMS.Persistence;
 
@@ -17,6 +18,7 @@ public sealed class TemplarCmsDbContext : DbContext
     public DbSet<PersistenceContentItem> ContentItems => Set<PersistenceContentItem>();
 
     public DbSet<PersistenceContentFieldValue> ContentFieldValues => Set<PersistenceContentFieldValue>();
+    public DbSet<PersistenceMediaAsset> MediaAssets => Set<PersistenceMediaAsset>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -51,5 +53,13 @@ public sealed class TemplarCmsDbContext : DbContext
                 value.Version
             })
             .IsUnique();
+
+        var mediaAsset = modelBuilder.Entity<PersistenceMediaAsset>();
+        mediaAsset.ToTable("MediaAssets");
+        mediaAsset.HasKey(value => value.Id);
+        mediaAsset.Property(value => value.FileName).IsRequired();
+        mediaAsset.Property(value => value.StoredFileName).IsRequired();
+        mediaAsset.Property(value => value.ContentType).IsRequired();
+        mediaAsset.HasIndex(value => value.FolderId);
     }
 }
