@@ -69,6 +69,7 @@ app.MapContentLookupEndpoints();
 app.MapFieldTypeEndpoints();
 app.MapTemplateEndpoints();
 app.MapMediaEndpoints();
+app.MapSwaggerUiAssetFallback();
 
 app.Run();
 
