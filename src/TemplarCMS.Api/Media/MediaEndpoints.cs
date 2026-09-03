@@ -12,7 +12,7 @@ public static class MediaEndpoints
     {
         endpoints.MapGet("/api/v1/media/assets", GetAllAsync).WithName("GetMediaAssets").WithTags("Media").Produces<MediaAssetCollectionResponse>();
         endpoints.MapGet("/api/v1/media/assets/{id:guid}/content", GetContentAsync).WithName("GetMediaAssetContent").WithTags("Media");
-        endpoints.MapPost("/api/v1/media/assets", UploadAsync).WithName("UploadMediaAsset").WithTags("Media").Accepts<IFormFile>("multipart/form-data").RequireAuthorization(ApiAuthorizationPolicies.AuthorContent);
+        endpoints.MapPost("/api/v1/media/assets", UploadAsync).WithName("UploadMediaAsset").WithTags("Media").Accepts<IFormFile>("multipart/form-data").RequireAuthorization(ApiAuthorizationPolicies.AuthorContent).DisableAntiforgery();
         return endpoints;
     }
 
