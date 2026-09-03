@@ -813,6 +813,10 @@ async function loadTemplateWorkspace(templateId: string) {
     loadTemplateDetail(templateId),
     loadTemplateDependencies(templateId)
   ])
+
+  if (selectedTemplateId.value === templateId && selectedTemplateDetail.value != null) {
+    loadSelectedTemplateIntoDesigner()
+  }
 }
 
 function onTemplateDesignerNameUpdate(value: string) {

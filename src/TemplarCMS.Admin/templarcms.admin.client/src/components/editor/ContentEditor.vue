@@ -25,7 +25,13 @@ const sections = computed(() => {
   for (const field of props.fields) {
     groups.set(field.sectionName, [...(groups.get(field.sectionName) ?? []), field])
   }
-  return [...groups.entries()].map(([name, fields]) => ({ name, fields }))
+  return [...groups.entries()]
+    .map(([name, fields]) => ({ name, fields }))
+    .sort((left, right) => {
+      if (left.name.localeCompare('Content', undefined, { sensitivity: 'accent' }) === 0) return -1
+      if (right.name.localeCompare('Content', undefined, { sensitivity: 'accent' }) === 0) return 1
+      return 0
+    })
 })
 
 function isOpen(name: string) {
