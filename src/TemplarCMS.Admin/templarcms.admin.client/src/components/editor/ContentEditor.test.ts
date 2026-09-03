@@ -38,6 +38,24 @@ describe('ContentEditor sections', () => {
     expect(contentSection!.attributes('aria-expanded')).toBe('true')
     expect(seoSection!.attributes('aria-expanded')).toBe('true')
   })
+
+  it('puts the Content section before other sections regardless of field key order', () => {
+    const wrapper = mount(ContentEditor, {
+      props: {
+        item: createItem(),
+        templateName: 'Article',
+        fields: [createField('description', 'SEO'), createField('title', 'Content')],
+        fieldForm: { title: '', description: '' },
+        isLoadingFields: false,
+        isSubmitting: false
+      }
+    })
+
+    const sectionHeadings = wrapper.findAll('button').filter(button =>
+      button.text().endsWith('fields'))
+
+    expect(sectionHeadings.map(button => button.find('span').text())).toEqual(['Content', 'SEO'])
+  })
 })
 
 function createItem(): ContentItemResponse {
