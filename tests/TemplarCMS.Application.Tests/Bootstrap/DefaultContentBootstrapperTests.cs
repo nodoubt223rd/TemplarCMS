@@ -243,6 +243,36 @@ public sealed class DefaultContentBootstrapperTests
     }
 
     [Fact]
+    public async Task EnsureInitializedAsync_ShouldMoveLegacyAboutSeedBeneathContent()
+    {
+        var (bootstrapper, _, contentRepository, _, _) = CreateBootstrapper();
+
+        await bootstrapper.EnsureInitializedAsync(TestContext.Current.CancellationToken);
+
+        var about = await contentRepository.GetItemAsync(
+            SystemSeedContentIds.About,
+            TestContext.Current.CancellationToken);
+        var home = await contentRepository.GetItemAsync(
+            SystemSeedContentIds.Home,
+            TestContext.Current.CancellationToken);
+        Assert.NotNull(about);
+        Assert.NotNull(home);
+
+        await contentRepository.SaveItemAsync(
+            about.MoveTo(home.Id),
+            TestContext.Current.CancellationToken);
+
+        await bootstrapper.EnsureInitializedAsync(TestContext.Current.CancellationToken);
+
+        var repaired = await contentRepository.GetItemAsync(
+            new ContentPath("/templar/content/about"),
+            TestContext.Current.CancellationToken);
+
+        Assert.NotNull(repaired);
+        Assert.Equal(SystemSeedContentIds.ContentRoot, repaired.ParentId);
+    }
+
+    [Fact]
     public async Task EnsureInitializedAsync_ShouldPreserveExistingSeededItemAndLogDrift_WhenCanonicalIdDoesNotMatch()
     {
         var logger = new ListLogger<DefaultContentBootstrapper>();
