@@ -35,6 +35,7 @@ public sealed class TypedFieldValueConverter : ITypedFieldValueConverter
             FieldType.RichText => ConvertAsString(fieldDefinition, value),
             FieldType.Droplist => ConvertAsDroplist(fieldDefinition, value),
             FieldType.GeneralLink => ConvertAsGeneralLink(fieldDefinition, value),
+            FieldType.Image => ConvertAsImage(fieldDefinition, value),
             FieldType.DateTime => ConvertAsDateTime(fieldDefinition, value),
             FieldType.Integer => ConvertAsInteger(fieldDefinition, value),
             FieldType.Decimal => ConvertAsDecimal(fieldDefinition, value),
@@ -215,6 +216,26 @@ public sealed class TypedFieldValueConverter : ITypedFieldValueConverter
                 "InvalidGeneralLinkFieldValue",
                 exception.Message);
         }
+    }
+
+    private static ValidationResult<ConvertedFieldValue> ConvertAsImage(
+        FieldDefinition fieldDefinition,
+        ContentFieldValue value)
+    {
+        if (Guid.TryParse(value.Value, out var assetId))
+        {
+            return new ValidationResult<ConvertedFieldValue>(
+                new ConvertedFieldValue(
+                    fieldDefinition,
+                    value,
+                    new ImageTypedFieldValue(assetId)));
+        }
+
+        return InvalidValue(
+            fieldDefinition,
+            value,
+            "InvalidImageFieldValue",
+            $"Field '{fieldDefinition.Key}' must reference a media asset id.");
     }
 
     private static ValidationResult<ConvertedFieldValue> Unsupported(

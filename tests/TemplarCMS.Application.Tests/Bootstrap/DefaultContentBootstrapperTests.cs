@@ -121,7 +121,7 @@ public sealed class DefaultContentBootstrapperTests
                 TestContext.Current.CancellationToken);
         var about =
             await contentRepository.GetItemAsync(
-                new ContentPath("/templar/content/home/about"),
+                new ContentPath("/templar/content/about"),
                 TestContext.Current.CancellationToken);
         var settings =
             await contentRepository.GetItemAsync(
@@ -157,7 +157,7 @@ public sealed class DefaultContentBootstrapperTests
         Assert.Equal(folderTemplate.Id, templar.TemplateId);
         Assert.Equal(itemTemplate.Id, home.TemplateId);
         Assert.Equal(itemTemplate.Id, about.TemplateId);
-        Assert.Equal(home.Id, about.ParentId);
+        Assert.Equal(SystemSeedContentIds.ContentRoot, about.ParentId);
 
         var homeValues =
             await contentRepository.GetFieldValuesAsync(
@@ -225,7 +225,7 @@ public sealed class DefaultContentBootstrapperTests
                 TestContext.Current.CancellationToken);
         var about =
             await contentRepository.GetItemAsync(
-                new ContentPath("/templar/content/home/about"),
+                new ContentPath("/templar/content/about"),
                 TestContext.Current.CancellationToken);
         var aboutValues =
             await contentRepository.GetFieldValuesAsync(

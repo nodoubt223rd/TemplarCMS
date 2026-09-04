@@ -1,97 +1,44 @@
 <script setup lang="ts">
-import type { TemplateResponse, TemplateSummaryResponse } from '@/types/admin-api'
+import { computed, ref, watch } from 'vue'
+import type { FieldTypeResponse, TemplateResponse, TemplateSummaryResponse } from '@/types/admin-api'
 import { ALL_ICONS, ICON_LABELS } from '@/types/icons'
-import MultilistWithSearchField, { type MultilistOption } from '@/components/fields/MultilistWithSearchField.vue'
+import { type MultilistOption } from '@/components/fields/MultilistWithSearchField.vue'
 
-const props = defineProps<{
-  templates: TemplateSummaryResponse[]
-  selectedTemplateId: string | null
-  selectedTemplate: TemplateResponse | null
-  isLoading: boolean
-  isSubmitting: boolean
-}>()
+type Field = { name: string; key: string; type: string; isShared: boolean; isUnversioned: boolean }
+type Section = { name: string; key: string; sortOrder: number; fields: Field[] }
+type Draft = { name: string; key: string; icon: string; baseTemplateIds: string[]; sections: Section[] }
 
-const emit = defineEmits<{
-  select: [templateId: string]
-  updateIcon: [icon: string]
-  updateBaseTemplateIds: [templateIds: string[]]
-}>()
-
-function baseTemplateOptions(): MultilistOption[] {
-  return props.templates
-    .filter(template => template.id !== props.selectedTemplate?.id)
-    .map(template => ({ value: template.id, label: template.name, description: template.key }))
-}
-
-function scopeLabel(field: { isShared: boolean; isUnversioned: boolean }): string {
-  if (field.isShared) return 'Shared'
-  if (field.isUnversioned) return 'Unversioned'
-  return 'Versioned'
-}
+const props = defineProps<{ templates: TemplateSummaryResponse[]; selectedTemplateId: string | null; selectedTemplate: TemplateResponse | null; availableFieldTypes: FieldTypeResponse[]; isLoading: boolean; isSubmitting: boolean }>()
+const emit = defineEmits<{ select: [id: string]; saveTemplate: [template: Omit<Draft, 'baseTemplateIds'> & { baseTemplateKeys: string[] }] }>()
+const tab = ref<'builder' | 'info'>('builder')
+const draft = ref<Draft | null>(null)
+const keyFor = (value: string) => value.trim().split(/[^a-zA-Z0-9]+/).filter(Boolean).map((word, index) => index ? `${word[0]?.toUpperCase()}${word.slice(1).toLowerCase()}` : word.toLowerCase()).join('')
+const copy = (template: TemplateResponse): Draft => ({ name: template.name, key: template.key, icon: template.icon ?? 'file', baseTemplateIds: template.baseTemplates.map(base => base.id), sections: template.sections.map(section => ({ name: section.name, key: section.key, sortOrder: section.sortOrder, fields: section.fields.map(field => ({ name: field.name, key: field.key, type: field.type, isShared: field.isShared, isUnversioned: field.isUnversioned })) })) })
+watch(() => props.selectedTemplate, value => { draft.value = value ? copy(value) : null }, { immediate: true })
+const editable = computed(() => props.selectedTemplate?.key !== 'item')
+const baseOptions = computed<MultilistOption[]>(() => props.templates.filter(template => template.id !== props.selectedTemplate?.id).map(template => ({ value: template.id, label: template.name, description: template.key })))
+const localFieldCount = computed(() => draft.value?.sections.reduce((count, section) => count + section.fields.length, 0) ?? 0)
+const selectedBases = computed(() => draft.value?.baseTemplateIds.map(id => props.templates.find(template => template.id === id)).filter((template): template is TemplateSummaryResponse => template != null) ?? [])
+const availableBases = computed(() => baseOptions.value.filter(option => !draft.value?.baseTemplateIds.includes(option.value)))
+function addSection() { const name = 'New Section'; draft.value?.sections.push({ name, key: keyFor(name), sortOrder: (draft.value.sections.length + 1) * 100, fields: [] }) }
+function addField(section: Section) { const name = 'New Field'; section.fields.push({ name, key: keyFor(name), type: props.availableFieldTypes[0]?.value ?? 'text', isShared: false, isUnversioned: false }) }
+function addBase(id: string) { if (draft.value && !draft.value.baseTemplateIds.includes(id)) draft.value.baseTemplateIds.push(id) }
+function removeBase(id: string) { if (draft.value) draft.value.baseTemplateIds = draft.value.baseTemplateIds.filter(baseId => baseId !== id) }
+function moveBase(index: number, offset: number) { if (!draft.value) return; const target = index + offset; if (target < 0 || target >= draft.value.baseTemplateIds.length) return; const ids = [...draft.value.baseTemplateIds]; [ids[index], ids[target]] = [ids[target]!, ids[index]!]; draft.value.baseTemplateIds = ids }
+function save() { if (!draft.value) return; emit('saveTemplate', { ...draft.value, baseTemplateKeys: draft.value.baseTemplateIds.map(id => props.templates.find(template => template.id === id)?.key).filter((key): key is string => key != null) }) }
 </script>
 
 <template>
   <div class="flex min-w-0 flex-1 overflow-hidden">
-    <aside class="flex w-52 flex-col overflow-y-auto border-r border-stone-200 bg-[#f7f5f1]">
-      <p class="px-3 pb-1.5 pt-3 text-[11px] font-semibold uppercase tracking-widest text-stone-400">Templates</p>
-      <div v-if="isLoading" class="px-3 py-2 text-xs text-stone-400">Loading templates...</div>
-      <button
-        v-for="template in templates"
-        :key="template.id"
-        class="flex items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors"
-        :class="template.id === selectedTemplateId ? 'bg-[#e8eaf8] font-medium text-[#3a4eb0]' : 'text-stone-600 hover:bg-stone-100'"
-        type="button"
-        @click="emit('select', template.id)"
-      >
-        <span class="text-stone-400" aria-hidden="true">▧</span>
-        <span class="truncate text-[13px]">{{ template.name }}</span>
-      </button>
-    </aside>
-
-    <section class="flex min-w-0 flex-1 flex-col overflow-hidden bg-white">
-      <div v-if="selectedTemplate" class="flex items-center gap-3 border-b border-stone-200 px-5 py-3">
-        <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-[#e8eaf8] text-[#5970e3]">▧</span>
-        <div class="min-w-0">
-          <h2 class="truncate text-base font-semibold text-stone-800">{{ selectedTemplate.name }}</h2>
-          <p class="text-[11px] text-stone-400">{{ selectedTemplate.baseTemplates.length === 0 ? 'No inherited templates' : `${selectedTemplate.baseTemplates.length} inherited template${selectedTemplate.baseTemplates.length === 1 ? '' : 's'}` }}</p>
-        </div>
-        <label class="ml-auto text-xs text-stone-500">
-          <span class="mr-2">Icon</span>
-          <select
-            class="rounded border border-stone-200 bg-white px-2 py-1 text-xs"
-            :value="selectedTemplate.icon ?? 'file'"
-            :disabled="isSubmitting"
-            @change="emit('updateIcon', ($event.target as HTMLSelectElement).value)"
-          >
-            <option v-for="icon in ALL_ICONS" :key="icon" :value="icon">{{ ICON_LABELS[icon] }}</option>
-          </select>
-        </label>
+    <aside class="flex w-52 shrink-0 flex-col overflow-y-auto border-r border-stone-200 bg-[#f7f5f1]"><p class="px-3 pb-1.5 pt-3 text-[11px] font-semibold uppercase tracking-widest text-stone-400">Templates</p><div v-if="isLoading" class="px-3 py-2 text-xs text-stone-400">Loading templates...</div><button v-for="template in templates" :key="template.id" class="flex items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors" :class="template.id === selectedTemplateId ? 'bg-[#e8eaf8] font-medium text-[#3a4eb0]' : 'text-stone-600 hover:bg-stone-100'" type="button" @click="emit('select', template.id)"><span>▧</span><span class="truncate text-[13px]">{{ template.name }}</span></button></aside>
+    <section v-if="draft" class="flex min-w-0 flex-1 flex-col overflow-hidden bg-white"><header class="flex items-center gap-3 border-b border-stone-200 px-5 py-3"><div class="flex h-9 w-9 items-center justify-center rounded-lg bg-[#e8eaf8] text-[#5970e3]">▧</div><div><h2 class="text-base font-semibold text-stone-800">{{ draft.name }}</h2><p class="font-mono text-[11px] text-stone-400">{{ draft.key }}</p></div><button class="ml-auto rounded-lg bg-[#5970e3] px-4 py-1.5 text-sm font-medium text-white disabled:opacity-40" :disabled="!editable || isSubmitting" type="button" @click="save">Save</button></header>
+      <div class="flex border-b border-stone-200 px-5"><button v-for="entry in ['builder', 'info'] as const" :key="entry" class="-mb-px border-b-2 px-4 py-2.5 text-[13px] font-medium capitalize" :class="tab === entry ? 'border-[#5970e3] text-[#5970e3]' : 'border-transparent text-stone-500'" type="button" @click="tab = entry">{{ entry }}</button></div>
+      <p v-if="!editable" class="border-b border-amber-100 bg-amber-50 px-5 py-2 text-xs text-amber-800">The Item template is source-controlled. Define author fields on a Page or other derived template.</p>
+      <div v-if="tab === 'builder'" class="flex-1 overflow-y-auto"><div class="flex items-center border-b border-stone-100 px-5 py-3"><div><h3 class="text-sm font-semibold text-stone-700">Local sections</h3><p class="text-[11px] text-stone-400">Fields defined by this template.</p></div><button class="ml-auto text-sm font-medium text-[#5970e3] disabled:opacity-40" :disabled="!editable" type="button" @click="addSection">+ Section</button></div><section v-for="(section, si) in draft.sections" :key="`${section.key}-${si}`" class="border-b border-stone-100"><div class="flex gap-2 bg-stone-50 px-5 py-2.5"><input v-model="section.name" class="min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none" :disabled="!editable" @input="section.key = keyFor(section.name)"><span class="font-mono text-[10px] text-stone-400">{{ section.key }}</span><button class="text-xs text-rose-500" :disabled="!editable" type="button" @click="draft.sections.splice(si, 1)">Remove</button></div><div v-for="(field, fi) in section.fields" :key="`${field.key}-${fi}`" class="grid gap-2 border-b border-stone-50 px-5 py-2 md:grid-cols-[1fr_10rem_1fr_auto]"><input v-model="field.name" class="rounded border border-stone-200 px-2 py-1 text-xs" :disabled="!editable" @input="field.key = keyFor(field.name)"><select v-model="field.type" class="rounded border border-stone-200 px-2 py-1 text-xs" :disabled="!editable"><option v-for="type in availableFieldTypes" :key="type.value" :value="type.value">{{ type.label }}</option></select><span class="font-mono text-[10px] leading-7 text-stone-400">{{ field.key }}</span><button class="text-xs text-rose-500" :disabled="!editable" type="button" @click="section.fields.splice(fi, 1)">Remove</button></div><button class="px-5 py-2 text-xs font-medium text-[#5970e3] disabled:opacity-40" :disabled="!editable" type="button" @click="addField(section)">+ Field</button></section></div>
+      <div v-else class="flex-1 overflow-y-auto">
+        <section class="border-b border-stone-100 bg-[#faf9f7]"><div class="border-b border-stone-200 px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#5970e3]">Template details</div><div class="grid grid-cols-2 divide-x divide-y divide-stone-100"><div class="px-5 py-3"><p class="text-[9px] font-bold uppercase tracking-[0.12em] text-stone-400">Name</p><p class="mt-1 text-[12px] text-stone-600">{{ draft.name }}</p></div><div class="px-5 py-3"><p class="text-[9px] font-bold uppercase tracking-[0.12em] text-stone-400">Template key</p><p class="mt-1 font-mono text-[12px] text-stone-600">{{ draft.key }}</p></div><div class="px-5 py-3"><p class="text-[9px] font-bold uppercase tracking-[0.12em] text-stone-400">Icon</p><select v-model="draft.icon" class="mt-1 w-full rounded border border-stone-200 bg-white px-2 py-1 text-xs" :disabled="!editable"><option v-for="icon in ALL_ICONS" :key="icon" :value="icon">{{ ICON_LABELS[icon] }}</option></select></div><div class="px-5 py-3"><p class="text-[9px] font-bold uppercase tracking-[0.12em] text-stone-400">Local structure</p><p class="mt-1 text-[12px] text-stone-600">{{ draft.sections.length }} sections, {{ localFieldCount }} fields</p></div></div></section>
+        <section class="border-b border-stone-100 px-6 py-5"><h3 class="text-[10px] font-bold uppercase tracking-widest text-stone-400">Inheritance</h3><p class="mb-4 mt-1 text-[11px] text-stone-400">Choose base templates in precedence order. Later bases override earlier bases; local fields always win.</p><div class="flex gap-3"><div class="flex-1 overflow-hidden rounded-lg ring-1 ring-stone-200"><p class="border-b border-stone-100 bg-stone-50 px-3 py-2 text-[9px] font-bold uppercase tracking-wider text-stone-400">Available templates</p><button v-for="option in availableBases" :key="option.value" class="flex w-full items-center gap-2 border-b border-stone-50 px-3 py-2 text-left text-[12px] text-stone-700 hover:bg-[#f0f0fd] disabled:opacity-40" :disabled="!editable" type="button" @click="addBase(option.value)"><span class="flex-1 truncate">{{ option.label }}</span><span class="text-[#5970e3]">+</span></button><p v-if="availableBases.length === 0" class="px-3 py-4 text-center text-[11px] italic text-stone-400">All templates are selected.</p></div><div class="flex-1 overflow-hidden rounded-lg ring-1 ring-stone-200"><p class="border-b border-stone-100 bg-stone-50 px-3 py-2 text-[9px] font-bold uppercase tracking-wider text-stone-400">Base order <span class="float-right normal-case italic font-normal">Later overrides earlier</span></p><div v-for="(base, index) in selectedBases" :key="base.id" class="flex items-center gap-2 border-b border-stone-50 px-3 py-2 text-[12px]"><span class="w-4 text-center text-stone-300">{{ index + 1 }}</span><span class="flex-1 truncate text-stone-700">{{ base.name }}</span><button type="button" class="text-stone-400 disabled:opacity-20" :disabled="!editable || index === 0" @click="moveBase(index, -1)">↑</button><button type="button" class="text-stone-400 disabled:opacity-20" :disabled="!editable || index === selectedBases.length - 1" @click="moveBase(index, 1)">↓</button><button type="button" class="text-rose-400 disabled:opacity-20" :disabled="!editable" @click="removeBase(base.id)">×</button></div><p v-if="selectedBases.length === 0" class="px-3 py-4 text-center text-[11px] italic text-stone-400">No base templates selected.</p></div></div></section>
       </div>
-      <div v-else class="flex flex-1 items-center justify-center text-sm text-stone-400">Select a template to inspect it.</div>
-
-      <div v-if="selectedTemplate" class="flex-1 overflow-y-auto">
-        <section class="border-b border-stone-200 p-4">
-          <h3 class="text-xs font-semibold text-stone-700">Base templates</h3>
-          <p class="mb-3 mt-1 text-[11px] text-stone-400">Choose templates in precedence order. Local sections and fields override all inherited definitions.</p>
-          <MultilistWithSearchField
-            :available="baseTemplateOptions()"
-            :model-value="selectedTemplate.baseTemplates.map(template => template.id)"
-            :readonly="isSubmitting"
-            @update:model-value="emit('updateBaseTemplateIds', $event)"
-          />
-        </section>
-        <section v-for="section in selectedTemplate.sections" :key="section.id" class="border-b border-stone-100">
-          <div class="flex items-center gap-2 bg-stone-50 px-4 py-2.5">
-            <span class="text-xs font-semibold text-stone-600">{{ section.name }}</span>
-            <span class="ml-auto text-[10px] text-stone-400">{{ section.fields.length }} fields</span>
-          </div>
-          <div v-for="field in section.fields" :key="field.id" class="flex items-center gap-3 border-b border-stone-50 px-4 py-2 last:border-0">
-            <span class="w-36 truncate font-mono text-[12px] font-medium text-stone-700">{{ field.name }}</span>
-            <span class="rounded bg-stone-100 px-1.5 py-px text-[9px] font-semibold uppercase tracking-wider text-stone-500">{{ scopeLabel(field) }}</span>
-            <span class="text-[11px] text-stone-400">{{ field.type }}</span>
-          </div>
-        </section>
-      </div>
-    </section>
+    </section><div v-else class="flex flex-1 items-center justify-center bg-white text-sm text-stone-400">Select a template to inspect it.</div>
   </div>
 </template>

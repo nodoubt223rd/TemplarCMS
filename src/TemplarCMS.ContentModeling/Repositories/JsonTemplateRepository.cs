@@ -27,6 +27,7 @@ public sealed class JsonTemplateRepository : ITemplateRepository
 
     private readonly JsonTemplateRepositoryOptions _options;
     private readonly IJsonTemplateMapper _mapper;
+    private readonly IReadOnlyDictionary<TemplateKey, TemplateDefinition> _builtInTemplates;
 
     /// <summary>
     /// Initializes a new instance of the
@@ -47,7 +48,8 @@ public sealed class JsonTemplateRepository : ITemplateRepository
     /// </exception>
     public JsonTemplateRepository(
         IOptions<JsonTemplateRepositoryOptions> options,
-        IJsonTemplateMapper mapper)
+        IJsonTemplateMapper mapper,
+        IBuiltInTemplateProvider? builtInTemplateProvider = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(mapper);
@@ -62,6 +64,11 @@ public sealed class JsonTemplateRepository : ITemplateRepository
 
         _options = options.Value;
         _mapper = mapper;
+        _builtInTemplates =
+            builtInTemplateProvider?
+                .GetTemplates()
+                .ToDictionary(template => template.Key)
+            ?? new Dictionary<TemplateKey, TemplateDefinition>();
     }
 
     /// <inheritdoc />
@@ -115,9 +122,12 @@ public sealed class JsonTemplateRepository : ITemplateRepository
         }
 
         var templatesByKey =
-            mappedTemplates.ToDictionary(
-                pair => pair.Template.Key,
-                pair => pair.Template);
+            new Dictionary<TemplateKey, TemplateDefinition>(_builtInTemplates);
+
+        foreach (var (_, template) in mappedTemplates)
+        {
+            templatesByKey[template.Key] = template;
+        }
 
         return mappedTemplates
             .Select(

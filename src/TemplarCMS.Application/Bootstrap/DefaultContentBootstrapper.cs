@@ -76,8 +76,13 @@ public sealed class DefaultContentBootstrapper : IDefaultContentBootstrapper
                 "About",
                 "about",
                 itemTemplate.Id,
-                home.Id,
+                content.Id,
                 cancellationToken);
+        await MoveLegacyAboutItemAsync(
+            about,
+            home.Id,
+            content.Id,
+            cancellationToken);
         var system =
             await EnsureItemAsync(
                 SystemSeedContentIds.SystemRoot,
@@ -244,6 +249,26 @@ public sealed class DefaultContentBootstrapper : IDefaultContentBootstrapper
             context,
             missingDefaults,
             cancellationToken);
+    }
+
+    private async Task MoveLegacyAboutItemAsync(
+        ContentItemDefinition about,
+        ContentItemId legacyParentId,
+        ContentItemId expectedParentId,
+        CancellationToken cancellationToken)
+    {
+        // Correct the one legacy starter-tree relationship without moving user-authored items.
+        if (about.Id != SystemSeedContentIds.About || about.ParentId != legacyParentId)
+        {
+            return;
+        }
+
+        await _contentItemService.MoveItemAsync(
+            about.Id,
+            expectedParentId,
+            cancellationToken);
+
+        _logger.LogInformation("Moved legacy starter item 'about' beneath Content.");
     }
 
     private async Task EnsureAboutFieldValuesAsync(
