@@ -609,7 +609,8 @@ public static class ContentLookupEndpoints
         Guid id,
         SetContentFieldValuesRequest? request,
         [FromServices] IContentItemService contentItemService,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        [FromServices] ILogger<ContentLookupEndpointLog>? logger = null)
     {
         ArgumentNullException.ThrowIfNull(contentItemService);
 
@@ -657,6 +658,12 @@ public static class ContentLookupEndpoints
         }
         catch (InvalidOperationException exception)
         {
+            logger?.LogWarning(
+                exception,
+                "Content field save failed for item {ContentItemId}. Fields: {FieldKeys}",
+                id,
+                string.Join(", ", request.Values.Keys.OrderBy(key => key, StringComparer.OrdinalIgnoreCase)));
+
             var statusCode =
                 exception.Message.Contains(
                     "was not found",
@@ -1285,6 +1292,8 @@ public static class ContentLookupEndpoints
 
         return branches;
     }
+
+    public sealed class ContentLookupEndpointLog;
 
     private static FieldValueResolutionContext CreateContext(
         string? lang,

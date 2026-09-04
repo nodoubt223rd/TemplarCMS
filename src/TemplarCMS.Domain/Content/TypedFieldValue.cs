@@ -117,6 +117,26 @@ public sealed class BooleanTypedFieldValue : TypedFieldValue
 }
 
 /// <summary>
+/// Represents a converted reference to an asset in the CMS media library.
+/// </summary>
+public sealed class ImageTypedFieldValue : TypedFieldValue
+{
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ImageTypedFieldValue" /> class.
+    /// </summary>
+    /// <param name="assetId">The referenced media asset identifier.</param>
+    public ImageTypedFieldValue(Guid assetId)
+    {
+        Value = assetId;
+    }
+
+    /// <summary>
+    /// Gets the referenced media asset identifier.
+    /// </summary>
+    public Guid Value { get; }
+}
+
+/// <summary>
 /// Represents a converted structured general link field value.
 /// </summary>
 public sealed class GeneralLinkTypedFieldValue : TypedFieldValue

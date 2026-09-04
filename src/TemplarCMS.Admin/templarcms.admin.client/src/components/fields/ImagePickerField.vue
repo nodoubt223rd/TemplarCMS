@@ -11,6 +11,19 @@ const searchRef = ref<HTMLInputElement | null>(null), listRef = ref<HTMLElement 
 const visibleAssets = computed(() => assets.value.filter(asset => `${asset.fileName} ${asset.title ?? ''} ${asset.altText ?? ''}`.toLowerCase().includes(search.value.toLowerCase().trim())))
 const selectedAsset = computed(() => assets.value.find(asset => asset.id === props.modelValue) ?? null)
 watch(open, value => { if (value) nextTick(() => searchRef.value?.focus()) })
+watch(
+  () => props.modelValue,
+  async assetId => {
+    if (!assetId || assets.value.some(asset => asset.id === assetId)) return
+
+    try {
+      assets.value = (await fetchJson<MediaAssetCollectionResponse>('/api/v1/media/assets')).assets
+    } catch {
+      // Keep the field usable when preview hydration is unavailable; Browse can retry the catalog request.
+    }
+  },
+  { immediate: true }
+)
 async function showPicker() { open.value = true; loading.value = true; error.value = null; loaded.value = new Set(); imageErrors.value = new Set(); try { assets.value = (await fetchJson<MediaAssetCollectionResponse>('/api/v1/media/assets')).assets; highlighted.value = props.modelValue || null } catch (caught) { error.value = caught instanceof Error ? caught.message : 'Media could not be loaded.' } finally { loading.value = false } }
 function confirm() { if (highlighted.value) emit('update:modelValue', highlighted.value); open.value = false }
 function onLoad(id: string) { loaded.value = new Set(loaded.value).add(id) }

@@ -557,6 +557,41 @@ async function updateSelectedTemplateBaseTemplates(templateIds: string[]) {
   }
 }
 
+async function saveSelectedTemplate(template: {
+  name: string
+  key: string
+  icon: string
+  baseTemplateKeys: string[]
+  sections: Array<{
+    name: string
+    key: string
+    sortOrder: number
+    fields: Array<{ name: string; key: string; type: string; isShared: boolean; isUnversioned: boolean }>
+  }>
+}) {
+  if (isSubmitting.value || selectedTemplateDetail.value == null) {
+    return
+  }
+
+  isSubmitting.value = true
+  pageError.value = null
+
+  try {
+    const response = await fetchJson<TemplateResponse>(
+      selectedTemplateDetail.value._links.self.href,
+      withJsonDefaults({ method: 'PUT', body: JSON.stringify(template) })
+    )
+
+    await loadTemplates()
+    selectedTemplateDetail.value = response
+    successMessage.value = `Updated template ${response.name}.`
+  } catch (error) {
+    pageError.value = getErrorMessage(error)
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
 async function applyMutationResponse(response: ContentMutationResponse) {
   for (const affected of response.affectedBranches) {
     if (shouldApplyWorkspaceBranch(affected.branch)) {
@@ -1193,6 +1228,7 @@ function countNodes(nodes: TreeNode[]): number {
     :selected-template-id="selectedTemplateId"
     :selected-template="selectedTemplateDetail"
     :is-loading-templates="isLoadingTemplates"
+    :available-field-types="availableFieldTypes"
     :page-error="pageError"
     :success-message="successMessage"
     @update:active-workspace="activeWorkspace = $event"
@@ -1210,6 +1246,7 @@ function countNodes(nodes: TreeNode[]): number {
     @select-template="selectTemplate"
     @update-template-icon="updateSelectedTemplateIcon"
     @update-template-base-template-ids="updateSelectedTemplateBaseTemplates"
+    @save-template="saveSelectedTemplate"
   />
 
   <div v-if="false" class="workspace-shell">

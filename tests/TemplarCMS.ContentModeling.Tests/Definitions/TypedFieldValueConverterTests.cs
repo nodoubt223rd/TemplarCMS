@@ -112,6 +112,20 @@ public sealed class TypedFieldValueConverterTests
             converted.Value);
     }
 
+    [Fact]
+    public void Convert_ReturnsImageReference_ForImageField()
+    {
+        var assetId = Guid.NewGuid();
+        var field = CreateField(FieldType.Image, "hero-image");
+        var value = CreateValue(assetId.ToString(), "hero-image");
+
+        var result = _converter.Convert(field, value);
+
+        Assert.True(result.Succeeded);
+        var converted = Assert.IsType<ImageTypedFieldValue>(result.Value!.Value);
+        Assert.Equal(assetId, converted.Value);
+    }
+
     [Theory]
     [InlineData("true", true)]
     [InlineData("False", false)]
@@ -209,6 +223,20 @@ public sealed class TypedFieldValueConverterTests
         var error = Assert.Single(result.Errors);
         Assert.Equal("InvalidDateTimeFieldValue", error.Code);
         Assert.Equal("publish-on", error.Target);
+    }
+
+    [Fact]
+    public void Convert_ReturnsValidationError_WhenImageValueIsInvalid()
+    {
+        var field = CreateField(FieldType.Image, "hero-image");
+        var value = CreateValue("not-an-asset-id", "hero-image");
+
+        var result = _converter.Convert(field, value);
+
+        Assert.False(result.IsValid);
+        var error = Assert.Single(result.Errors);
+        Assert.Equal("InvalidImageFieldValue", error.Code);
+        Assert.Equal("hero-image", error.Target);
     }
 
     [Fact]

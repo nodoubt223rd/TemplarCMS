@@ -117,6 +117,37 @@ public sealed class JsonTemplateRepositoryTests
     }
 
     [Fact]
+    public async Task GetTemplatesAsync_ShouldResolveBuiltInBaseTemplate()
+    {
+        using var directory = new TemporaryDirectory();
+
+        CreateTemplateFile(
+            directory.Path,
+            "page.json",
+            "Page",
+            "page",
+            ["item"]);
+
+        _mapper
+            .Map(Arg.Any<JsonTemplateDefinition>())
+            .Returns(new TemplateDefinition(
+                new TemplateId(Guid.NewGuid()),
+                "Page",
+                new TemplateKey("page")));
+
+        var repository = CreateRepository(
+            directory.Path,
+            new BuiltInTemplateProvider());
+
+        var template = Assert.Single(
+            await repository.GetTemplatesAsync(
+                TestContext.Current.CancellationToken));
+
+        var baseTemplate = Assert.Single(template.BaseTemplates);
+        Assert.Equal(BuiltInTemplateKeys.Item, baseTemplate.Key);
+    }
+
+    [Fact]
     public async Task GetTemplatesAsync_ShouldLoadTemplatesInDeterministicOrder()
     {
         using var directory = new TemporaryDirectory();
@@ -634,7 +665,8 @@ public sealed class JsonTemplateRepositoryTests
     }
 
     private JsonTemplateRepository CreateRepository(
-        string templatesPath)
+        string templatesPath,
+        IBuiltInTemplateProvider? builtInTemplateProvider = null)
     {
         var options =
             Options.Create(new JsonTemplateRepositoryOptions
@@ -644,7 +676,8 @@ public sealed class JsonTemplateRepositoryTests
 
         return new JsonTemplateRepository(
             options,
-            _mapper);
+            _mapper,
+            builtInTemplateProvider);
     }
 
     private static void CreateTemplateFile(

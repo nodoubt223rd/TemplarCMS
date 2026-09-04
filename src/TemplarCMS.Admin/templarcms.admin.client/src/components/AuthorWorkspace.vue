@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import TopBar from './layout/TopBar.vue'
 import NavRail from './layout/NavRail.vue'
 import StatusBar from './layout/StatusBar.vue'
@@ -7,7 +7,9 @@ import ContentTree from './tree/ContentTree.vue'
 import ContentEditor from './editor/ContentEditor.vue'
 import TemplateDesigner from './templates/TemplateDesigner.vue'
 import ActionSidebar from './sidebar/ActionSidebar.vue'
-import type { ContentItemDependencyResponse, ContentItemResponse, TemplateResponse, TemplateSummaryResponse } from '@/types/admin-api'
+import ToastContainer from './ui/ToastContainer.vue'
+import { useToast } from '@/composables/useToast'
+import type { ContentItemDependencyResponse, ContentItemResponse, FieldTypeResponse, TemplateResponse, TemplateSummaryResponse } from '@/types/admin-api'
 import type { EditorFieldModel, TreeNode } from '@/types/admin-ui'
 
 type Workspace = 'content' | 'templates' | 'media' | 'system'
@@ -31,12 +33,33 @@ const props = defineProps<{
   selectedTemplateId: string | null
   selectedTemplate: TemplateResponse | null
   isLoadingTemplates: boolean
+  availableFieldTypes: FieldTypeResponse[]
   pageError: string | null
   successMessage: string | null
 }>()
 
 const templateIcons = computed(() =>
   Object.fromEntries(props.templates.map(template => [template.id, template.icon ?? 'file'])))
+
+const toast = useToast()
+
+watch(
+  () => props.pageError,
+  message => {
+    if (message != null) {
+      toast.error('Unable to complete the request', message)
+    }
+  }
+)
+
+watch(
+  () => props.successMessage,
+  message => {
+    if (message != null) {
+      toast.success('Changes saved', message)
+    }
+  }
+)
 
 const emit = defineEmits<{
   'update:activeWorkspace': [workspace: Workspace]
@@ -54,7 +77,21 @@ const emit = defineEmits<{
   selectTemplate: [templateId: string]
   updateTemplateIcon: [icon: string]
   updateTemplateBaseTemplateIds: [templateIds: string[]]
+  saveTemplate: [template: TemplateSaveRequest]
 }>()
+
+type TemplateSaveRequest = {
+  name: string
+  key: string
+  icon: string
+  baseTemplateKeys: string[]
+  sections: Array<{
+    name: string
+    key: string
+    sortOrder: number
+    fields: Array<{ name: string; key: string; type: string; isShared: boolean; isUnversioned: boolean }>
+  }>
+}
 </script>
 
 <template>
@@ -109,17 +146,18 @@ const emit = defineEmits<{
           :selected-template="selectedTemplate"
           :is-loading="isLoadingTemplates"
           :is-submitting="isSubmitting"
+          :available-field-types="availableFieldTypes"
           @select="emit('selectTemplate', $event)"
           @update-icon="emit('updateTemplateIcon', $event)"
           @update-base-template-ids="emit('updateTemplateBaseTemplateIds', $event)"
+          @save-template="emit('saveTemplate', $event)"
         />
         <section v-else class="flex flex-1 items-center justify-center text-sm text-stone-400">
           {{ activeWorkspace === 'media' ? 'Media authoring is not available yet.' : 'System authoring is not available yet.' }}
         </section>
       </main>
     </div>
-    <div v-if="pageError" class="absolute bottom-10 left-4 rounded bg-rose-50 px-3 py-2 text-xs text-rose-700 shadow">{{ pageError }}</div>
-    <div v-if="successMessage" class="absolute bottom-10 left-4 rounded bg-emerald-50 px-3 py-2 text-xs text-emerald-700 shadow">{{ successMessage }}</div>
+    <ToastContainer />
     <StatusBar :selected-item="selectedItem" />
   </div>
 </template>
