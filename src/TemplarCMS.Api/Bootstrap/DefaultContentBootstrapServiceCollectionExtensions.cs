@@ -38,6 +38,8 @@ internal static class DefaultContentBootstrapServiceCollectionExtensions
             $"Data Source={Path.Combine(runtimeDataPath, "templarcms.db")}";
         var configuredTemplatesPath =
             configuration["Templates:TemplatesPath"];
+        var configuredDatabaseProvider =
+            configuration["Persistence:Provider"];
         var templatesPath =
             Path.GetFullPath(
                 string.IsNullOrWhiteSpace(configuredTemplatesPath)
@@ -46,8 +48,11 @@ internal static class DefaultContentBootstrapServiceCollectionExtensions
 
         services.AddDbContext<TemplarCmsDbContext>(
             options =>
-                options.UseSqlite(
-                    configuration.GetConnectionString("TemplarCms") ?? defaultConnectionString));
+                ConfigureDatabaseProvider(
+                    options,
+                    configuredDatabaseProvider,
+                    configuration.GetConnectionString("TemplarCms"),
+                    defaultConnectionString));
 
         services.AddSingleton<IBuiltInTemplateProvider, BuiltInTemplateProvider>();
         services.AddSingleton<IJsonTemplateMapper, JsonTemplateMapper>();
@@ -84,5 +89,39 @@ internal static class DefaultContentBootstrapServiceCollectionExtensions
         services.AddHostedService<DefaultContentBootstrapHostedService>();
 
         return services;
+    }
+
+    private static void ConfigureDatabaseProvider(
+        DbContextOptionsBuilder options,
+        string? configuredProvider,
+        string? configuredConnectionString,
+        string defaultSqliteConnectionString)
+    {
+        var provider =
+            string.IsNullOrWhiteSpace(configuredProvider)
+                ? "Sqlite"
+                : configuredProvider.Trim();
+
+        if (string.Equals(provider, "Sqlite", StringComparison.OrdinalIgnoreCase))
+        {
+            options.UseSqlite(
+                configuredConnectionString ?? defaultSqliteConnectionString);
+            return;
+        }
+
+        if (string.Equals(provider, "SqlServer", StringComparison.OrdinalIgnoreCase))
+        {
+            if (string.IsNullOrWhiteSpace(configuredConnectionString))
+            {
+                throw new InvalidOperationException(
+                    "ConnectionStrings:TemplarCms must be configured when Persistence:Provider is SqlServer.");
+            }
+
+            options.UseSqlServer(configuredConnectionString);
+            return;
+        }
+
+        throw new InvalidOperationException(
+            $"Persistence provider '{provider}' is not supported. Use 'Sqlite' or 'SqlServer'.");
     }
 }
