@@ -51,6 +51,7 @@ Use this file as the quick-start memory for coding sessions in this repo. Keep i
 - OpenAPI routes are enabled by default through the API app settings: `/openapi` and `/openapi/v1.json`.
 - Authoring security is a lightweight API key gate for write endpoints and is controlled by the `AuthoringSecurity` configuration section.
 - The Vue admin client consumes server field-type metadata for both content editing and template design.
+- Persistence defaults to SQLite; set `Persistence:Provider` to `SqlServer` with an external `TemplarCms` connection string after applying `database/sqlserver/001-initial-schema.sql`.
 
 ## Memory Hygiene
 

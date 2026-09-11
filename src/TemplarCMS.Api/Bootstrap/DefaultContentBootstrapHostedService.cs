@@ -35,18 +35,37 @@ public sealed class DefaultContentBootstrapHostedService : IHostedService
             scope.ServiceProvider.GetRequiredService<IDefaultContentBootstrapper>();
         var templateRepositoryOptions =
             scope.ServiceProvider.GetRequiredService<IOptions<JsonTemplateRepositoryOptions>>();
+        var isSqlite = dbContext.Database.IsSqlite();
+        var databaseTarget =
+            isSqlite
+                ? GetSqliteDataSourcePath(dbContext.Database.GetConnectionString())
+                : dbContext.Database.GetDbConnection().Database;
+        var templatesPath = templateRepositoryOptions.Value.TemplatesPath;
 
-        EnsureParentDirectoryExists(
-            GetSqliteDataSourcePath(
-                dbContext.Database.GetConnectionString()));
-        Directory.CreateDirectory(templateRepositoryOptions.Value.TemplatesPath);
+        _logger.LogInformation(
+            "Initializing CMS runtime with provider {DatabaseProvider}, database {DatabaseTarget}, and templates directory {TemplatesPath}.",
+            dbContext.Database.ProviderName,
+            databaseTarget,
+            templatesPath);
+
+        if (isSqlite)
+        {
+            EnsureParentDirectoryExists(databaseTarget);
+        }
+
+        Directory.CreateDirectory(templatesPath);
 
         await dbContext.Database.EnsureCreatedAsync(cancellationToken);
-        await EnsureContentItemIconColumnAsync(dbContext, cancellationToken);
-        await EnsureMediaAssetsTableAsync(dbContext, cancellationToken);
+
+        if (isSqlite)
+        {
+            await EnsureContentItemIconColumnAsync(dbContext, cancellationToken);
+            await EnsureMediaAssetsTableAsync(dbContext, cancellationToken);
+        }
+
         await bootstrapper.EnsureInitializedAsync(cancellationToken);
 
-        _logger.LogInformation("Default CMS content bootstrap completed.");
+        _logger.LogInformation("CMS runtime initialization completed successfully.");
     }
 
     public Task StopAsync(

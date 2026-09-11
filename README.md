@@ -191,6 +191,48 @@ Quick IIS-hosted smoke-test targets:
 - `https://templarcms.api/openapi`
 - `https://templarcms.api/openapi/v1.json`
 - `https://templarcms.api/api/v1/field-types`
+- `https://templarcms.api/health`
+
+### Runtime Diagnostics
+
+Every API response includes an `X-Correlation-ID` header. Supply a safe value
+containing only letters, digits, `.`, `_`, or `-` to trace a request through
+the structured request-completion logs; the API generates a new value for
+missing or unsafe headers. Request logs intentionally record the method, path,
+status code, duration, and correlation ID, never request bodies or query data.
+
+The API writes JSON logs to standard output. For normal IIS operation, leave
+`stdoutLogEnabled="false"` in the deployed `web.config`. When diagnosing an
+IIS startup failure, temporarily set it to `true`, make sure the app-pool
+identity can write to the deployed `logs` directory, recycle the pool, and
+inspect `logs\stdout*`. Turn it back off after capturing the failure; stdout
+files do not rotate automatically. Also check Windows Event Viewer > Windows
+Logs > Application for ASP.NET Core Module and application-hosting errors.
+
+`/health` is an anonymous liveness endpoint. It confirms that the API process
+is running; the startup bootstrap performs the SQLite and template-directory
+initialization before the application begins serving requests.
+
+### SQL Server Deployment
+
+SQLite remains the default local runtime store. To run against SQL Server,
+create the database with
+[001-initial-schema.sql](database/sqlserver/001-initial-schema.sql), then set
+the provider and connection string outside source control:
+
+```json
+"Persistence": {
+  "Provider": "SqlServer"
+},
+"ConnectionStrings": {
+  "TemplarCms": "Server=YOUR_SERVER;Database=TemplarCMS;Integrated Security=True;TrustServerCertificate=True"
+}
+```
+
+The startup bootstrap remains responsible for source-controlled templates and
+starter content after the schema exists. It does not migrate an existing
+SQLite `RuntimeData` database into SQL Server; schedule that data migration as
+a separate, reviewed cutover.
 
 ## Authoring Security
 

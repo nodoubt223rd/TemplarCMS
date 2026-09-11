@@ -28,7 +28,9 @@ public sealed class TemplarCmsDbContext : DbContext
         item.ToTable("ContentItems");
         item.HasKey(value => value.Id);
         item.Property(value => value.Name).IsRequired();
-        item.Property(value => value.Key).IsRequired();
+        item.Property(value => value.Key)
+            .HasMaxLength(450)
+            .IsRequired();
         item.HasIndex(value => value.TemplateId);
         item.HasIndex(value => new { value.ParentId, value.Key }).IsUnique();
 
@@ -43,7 +45,9 @@ public sealed class TemplarCmsDbContext : DbContext
         fieldValue.ToTable("ContentFieldValues");
         fieldValue.HasKey(value => value.Id);
         fieldValue.Property(value => value.FieldKey).IsRequired();
-        fieldValue.Property(value => value.Language).IsRequired();
+        fieldValue.Property(value => value.Language)
+            .HasMaxLength(450)
+            .IsRequired();
         fieldValue.HasIndex(
             value => new
             {

@@ -2,6 +2,7 @@ using Microsoft.OpenApi.Models;
 using TemplarCMS.Api;
 using TemplarCMS.Api.Bootstrap;
 using TemplarCMS.Api.Content;
+using TemplarCMS.Api.Observability;
 using TemplarCMS.Api.Security;
 using TemplarCMS.Api.Templates;
 using TemplarCMS.Api.Media;
@@ -15,6 +16,7 @@ var authoringSecurityHeaderName =
     ?? "X-Templar-Api-Key";
 
 builder.Services.AddProblemDetails();
+builder.Services.AddHealthChecks();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(
     options =>
@@ -46,6 +48,7 @@ builder.Services.AddTemplarCmsRuntime(
 var app = builder.Build();
 
 app.UseExceptionHandler();
+app.UseTemplarRequestObservability();
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -65,6 +68,10 @@ if (openApiEnabled)
 }
 
 app.MapApiRootEndpoints(openApiEnabled);
+app.MapHealthChecks("/health")
+    .WithName("GetHealth")
+    .WithTags("Operations")
+    .AllowAnonymous();
 app.MapContentLookupEndpoints();
 app.MapFieldTypeEndpoints();
 app.MapTemplateEndpoints();
