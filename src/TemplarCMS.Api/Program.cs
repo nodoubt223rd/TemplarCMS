@@ -76,6 +76,7 @@ app.MapContentLookupEndpoints();
 app.MapFieldTypeEndpoints();
 app.MapTemplateEndpoints();
 app.MapMediaEndpoints();
+app.MapUserDirectoryEndpoints();
 app.MapSwaggerUiAssetFallback();
 
 app.Run();

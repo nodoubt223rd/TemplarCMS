@@ -73,6 +73,8 @@ internal static class DefaultContentBootstrapServiceCollectionExtensions
         services.AddSingleton<IContentModelCatalog, ContentModelCatalog>();
 
         services.AddScoped<IContentRepository, EfContentRepository>();
+        services.AddScoped<TemplarCMS.Abstractions.Security.IUserDirectoryRepository,
+            TemplarCMS.Persistence.Security.EfUserDirectoryRepository>();
         services.AddScoped<IMediaAssetRepository, EfMediaAssetRepository>();
         services.AddScoped<IMediaAssetService, MediaAssetService>();
         services.AddSingleton<IMediaFileStore>(_ => new DirectoryMediaFileStore(Path.Combine(runtimeDataPath, "Media")));

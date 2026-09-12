@@ -25,6 +25,10 @@ public static class AuthoringSecurityServiceCollectionExtensions
         services.AddAuthorization(
             options =>
             {
+                options.AddPolicy(UserDirectoryEndpoints.Policy, policy => policy
+                    .AddAuthenticationSchemes(ApiKeyAuthenticationDefaults.SchemeName)
+                    .RequireAuthenticatedUser()
+                    .RequireRole(ApiAuthorizationPolicies.AuthorContent));
                 options.AddPolicy(
                     ApiAuthorizationPolicies.AuthorContent,
                     policy =>
