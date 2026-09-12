@@ -61,6 +61,17 @@ public sealed class DefaultContentBootstrapHostedService : IHostedService
         {
             await EnsureContentItemIconColumnAsync(dbContext, cancellationToken);
             await EnsureMediaAssetsTableAsync(dbContext, cancellationToken);
+            await dbContext.Database.ExecuteSqlRawAsync("""
+                CREATE TABLE IF NOT EXISTS DirectoryUsers (
+                    Id TEXT NOT NULL PRIMARY KEY,
+                    FirstName TEXT NOT NULL, LastName TEXT NOT NULL,
+                    Email TEXT NOT NULL, NormalizedEmail TEXT NOT NULL,
+                    Language TEXT NOT NULL, Status TEXT NOT NULL, RolesJson TEXT NOT NULL,
+                    CreatedAt TEXT NOT NULL, LastLogin TEXT NULL, Revision TEXT NOT NULL
+                );
+                CREATE UNIQUE INDEX IF NOT EXISTS IX_DirectoryUsers_NormalizedEmail
+                    ON DirectoryUsers (NormalizedEmail);
+                """, cancellationToken);
         }
 
         await bootstrapper.EnsureInitializedAsync(cancellationToken);

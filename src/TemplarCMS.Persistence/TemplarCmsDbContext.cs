@@ -19,9 +19,22 @@ public sealed class TemplarCmsDbContext : DbContext
 
     public DbSet<PersistenceContentFieldValue> ContentFieldValues => Set<PersistenceContentFieldValue>();
     public DbSet<PersistenceMediaAsset> MediaAssets => Set<PersistenceMediaAsset>();
+    public DbSet<Security.DirectoryUserRow> DirectoryUsers => Set<Security.DirectoryUserRow>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        var user = modelBuilder.Entity<Security.DirectoryUserRow>();
+        user.ToTable("DirectoryUsers");
+        user.HasKey(u => u.Id);
+        user.Property(u => u.FirstName).HasMaxLength(100).IsRequired();
+        user.Property(u => u.LastName).HasMaxLength(100).IsRequired();
+        user.Property(u => u.Email).HasMaxLength(254).IsRequired();
+        user.Property(u => u.NormalizedEmail).HasMaxLength(254).IsRequired();
+        user.HasIndex(u => u.NormalizedEmail).IsUnique();
+        user.Property(u => u.Language).HasMaxLength(35).IsRequired();
+        user.Property(u => u.Status).HasMaxLength(20).IsRequired();
+        user.Property(u => u.RolesJson).IsRequired();
+        user.Property(u => u.Revision).IsConcurrencyToken();
         var item =
             modelBuilder.Entity<PersistenceContentItem>();
 

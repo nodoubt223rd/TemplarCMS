@@ -2,6 +2,7 @@
 import { computed, watch } from 'vue'
 import TopBar from './layout/TopBar.vue'
 import NavRail from './layout/NavRail.vue'
+import UserDirectory from './security/UserDirectory.vue'
 import StatusBar from './layout/StatusBar.vue'
 import ContentTree from './tree/ContentTree.vue'
 import ContentEditor from './editor/ContentEditor.vue'
@@ -152,6 +153,7 @@ type TemplateSaveRequest = {
           @update-base-template-ids="emit('updateTemplateBaseTemplateIds', $event)"
           @save-template="emit('saveTemplate', $event)"
         />
+        <UserDirectory v-else-if="activeWorkspace === 'system'" />
         <section v-else class="flex flex-1 items-center justify-center text-sm text-stone-400">
           {{ activeWorkspace === 'media' ? 'Media authoring is not available yet.' : 'System authoring is not available yet.' }}
         </section>

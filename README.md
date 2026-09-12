@@ -236,6 +236,23 @@ a separate, reviewed cutover.
 
 ## Authoring Security
 
+### User Directory Preview
+
+The System workspace now supports persistent user profiles and the fixed role
+catalog. Enable `UserDirectory:Enabled` and `AuthoringSecurity:Enabled`, configure
+the operator API key outside source control, and connect from the System screen.
+Every directory read and write requires authentication, including when ordinary
+authoring security is disabled. The feature defaults to disabled.
+
+For existing SQL Server databases apply
+[002-user-directory.sql](database/sqlserver/002-user-directory.sql) first.
+SQLite adds the directory table during bootstrap. No demo accounts are seeded.
+
+"Add pending user" stores an Invited record; it does not send email or enable
+login. Roles are stored assignments only. Status transitions, invitation delivery,
+credentials, and production identity remain deferred. See the
+[directory boundary](docs/decisions/ADR-0007-user-directory-foundation.md).
+
 Write endpoints now support a first-pass authoring security model that can be
 enabled for Postman and shared test instances.
 
