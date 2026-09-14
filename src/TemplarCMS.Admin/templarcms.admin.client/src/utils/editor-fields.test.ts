@@ -9,6 +9,21 @@ import {
 } from './editor-fields'
 
 describe('editor field utilities', () => {
+  it('shows newly added template fields on existing items without overwriting unsaved values', () => {
+    const form = { title: 'Unsaved author text' }
+    const fields = [
+      createTemplateField({ key: 'title', name: 'Title', sectionName: 'Content' }),
+      createTemplateField({ key: 'summary', name: 'Summary', sectionName: 'New section' }),
+      createTemplateField({ key: '__internal', metadata: { 'templar.visibility': 'system' } })
+    ]
+    const result = buildEditorFields(form, fields, new Map())
+    expect(result).toEqual([
+      expect.objectContaining({ key: 'summary', sectionName: 'New section', value: '' }),
+      expect.objectContaining({ key: 'title', value: 'Unsaved author text' })
+    ])
+    expect(form).toEqual({ title: 'Unsaved author text' })
+    expect(buildEditorFields({}, fields, new Map())).toHaveLength(2)
+  })
   const fieldTypes: FieldTypeResponse[] = [
     {
       value: 'SingleLineText',

@@ -33,6 +33,8 @@ public sealed class ContentItemDefinition
                 nameof(parentId));
         }
 
+        AuthoringLimits.Check(name, AuthoringLimits.Name, nameof(name));
+        AuthoringLimits.Check(icon, AuthoringLimits.Icon, nameof(icon));
         Id = id;
         Name = name.Trim();
         Key = key;

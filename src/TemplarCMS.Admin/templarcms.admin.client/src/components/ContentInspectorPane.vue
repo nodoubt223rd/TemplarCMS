@@ -224,6 +224,7 @@ function readCheckedValue(event: Event): boolean {
             <span>Name</span>
             <input
               :value="renameName"
+              maxlength="255"
               type="text"
               required
               @input="emit('updateRenameName', readTextValue($event))"

@@ -17,5 +17,8 @@ public sealed class PersistenceContentItem
 
     public string? Icon { get; set; }
 
+    public DateTimeOffset CreatedUtc { get; set; }
+    public DateTimeOffset ModifiedUtc { get; set; }
+
     public List<PersistenceContentFieldValue> FieldValues { get; set; } = new();
 }

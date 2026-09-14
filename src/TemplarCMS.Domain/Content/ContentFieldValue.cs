@@ -27,6 +27,7 @@ public sealed class ContentFieldValue
             throw new ArgumentException("Field key is required.", nameof(fieldKey));
         }
 
+        AuthoringLimits.Check(fieldKey, AuthoringLimits.FieldKey, nameof(fieldKey));
         ItemId = itemId;
         FieldId = fieldId;
         FieldKey = fieldKey.Trim();

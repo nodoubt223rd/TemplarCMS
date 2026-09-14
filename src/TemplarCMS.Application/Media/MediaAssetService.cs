@@ -26,6 +26,10 @@ public sealed class MediaAssetService : IMediaAssetService
     {
         if (!AllowedTypes.TryGetValue(contentType, out var extension)) throw new ArgumentException("Only JPEG, PNG, GIF, and WebP images are supported.", nameof(contentType));
         if (length <= 0) throw new ArgumentException("The uploaded file is empty.", nameof(length));
+        AuthoringLimits.Check(Path.GetFileName(fileName), AuthoringLimits.FileName, nameof(fileName));
+        AuthoringLimits.Check(contentType, AuthoringLimits.ContentType, nameof(contentType));
+        AuthoringLimits.Check(altText, AuthoringLimits.AltText, nameof(altText));
+        AuthoringLimits.Check(title, AuthoringLimits.Title, nameof(title));
         var id = Guid.NewGuid();
         var asset = new MediaAsset(id, folderId, Path.GetFileName(fileName), id + extension, contentType, length, altText?.Trim(), title?.Trim(), DateTimeOffset.UtcNow);
         await _fileStore.SaveAsync(asset.StoredFileName, content, cancellationToken);
