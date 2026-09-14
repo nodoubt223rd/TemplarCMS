@@ -55,11 +55,18 @@ public sealed class DefaultContentBootstrapHostedService : IHostedService
 
         Directory.CreateDirectory(templatesPath);
 
-        await dbContext.Database.EnsureCreatedAsync(cancellationToken);
+        if (isSqlite) await dbContext.Database.EnsureCreatedAsync(cancellationToken);
+        else await SqlServerSchemaVerifier.VerifyAsync(dbContext, cancellationToken);
 
         if (isSqlite)
         {
             await EnsureContentItemIconColumnAsync(dbContext, cancellationToken);
+            var itemColumns = await dbContext.Database.SqlQueryRaw<string>("SELECT name AS Value FROM pragma_table_info('ContentItems')").ToListAsync(cancellationToken);
+            // Legacy rows have unknown creation/modification times; do not invent historical dates.
+            if (!itemColumns.Contains("CreatedUtc"))
+                await dbContext.Database.ExecuteSqlRawAsync("ALTER TABLE ContentItems ADD COLUMN CreatedUtc TEXT NOT NULL DEFAULT '0001-01-01 00:00:00+00:00'", cancellationToken);
+            if (!itemColumns.Contains("ModifiedUtc"))
+                await dbContext.Database.ExecuteSqlRawAsync("ALTER TABLE ContentItems ADD COLUMN ModifiedUtc TEXT NOT NULL DEFAULT '0001-01-01 00:00:00+00:00'", cancellationToken);
             await EnsureMediaAssetsTableAsync(dbContext, cancellationToken);
             await dbContext.Database.ExecuteSqlRawAsync("""
                 CREATE TABLE IF NOT EXISTS DirectoryUsers (

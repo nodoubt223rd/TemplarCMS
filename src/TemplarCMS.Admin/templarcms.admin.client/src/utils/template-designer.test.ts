@@ -32,6 +32,14 @@ import {
 } from './template-designer-state'
 
 describe('template designer utilities', () => {
+  it('rejects field keys beyond the SQL product bound', () => {
+    const state = createNewTemplateDesignerState('')
+    const field = state.sections[0]!.fields[0]!
+    field.key = 'k'.repeat(450)
+    expect(validateTemplateDesignerState(state.form, state.sections, ['SingleLineText'], null).some(e => e.includes('450'))).toBe(false)
+    field.key += 'k'
+    expect(validateTemplateDesignerState(state.form, state.sections, ['SingleLineText'], null)).toContain('Field keys must not exceed 450 UTF-16 characters.')
+  })
   it('creates a new designer state with one empty section and field', () => {
     const ids = ['section-1', 'field-1']
     const state = createNewTemplateDesignerState('', () => ids.shift() ?? 'fallback')

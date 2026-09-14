@@ -36,6 +36,7 @@ public sealed class FieldDefinition
             throw new ArgumentException("Field key is required.", nameof(key));
         }
 
+        AuthoringLimits.Check(key, AuthoringLimits.FieldKey, nameof(key));
         Id = id;
         Name = name.Trim();
         Key = key.Trim();

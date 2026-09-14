@@ -42,6 +42,26 @@ public sealed class MediaAssetServiceTests
             SystemSeedContentIds.Images, "unsafe.svg", "image/svg+xml", content, content.Length, null, null, TestContext.Current.CancellationToken));
     }
 
+    [Theory]
+    [InlineData(255, 500, 255, true)]
+    [InlineData(256, 500, 255, false)]
+    [InlineData(255, 501, 255, false)]
+    [InlineData(255, 500, 256, false)]
+    public async Task UploadEnforcesLengthsBeforeReadingTheStream(int filenameLength, int altLength, int titleLength, bool valid)
+    {
+        var repository = new InMemoryMediaAssetRepository();
+        var service = new MediaAssetService(repository, new InMemoryMediaFileStore());
+        await using var stream = new MemoryStream([1,2,3]);
+        Task<MediaAsset> Create() => service.CreateAsync(SystemSeedContentIds.Images, new string('f',filenameLength), "image/png", stream, stream.Length, new string('a',altLength), new string('t',titleLength), TestContext.Current.CancellationToken);
+        if (valid) Assert.Equal(filenameLength,(await Create()).FileName.Length);
+        else
+        {
+            await Assert.ThrowsAsync<ArgumentException>(Create);
+            Assert.Equal(0,stream.Position);
+            Assert.Empty(await repository.GetAllAsync(TestContext.Current.CancellationToken));
+        }
+    }
+
     private sealed class InMemoryMediaAssetRepository : IMediaAssetRepository
     {
         private readonly Dictionary<Guid, MediaAsset> _assets = [];

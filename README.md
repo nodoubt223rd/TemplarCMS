@@ -215,10 +215,23 @@ initialization before the application begins serving requests.
 
 ### SQL Server Deployment
 
-SQLite remains the default local runtime store. To run against SQL Server,
-create the database with
-[001-initial-schema.sql](database/sqlserver/001-initial-schema.sql), then set
-the provider and connection string outside source control:
+SQLite remains the default local runtime store. Before starting this version
+against SQL Server, provision the schema with
+[001-initial-schema.sql](database/sqlserver/001-initial-schema.sql) and
+[002-user-directory.sql](database/sqlserver/002-user-directory.sql), then have
+the deployment operator apply the reviewed
+[006-preflight-1a.sql](database/sqlserver/006-preflight-1a.sql) migration after
+the required audits and backup/restore verification. Follow the
+[migration rehearsal runbook](docs/sqlserver-backup-restore-runbook.md);
+do not execute the SQL folder as an indiscriminate sequence.
+
+SQL startup verifies the required schema version, columns, indexes, and collation
+before seeding. It fails with a deployment error for incompatible schemas and
+does not create or migrate them. Runtime accounts do not need DDL permissions.
+See [ADR-0008](docs/decisions/ADR-0008-sql-policy-application-alignment.md) for
+string limits and application-owned UTC timestamps.
+
+Set the provider and connection string outside source control:
 
 ```json
 "Persistence": {

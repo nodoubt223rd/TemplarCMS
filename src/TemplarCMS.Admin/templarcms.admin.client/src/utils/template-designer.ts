@@ -227,6 +227,9 @@ export function validateTemplateDesignerState(
       }
 
       const normalizedFieldKey = field.key.trim().toLowerCase()
+      if (field.key.length > 450) {
+        errors.push('Field keys must not exceed 450 UTF-16 characters.')
+      }
 
       if (normalizedFieldKey.length === 0) {
         errors.push('Every field needs a key.')

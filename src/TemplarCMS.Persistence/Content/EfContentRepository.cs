@@ -169,6 +169,13 @@ public sealed class EfContentRepository : IContentRepository
             }
         }
 
+        // Field-only saves advance the owning item's timestamp in the same SaveChanges transaction.
+        if (values.Count > 0)
+        {
+            var owner = await _dbContext.ContentItems.FindAsync([itemId.Value], cancellationToken);
+            if (owner is not null) owner.ModifiedUtc = DateTimeOffset.UtcNow;
+        }
+
         var existingValues =
             await _dbContext.ContentFieldValues
                 .Where(value => value.ItemId == itemId.Value)

@@ -550,6 +550,7 @@ async function updateSelectedTemplateBaseTemplates(templateIds: string[]) {
     await loadTemplates()
     selectedTemplateDetail.value = response
     successMessage.value = `Updated inherited templates for ${response.name}.`
+    if (selectedItem.value != null) await loadTemplateFields(selectedItem.value)
   } catch (error) {
     pageError.value = getErrorMessage(error)
   } finally {
@@ -585,6 +586,9 @@ async function saveSelectedTemplate(template: {
     await loadTemplates()
     selectedTemplateDetail.value = response
     successMessage.value = `Updated template ${response.name}.`
+    // A base-template edit can also affect the selected item's effective fields.
+    // Reload definitions without replacing unsaved author-entered field values.
+    if (selectedItem.value != null) await loadTemplateFields(selectedItem.value)
   } catch (error) {
     pageError.value = getErrorMessage(error)
   } finally {
@@ -1456,7 +1460,7 @@ function countNodes(nodes: TreeNode[]): number {
         <form class="create-grid" @submit.prevent="submitCreate">
           <label class="field">
             <span>Name</span>
-            <input v-model="createForm.name" type="text" required />
+            <input v-model="createForm.name" type="text" required maxlength="255" />
           </label>
 
           <label class="field">

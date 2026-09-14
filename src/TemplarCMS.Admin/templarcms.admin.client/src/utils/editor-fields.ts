@@ -63,7 +63,8 @@ export function buildEditorFields(
       .map(field => field.key)
   )
 
-  return Object.keys(fieldForm)
+  // Template definitions include new fields that do not have stored values yet.
+  return [...new Set([...Object.keys(fieldForm), ...visibleTemplateFields.map(field => field.key)])]
     .filter(key => !hiddenFieldKeys.has(key))
     .sort((left, right) => left.localeCompare(right))
     .map(key => {
