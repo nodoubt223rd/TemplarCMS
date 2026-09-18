@@ -1024,6 +1024,10 @@ public sealed class TemplateEndpointsTests
     [Fact]
     public async Task GetFieldsByIdAsync_ShouldReturnOk_WhenTemplateExists()
     {
+        var sectionMetadata = new Dictionary<string, string>
+        {
+            [SectionVisibilityMetadata.VisibilityKey] = SectionVisibilityMetadata.SystemValue
+        };
         var template =
             new EffectiveTemplateDefinition(
                 new TemplateId(Guid.NewGuid()),
@@ -1045,7 +1049,7 @@ public sealed class TemplateEndpointsTests
                                 {
                                     [FieldVisibilityMetadata.VisibilityKey] = FieldVisibilityMetadata.SystemValue
                                 })
-                        ])
+                        ], metadata: sectionMetadata)
                 ]);
         var catalog =
             new FakeContentModelCatalog(
@@ -1064,6 +1068,7 @@ public sealed class TemplateEndpointsTests
         Assert.Equal("title", field.Key);
         Assert.Equal("SingleLineText", field.Type);
         Assert.Equal("content", field.SectionKey);
+        Assert.Equal(sectionMetadata, field.SectionMetadata);
         Assert.NotNull(field.Metadata);
         Assert.Equal(
             FieldVisibilityMetadata.SystemValue,

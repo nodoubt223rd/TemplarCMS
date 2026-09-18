@@ -9,6 +9,26 @@ import {
 } from './editor-fields'
 
 describe('editor field utilities', () => {
+  it('keeps every custom section before built-in sections regardless of sort order or stored values', () => {
+    const system = { 'templar.visibility': 'system' }
+    const fields = [
+      createTemplateField({ key: 'analytics', sectionKey: 'appearance', sectionName: 'Appearance', sectionSortOrder: 200, sectionMetadata: system }),
+      createTemplateField({ key: 'seoTitle', sectionKey: 'seo', sectionName: 'SEO', sectionSortOrder: 1000 }),
+      createTemplateField({ key: 'title', sectionKey: 'content', sectionName: 'Content', sectionMetadata: system }),
+      createTemplateField({ key: 'campaign', sectionKey: 'marketing', sectionName: 'Marketing', sectionSortOrder: 1100 }),
+      createTemplateField({ key: 'seoDescription', sectionKey: 'seo', sectionName: 'SEO', sectionSortOrder: 1000 }),
+      createTemplateField({ key: 'publishAt', sectionKey: 'publishing', sectionName: 'Publishing', sectionSortOrder: 300, sectionMetadata: system })
+    ]
+    const forms: Record<string, string>[] = [{}, { title: 'Unsaved title', campaign: 'Summer', legacy: 'Old value' }]
+    for (const form of forms) {
+      const result = buildEditorFields(form, fields, new Map())
+      expect(result.slice(0, 6).map(field => field.sectionName))
+        .toEqual(['Content', 'SEO', 'SEO', 'Marketing', 'Appearance', 'Publishing'])
+      expect(result.filter(field => field.sectionName === 'SEO').map(field => field.key))
+        .toEqual(['seoDescription', 'seoTitle'])
+    }
+  })
+
   it('shows newly added template fields on existing items without overwriting unsaved values', () => {
     const form = { title: 'Unsaved author text' }
     const fields = [
@@ -18,8 +38,8 @@ describe('editor field utilities', () => {
     ]
     const result = buildEditorFields(form, fields, new Map())
     expect(result).toEqual([
-      expect.objectContaining({ key: 'summary', sectionName: 'New section', value: '' }),
-      expect.objectContaining({ key: 'title', value: 'Unsaved author text' })
+      expect.objectContaining({ key: 'title', value: 'Unsaved author text' }),
+      expect.objectContaining({ key: 'summary', sectionName: 'New section', value: '' })
     ])
     expect(form).toEqual({ title: 'Unsaved author text' })
     expect(buildEditorFields({}, fields, new Map())).toHaveLength(2)
@@ -136,7 +156,7 @@ describe('editor field utilities', () => {
     expect(getFieldTypeOptions('GeneralLink', fieldTypes)).toEqual(fieldTypes)
   })
 
-  it('builds editor field models with template metadata and sorts by key', () => {
+  it('builds editor field models with template metadata and sorts by section then key', () => {
     const templateFields: TemplateFieldItemResponse[] = [
       createTemplateField({
         key: '__owner',

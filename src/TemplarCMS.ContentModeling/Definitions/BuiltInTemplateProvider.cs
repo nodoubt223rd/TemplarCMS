@@ -23,13 +23,20 @@ public sealed class BuiltInTemplateProvider : IBuiltInTemplateProvider
 
     private static IReadOnlyCollection<TemplateDefinition> CreateTemplates()
     {
+        var sectionTemplates = CreateStandardSections()
+            .Where(section => section.Key != "content")
+            .Select(section => new TemplateDefinition(
+                new TemplateId(section.Id), section.Name, new TemplateKey(section.Key),
+                sections: [section], icon: "layout"))
+            .ToArray();
         var standardTemplate =
             new TemplateDefinition(
                 new TemplateId(new Guid("95071327-4AAB-4827-9641-1C45EF6A1D37")),
                 "Standard",
                 BuiltInTemplateKeys.Standard,
-                sections: CreateStandardSections(),
-                icon: "layout");
+                sections: [CreateStandardContentSection()],
+                icon: "layout",
+                baseTemplates: sectionTemplates);
 
         var folderTemplate =
             new TemplateDefinition(
@@ -40,11 +47,21 @@ public sealed class BuiltInTemplateProvider : IBuiltInTemplateProvider
                 [],
                 icon: "folder");
 
-        var itemTemplate =
+        var templateTemplate = new TemplateDefinition(
+            SystemTemplateIds.Template, "Template", BuiltInTemplateKeys.Template,
+            standardTemplate, [], icon: "layout");
+
+        return [standardTemplate, folderTemplate, templateTemplate, .. sectionTemplates];
+    }
+
+    /// <summary>Creates the editable starter Page for a new instance only.</summary>
+    public static TemplateDefinition CreateStarterPage(TemplateDefinition standardTemplate)
+    {
+        return
             new TemplateDefinition(
                 new TemplateId(new Guid("562BA716-A878-45E5-9BA7-397F46BA7B1D")),
-                "Item",
-                BuiltInTemplateKeys.Item,
+                "Page",
+                new TemplateKey("page"),
                 standardTemplate,
                 [
                     new TemplateSectionDefinition(
@@ -62,7 +79,6 @@ public sealed class BuiltInTemplateProvider : IBuiltInTemplateProvider
                 ],
                 icon: "file");
 
-        return [standardTemplate, folderTemplate, itemTemplate];
     }
 
     private static IReadOnlyCollection<TemplateSectionDefinition> CreateStandardSections()

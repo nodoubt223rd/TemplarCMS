@@ -32,7 +32,7 @@ public sealed class BuiltInTemplateRepositoryTests
 
         Assert.Contains(templates, template => template.Key == BuiltInTemplateKeys.Standard);
         Assert.Contains(templates, template => template.Key == BuiltInTemplateKeys.Folder);
-        Assert.Contains(templates, template => template.Key == BuiltInTemplateKeys.Item);
+        Assert.Contains(templates, template => template.Key == BuiltInTemplateKeys.Template);
         Assert.Contains(templates, template => template.Key == mutableTemplate.Key);
     }
 
@@ -52,6 +52,7 @@ public sealed class BuiltInTemplateRepositoryTests
                 templates,
                 template => template.Key == BuiltInTemplateKeys.Standard);
 
+        var standardSections = standardTemplate.Sections.Concat(standardTemplate.BaseTemplates.SelectMany(t => t.Sections)).ToArray();
         Assert.Equal(
             [
                 "content",
@@ -64,14 +65,14 @@ public sealed class BuiltInTemplateRepositoryTests
                 "tasks",
                 "version"
             ],
-            standardTemplate.Sections
+            standardSections
                 .OrderBy(section => section.SortOrder)
                 .Select(section => section.Key)
             .ToArray());
 
         var advancedSection =
             Assert.Single(
-                standardTemplate.Sections,
+                standardSections,
                 section => section.Key == "advanced");
         Assert.Contains(
             advancedSection.Fields,
@@ -91,7 +92,7 @@ public sealed class BuiltInTemplateRepositoryTests
 
         var appearanceSection =
             Assert.Single(
-                standardTemplate.Sections,
+                standardSections,
                 section => section.Key == "appearance");
         Assert.Contains(
             appearanceSection.Fields,
@@ -108,7 +109,7 @@ public sealed class BuiltInTemplateRepositoryTests
 
         var helpSection =
             Assert.Single(
-                standardTemplate.Sections,
+                standardSections,
                 section => section.Key == "help");
         Assert.Contains(
             helpSection.Fields,
@@ -121,7 +122,7 @@ public sealed class BuiltInTemplateRepositoryTests
 
         var publishingSection =
             Assert.Single(
-                standardTemplate.Sections,
+                standardSections,
                 section => section.Key == "publishing");
         Assert.Contains(
             publishingSection.Fields,
@@ -135,7 +136,7 @@ public sealed class BuiltInTemplateRepositoryTests
 
         var lifetimeSection =
             Assert.Single(
-                standardTemplate.Sections,
+                standardSections,
                 section => section.Key == "lifetime");
         Assert.Contains(
             lifetimeSection.Fields,
@@ -149,7 +150,7 @@ public sealed class BuiltInTemplateRepositoryTests
 
         var statisticsSection =
             Assert.Single(
-                standardTemplate.Sections,
+                standardSections,
                 section => section.Key == "statistics");
         Assert.Contains(
             statisticsSection.Fields,
@@ -160,7 +161,7 @@ public sealed class BuiltInTemplateRepositoryTests
 
         var versionSection =
             Assert.Single(
-                standardTemplate.Sections,
+                standardSections,
                 section => section.Key == "version");
         Assert.Contains(
             versionSection.Fields,
@@ -168,7 +169,7 @@ public sealed class BuiltInTemplateRepositoryTests
 
         var tasksSection =
             Assert.Single(
-                standardTemplate.Sections,
+                standardSections,
                 section => section.Key == "tasks");
         Assert.Contains(
             tasksSection.Fields,
@@ -187,7 +188,7 @@ public sealed class BuiltInTemplateRepositoryTests
             field => field.Key == "__reminderText" && field.FieldType == FieldType.MultiLineText && field.IsShared);
 
         Assert.All(
-            standardTemplate.Sections,
+            standardSections,
             section =>
                 Assert.Equal(
                     SectionVisibilityMetadata.SystemValue,

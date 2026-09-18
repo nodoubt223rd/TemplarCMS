@@ -14,6 +14,7 @@ namespace TemplarCMS.Application.Bootstrap;
 public sealed class DefaultContentBootstrapper : IDefaultContentBootstrapper
 {
     private readonly IContentModelCatalog _contentModelCatalog;
+    private readonly ITemplateRepository _templateRepository;
     private readonly IContentRepository _contentRepository;
     private readonly IContentItemService _contentItemService;
     private readonly ILogger<DefaultContentBootstrapper> _logger;
@@ -22,18 +23,28 @@ public sealed class DefaultContentBootstrapper : IDefaultContentBootstrapper
         IContentModelCatalog contentModelCatalog,
         IContentRepository contentRepository,
         IContentItemService contentItemService,
-        ILogger<DefaultContentBootstrapper> logger)
+        ILogger<DefaultContentBootstrapper> logger,
+        ITemplateRepository templateRepository)
     {
         _contentModelCatalog = contentModelCatalog ?? throw new ArgumentNullException(nameof(contentModelCatalog));
         _contentRepository = contentRepository ?? throw new ArgumentNullException(nameof(contentRepository));
         _contentItemService = contentItemService ?? throw new ArgumentNullException(nameof(contentItemService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _templateRepository = templateRepository ?? throw new ArgumentNullException(nameof(templateRepository));
     }
 
     public async Task EnsureInitializedAsync(
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
+
+        var definitions = await _templateRepository.GetTemplatesAsync(cancellationToken);
+        if (!definitions.Any(template => template.Key == new TemplateKey("page")))
+        {
+            var standard = definitions.Single(template => template.Key == BuiltInTemplateKeys.Standard);
+            await _templateRepository.CreateTemplateAsync(
+                BuiltInTemplateProvider.CreateStarterPage(standard), cancellationToken);
+        }
 
         await _contentModelCatalog.RefreshAsync(cancellationToken);
 
@@ -43,7 +54,7 @@ public sealed class DefaultContentBootstrapper : IDefaultContentBootstrapper
                 cancellationToken);
         var itemTemplate =
             await RequireTemplateAsync(
-                BuiltInTemplateKeys.Item,
+                new TemplateKey("page"),
                 cancellationToken);
 
         var templar =
@@ -134,7 +145,7 @@ public sealed class DefaultContentBootstrapper : IDefaultContentBootstrapper
             SystemSeedContentIds.StandardTemplateItem,
             "Standard",
             "standard",
-            folderTemplate.Id,
+            SystemTemplateIds.Template,
             templates.Id,
             cancellationToken);
 

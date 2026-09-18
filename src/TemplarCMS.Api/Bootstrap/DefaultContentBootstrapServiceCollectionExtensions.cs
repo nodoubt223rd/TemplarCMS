@@ -36,21 +36,12 @@ internal static class DefaultContentBootstrapServiceCollectionExtensions
                 "RuntimeData");
         var defaultConnectionString =
             $"Data Source={Path.Combine(runtimeDataPath, "templarcms.db")}";
-        var configuredTemplatesPath =
-            configuration["Templates:TemplatesPath"];
-        var configuredDatabaseProvider =
-            configuration["Persistence:Provider"];
-        var templatesPath =
-            Path.GetFullPath(
-                string.IsNullOrWhiteSpace(configuredTemplatesPath)
-                    ? Path.Combine(runtimeDataPath, "Templates")
-                    : Path.Combine(environment.ContentRootPath, configuredTemplatesPath));
 
         services.AddDbContext<TemplarCmsDbContext>(
             options =>
                 ConfigureDatabaseProvider(
                     options,
-                    configuredDatabaseProvider,
+                    configuration["Persistence:Provider"],
                     configuration.GetConnectionString("TemplarCms"),
                     defaultConnectionString));
 
@@ -86,7 +77,14 @@ internal static class DefaultContentBootstrapServiceCollectionExtensions
             _ =>
                 new ConfigureNamedOptions<JsonTemplateRepositoryOptions>(
                     Options.DefaultName,
-                    options => options.TemplatesPath = templatesPath));
+                    options =>
+                    {
+                        var configuredPath = configuration["Templates:TemplatesPath"];
+                        options.TemplatesPath = Path.GetFullPath(
+                            string.IsNullOrWhiteSpace(configuredPath)
+                                ? Path.Combine(runtimeDataPath, "Templates")
+                                : Path.Combine(environment.ContentRootPath, configuredPath));
+                    }));
 
         services.AddHostedService<DefaultContentBootstrapHostedService>();
 

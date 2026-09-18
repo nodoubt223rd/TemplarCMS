@@ -3,7 +3,7 @@ namespace TemplarCMS.Domain.Content;
 /// <summary>
 /// Represents a content item within the content tree.
 /// </summary>
-public sealed class ContentItemDefinition
+public sealed class ContentItemDefinition : Item
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="ContentItemDefinition" /> class.
@@ -51,7 +51,7 @@ public sealed class ContentItemDefinition
     /// <summary>
     /// Gets the display name of the content item.
     /// </summary>
-    public string Name { get; }
+    public override string Name { get; }
 
     /// <summary>
     /// Gets the stable key used to identify the content item among siblings.
@@ -61,7 +61,7 @@ public sealed class ContentItemDefinition
     /// <summary>
     /// Gets the template used by the content item.
     /// </summary>
-    public TemplateId TemplateId { get; }
+    public override TemplateId TemplateId { get; }
 
     /// <summary>
     /// Gets the optional parent content item identifier.

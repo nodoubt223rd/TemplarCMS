@@ -1,6 +1,6 @@
 import type { FieldTypeResponse, TemplateFieldItemResponse } from '@/types/admin-api'
 import type { EditorFieldModel } from '@/types/admin-ui'
-import { getAuthorVisibleTemplateFields, isSystemOwnedField } from './field-visibility'
+import { getAuthorVisibleTemplateFields, isSystemOwnedField, isSystemOwnedSection } from './field-visibility'
 
 const defaultFieldTypeDefinition: FieldTypeResponse = {
   value: 'SingleLineText',
@@ -57,6 +57,7 @@ export function buildEditorFields(
   fieldTypeLookup: ReadonlyMap<string, FieldTypeResponse>
 ): EditorFieldModel[] {
   const visibleTemplateFields = getAuthorVisibleTemplateFields(templateFields)
+  const templateFieldLookup = new Map(visibleTemplateFields.map(field => [field.key, field]))
   const hiddenFieldKeys = new Set(
     templateFields
       .filter(isSystemOwnedField)
@@ -66,9 +67,19 @@ export function buildEditorFields(
   // Template definitions include new fields that do not have stored values yet.
   return [...new Set([...Object.keys(fieldForm), ...visibleTemplateFields.map(field => field.key)])]
     .filter(key => !hiddenFieldKeys.has(key))
-    .sort((left, right) => left.localeCompare(right))
+    .sort((left, right) => {
+      const leftField = templateFieldLookup.get(left)
+      const rightField = templateFieldLookup.get(right)
+      // Keep template sections together; unmatched stored fields follow authored sections.
+      if (leftField == null) return rightField == null ? left.localeCompare(right) : 1
+      if (rightField == null) return -1
+      return getSectionGroup(leftField) - getSectionGroup(rightField) ||
+        leftField.sectionSortOrder - rightField.sectionSortOrder ||
+        leftField.sectionName.localeCompare(rightField.sectionName) ||
+        left.localeCompare(right)
+    })
     .map(key => {
-      const templateField = visibleTemplateFields.find(field => field.key === key)
+      const templateField = templateFieldLookup.get(key)
       const type = templateField?.type ?? 'SingleLineText'
       const editor = getFieldTypeDefinition(type, fieldTypeLookup)
 
@@ -92,6 +103,11 @@ export function buildEditorFields(
         ...(options == null ? {} : { options })
       }
     })
+}
+
+function getSectionGroup(field: TemplateFieldItemResponse): number {
+  if (field.sectionKey.toLowerCase() === 'content') return 0
+  return isSystemOwnedSection({ metadata: field.sectionMetadata }) ? 2 : 1
 }
 
 function getDroplistOptions(value: string | undefined): Array<{ value: string; label: string }> {

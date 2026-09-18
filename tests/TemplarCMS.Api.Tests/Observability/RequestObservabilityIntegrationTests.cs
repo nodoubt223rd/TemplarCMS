@@ -68,6 +68,7 @@ public sealed class RequestObservabilityIntegrationTests
                         new Dictionary<string, string?>
                         {
                             ["OpenApi:Enabled"] = "false",
+                            ["Persistence:Provider"] = "Sqlite",
                             ["ConnectionStrings:TemplarCms"] = $"Data Source={Path.Combine(_runtimeRootPath, "templarcms.db")}",
                             ["Templates:TemplatesPath"] = Path.Combine(_runtimeRootPath, "Templates")
                         }));

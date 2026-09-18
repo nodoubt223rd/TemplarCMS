@@ -126,7 +126,7 @@ public sealed class JsonTemplateRepositoryTests
             "page.json",
             "Page",
             "page",
-            ["item"]);
+            ["standard"]);
 
         _mapper
             .Map(Arg.Any<JsonTemplateDefinition>())
@@ -144,7 +144,7 @@ public sealed class JsonTemplateRepositoryTests
                 TestContext.Current.CancellationToken));
 
         var baseTemplate = Assert.Single(template.BaseTemplates);
-        Assert.Equal(BuiltInTemplateKeys.Item, baseTemplate.Key);
+        Assert.Equal(BuiltInTemplateKeys.Standard, baseTemplate.Key);
     }
 
     [Fact]

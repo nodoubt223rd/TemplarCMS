@@ -1,10 +1,37 @@
 import { describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
-import type { ContentItemResponse } from '@/types/admin-api'
+import type { ContentItemResponse, TemplateFieldItemResponse } from '@/types/admin-api'
+import { buildEditorFields } from '@/utils/editor-fields'
 import type { EditorFieldModel } from '@/types/admin-ui'
 import ContentEditor from './ContentEditor.vue'
 
 describe('ContentEditor sections', () => {
+  it('keeps a new SEO section below Content and before later template sections', () => {
+    const templateField = (key: string, sectionName: string, sectionSortOrder: number): TemplateFieldItemResponse => ({
+      id: key, key, name: key, type: 'SingleLineText', isShared: false, isUnversioned: false,
+      sectionId: sectionName, sectionKey: sectionName.toLowerCase(), sectionName, sectionSortOrder
+    })
+    const fieldForm = { title: 'Unsaved title', analytics: 'Existing setting', orphan: 'Legacy value' }
+    const fields = buildEditorFields(fieldForm, [
+      templateField('analytics', 'Settings', 900),
+      templateField('seoTitle', 'SEO', 200),
+      templateField('title', 'Content', 100),
+      templateField('seoDescription', 'SEO', 200)
+    ], new Map())
+    const wrapper = mount(ContentEditor, {
+      props: { item: createItem(), templateName: 'Page', fields, fieldForm,
+        isLoadingFields: false, isSubmitting: false }
+    })
+
+    expect(wrapper.findAll('button[aria-expanded]').map(button => button.find('span').text()))
+      .toEqual(['Content', 'SEO', 'Settings', 'Fields'])
+    expect(fields.map(field => field.key))
+      .toEqual(['title', 'seoDescription', 'seoTitle', 'analytics', 'orphan'])
+    expect(fields.find(field => field.key === 'title')?.value).toBe('Unsaved title')
+    expect(fields.find(field => field.key === 'seoTitle')?.value).toBe('')
+    wrapper.unmount()
+  })
+
   it('lets authors open and close each field section independently', async () => {
     const wrapper = mount(ContentEditor, {
       props: {
