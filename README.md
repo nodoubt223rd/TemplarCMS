@@ -4,17 +4,19 @@ TemplarCMS is a template-driven, API-first headless CMS built on .NET.
 
 ## Status
 
-Last CircleCI build: [![CircleCI](https://dl.circleci.com/status-badge/img/circleci/PCTm5tLRZgivY3sG1VYhQm/BaNsGx2kPXGTG2sCfe233x/tree/master.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/circleci/PCTm5tLRZgivY3sG1VYhQm/BaNsGx2kPXGTG2sCfe233x/tree/master)
+Last CircleCI build: [![CircleCI](https://dl.circleci.com/status-badge/img/circleci/PCTm5tLRZgivY3sG1VYhQm/BaNsGx2kPXGTG2sCfe233x/tree/trunk.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/circleci/PCTm5tLRZgivY3sG1VYhQm/BaNsGx2kPXGTG2sCfe233x/tree/trunk)
 
 Architecture and planning phase.
 
 ## Development
 
-Use the SDK pinned in [global.json](/E:/Projects/TemplarCMS/global.json), then build from the solution container:
+The default branch is `trunk`. Use the .NET 8 SDK selected by [global.json](/E:/Projects/TemplarCMS/global.json), then build all backend, test, and admin-host projects:
 
 ```powershell
-dotnet build .\TemplarCMS.slnx
+dotnet build .\TemplarCMS.sln
 ```
+
+Use the explicit `.sln` path: the pinned .NET 8 SDK cannot build the `.slnx` file retained for newer IDEs. `dotnet build` compiles the test projects; run `dotnet test .\TemplarCMS.sln --no-build` to execute them. The Vue client is built during Admin publishing (see below), or separately with `npm ci` and `npm run build` in its directory.
 
 If you hit local NuGet or profile-path issues, the repo includes helper scripts:
 

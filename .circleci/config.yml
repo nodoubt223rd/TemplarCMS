@@ -28,11 +28,9 @@ jobs:
             cp nuget.config "$APPDATA/NuGet/NuGet.Config"
 
       - run:
-          name: Restore test projects
+          name: Restore solution
           command: |
-            while IFS= read -r project; do
-              dotnet restore "$project" --configfile nuget.config
-            done < <(find tests -name '*.csproj' | sort)
+            dotnet restore TemplarCMS.sln --configfile nuget.config
 
       - save_cache:
           key: templarcms-nuget-v1-{{ checksum "global.json" }}-{{ checksum "Directory.Build.props" }}-{{ checksum "nuget.config" }}
@@ -40,10 +38,14 @@ jobs:
             - /root/project/.tmp/nuget-packages
 
       - run:
+          name: Build backend, tests, and admin host
+          command: dotnet build TemplarCMS.sln --no-restore --configuration Release
+
+      - run:
           name: Run test projects
           command: |
             while IFS= read -r project; do
-              dotnet test "$project" --no-restore --configuration Release --logger "console;verbosity=minimal"
+              dotnet test "$project" --no-build --no-restore --configuration Release --logger "console;verbosity=minimal"
             done < <(find tests -name '*.csproj' | sort)
 
 workflows:
