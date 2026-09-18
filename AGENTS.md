@@ -14,7 +14,7 @@ Use this file as the quick-start memory for coding sessions in this repo. Keep i
 
 - TemplarCMS is a template-driven, API-first headless CMS on .NET 8.
 - The solution currently includes `Abstractions`, `Domain`, `ContentModeling`, `Application`, `Persistence`, `Api`, and `Admin`, plus test projects for API, application, content modeling, domain, and integration coverage.
-- Default branch is `master`.
+- Default branch is `trunk`.
 - SDK is pinned in [global.json](/E:/Projects/TemplarCMS/global.json) to `.NET SDK 8.0.400`.
 
 ## Architecture Guardrails
@@ -38,7 +38,7 @@ Use this file as the quick-start memory for coding sessions in this repo. Keep i
 
 ## Build And Test
 
-- Standard build: `dotnet build .\TemplarCMS.slnx`
+- Standard build: `dotnet build .\TemplarCMS.sln`
 - Use the repo bootstrap when local NuGet or profile-path issues appear:
   - `. .\scripts\templar-cms-bootstrap.ps1`
   - `.\scripts\dev-shell.ps1`
