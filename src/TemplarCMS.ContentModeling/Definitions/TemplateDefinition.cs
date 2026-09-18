@@ -5,7 +5,7 @@ namespace TemplarCMS.ContentModeling.Definitions
     /// <summary>
     /// Represents a logical template definition used by the content modeling engine.
     /// </summary>
-    public sealed class TemplateDefinition
+    public sealed class TemplateDefinition : Item
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="TemplateDefinition" /> class.
@@ -53,7 +53,10 @@ namespace TemplarCMS.ContentModeling.Definitions
         /// <summary>
         /// Gets the display name of the template.
         /// </summary>
-        public string Name { get; }
+        public override string Name { get; }
+
+        /// <summary>The template describing this definition item, not a base template.</summary>
+        public override TemplateId TemplateId => SystemTemplateIds.Template;
 
         /// <summary>
         /// Gets the unique template key used for lookup and serialization.

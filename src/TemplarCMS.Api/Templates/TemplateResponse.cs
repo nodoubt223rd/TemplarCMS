@@ -7,6 +7,8 @@ public sealed class TemplateResponse
 {
     public required string Id { get; init; }
 
+    public string TemplateId { get; init; } = TemplarCMS.Domain.Content.SystemTemplateIds.Template.Value.ToString();
+
     public required string Name { get; init; }
 
     public required string Key { get; init; }
@@ -172,6 +174,8 @@ public sealed class TemplateFieldItemResponse
     public required string SectionKey { get; init; }
 
     public required int SectionSortOrder { get; init; }
+
+    public IReadOnlyDictionary<string, string>? SectionMetadata { get; init; }
 }
 
 public sealed class TemplateFieldCollectionLinksResponse

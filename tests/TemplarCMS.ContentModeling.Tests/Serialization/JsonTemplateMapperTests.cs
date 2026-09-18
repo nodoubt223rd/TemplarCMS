@@ -10,6 +10,24 @@ public sealed class JsonTemplateMapperTests
     private readonly JsonTemplateMapper _mapper = new();
 
     [Fact]
+    public void Map_ShouldKeepDefiningTemplateSeparateFromInheritance()
+    {
+        var json = CreateTemplate();
+        json.TemplateId = SystemTemplateIds.Template.Value;
+        var definition = _mapper.Map(json);
+        Assert.Equal(SystemTemplateIds.Template, definition.TemplateId);
+        Assert.Empty(definition.BaseTemplates);
+    }
+
+    [Fact]
+    public void Map_ShouldRejectADifferentDefiningTemplate()
+    {
+        var json = CreateTemplate();
+        json.TemplateId = Guid.NewGuid();
+        Assert.Throws<ArgumentException>(() => _mapper.Map(json));
+    }
+
+    [Fact]
     public void Map_ShouldMapTemplate()
     {
         var templateId = Guid.NewGuid();

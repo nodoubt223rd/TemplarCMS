@@ -5,7 +5,13 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
+    <!-- Instance data is never a source of publish-time seed content. -->
+    <Content Remove="RuntimeData\**\*" />
+    <None Remove="RuntimeData\**\*" />
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+    <InternalsVisibleTo Include="TemplarCMS.Api.Tests" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\TemplarCMS.Application\TemplarCMS.Application.csproj" />

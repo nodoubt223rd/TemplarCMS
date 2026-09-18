@@ -16,13 +16,14 @@ public static class BuiltInTemplateKeys
     public static TemplateKey Folder { get; } = new("folder");
 
     /// <summary>
-    /// Gets the built-in generic item template key.
+    /// Gets the template describing template definition items.
     /// </summary>
-    public static TemplateKey Item { get; } = new("item");
+    public static TemplateKey Template { get; } = new("template");
 
     /// <summary>
     /// Gets all canonical built-in template keys.
     /// </summary>
     public static IReadOnlyList<TemplateKey> All { get; } =
-        [Standard, Folder, Item];
+        [Standard, Folder, Template, new("advanced"), new("appearance"), new("help"),
+         new("lifetime"), new("publishing"), new("statistics"), new("tasks"), new("version")];
 }

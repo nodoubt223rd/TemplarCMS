@@ -780,7 +780,8 @@ public static class TemplateEndpoints
                                 SectionId = section.Id.ToString(),
                                 SectionName = section.Name,
                                 SectionKey = section.Key,
-                                SectionSortOrder = section.SortOrder
+                                SectionSortOrder = section.SortOrder,
+                                SectionMetadata = section.Metadata.Count == 0 ? null : section.Metadata
                             }))
                 .ToArray();
 

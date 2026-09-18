@@ -128,6 +128,7 @@ export type TemplateSectionResponse = {
 
 export type TemplateResponse = {
   id: string
+  templateId?: string
   name: string
   key: string
   icon?: string
@@ -175,6 +176,7 @@ export type TemplateFieldItemResponse = {
   sectionName: string
   sectionKey: string
   sectionSortOrder: number
+  sectionMetadata?: Record<string, string> | null
 }
 
 export type TemplateFieldCollectionResponse = {

@@ -18,6 +18,29 @@ namespace TemplarCMS.Application.Tests.Bootstrap;
 public sealed class DefaultContentBootstrapperTests
 {
     [Fact]
+    public async Task EnsureInitializedAsync_ShouldPreserveAnAuthoredPageAndUseItsIdentity()
+    {
+        var (bootstrapper, repository, contentRepository, _, _) = CreateBootstrapper();
+        var standard = (await repository.GetTemplatesAsync(TestContext.Current.CancellationToken))
+            .Single(t => t.Key == BuiltInTemplateKeys.Standard);
+        var starter = BuiltInTemplateProvider.CreateStarterPage(standard);
+        var authored = new TemplateDefinition(new TemplateId(Guid.NewGuid()), "My Page", new TemplateKey("page"),
+            standard, starter.Sections.Concat(new[] {
+                new TemplateSectionDefinition(Guid.NewGuid(), "SEO", "seo", 150,
+                    [new FieldDefinition(new FieldId(Guid.NewGuid()), "JSON LD", "jsonLd", FieldType.MultiLineText)])
+            }).ToArray());
+        await repository.CreateTemplateAsync(authored, TestContext.Current.CancellationToken);
+        await bootstrapper.EnsureInitializedAsync(TestContext.Current.CancellationToken);
+        await bootstrapper.EnsureInitializedAsync(TestContext.Current.CancellationToken);
+        var page = Assert.Single(await repository.GetTemplatesAsync(TestContext.Current.CancellationToken), t => t.Key == new TemplateKey("page"));
+        Assert.Same(authored, page);
+        var home = await contentRepository.GetItemAsync(SystemSeedContentIds.Home, TestContext.Current.CancellationToken);
+        Assert.Equal(authored.Id, home!.TemplateId);
+        var standardItem = await contentRepository.GetItemAsync(SystemSeedContentIds.StandardTemplateItem, TestContext.Current.CancellationToken);
+        Assert.Equal(SystemTemplateIds.Template, standardItem!.TemplateId);
+    }
+
+    [Fact]
     public async Task EnsureInitializedAsync_ShouldSeedDefaultTemplatesAndContentTree()
     {
         var (bootstrapper, templateRepository, contentRepository, catalog, _) = CreateBootstrapper();
@@ -30,14 +53,14 @@ public sealed class DefaultContentBootstrapperTests
             templates.Select(template => template.Key.ToString()).OrderBy(key => key, StringComparer.Ordinal).ToArray();
 
         Assert.Equal(
-            BuiltInTemplateKeys.All.Select(key => key.ToString()).OrderBy(key => key, StringComparer.Ordinal).ToArray(),
+            BuiltInTemplateKeys.All.Append(new TemplateKey("page")).Select(key => key.ToString()).OrderBy(key => key, StringComparer.Ordinal).ToArray(),
             templateKeys);
 
         var standardTemplate = Assert.Single(templates, template => template.Key == BuiltInTemplateKeys.Standard);
         var folderTemplate = Assert.Single(templates, template => template.Key == BuiltInTemplateKeys.Folder);
-        var itemTemplate = Assert.Single(templates, template => template.Key == BuiltInTemplateKeys.Item);
+        var itemTemplate = Assert.Single(templates, template => template.Key == new TemplateKey("page"));
 
-        Assert.Null(standardTemplate.BaseTemplate);
+        var standardSections = (await catalog.GetEffectiveTemplateAsync(standardTemplate.Id, TestContext.Current.CancellationToken))!.Sections;
         Assert.NotNull(folderTemplate.BaseTemplate);
         Assert.NotNull(itemTemplate.BaseTemplate);
         Assert.Equal(standardTemplate.Key, folderTemplate.BaseTemplate!.Key);
@@ -54,60 +77,60 @@ public sealed class DefaultContentBootstrapperTests
                 "tasks",
                 "version"
             ],
-            standardTemplate.Sections
+            standardSections
                 .OrderBy(section => section.SortOrder)
                 .Select(section => section.Key)
                 .ToArray());
-        Assert.Contains(standardTemplate.Sections.SelectMany(section => section.Fields), field => field.Key == "title");
-        Assert.Contains(standardTemplate.Sections.SelectMany(section => section.Fields), field => field.Key == "__enableItemFallback" && field.IsShared);
+        Assert.Contains(standardSections.SelectMany(section => section.Fields), field => field.Key == "title");
+        Assert.Contains(standardSections.SelectMany(section => section.Fields), field => field.Key == "__enableItemFallback" && field.IsShared);
         Assert.Contains(
-            standardTemplate.Sections.SelectMany(section => section.Fields),
+            standardSections.SelectMany(section => section.Fields),
             field =>
                 field.Key == "__sourceItem"
                 && field.FieldType == FieldType.Droplink
                 && field.IsShared);
-        Assert.Contains(standardTemplate.Sections.SelectMany(section => section.Fields), field => field.Key == "navigationTitle");
-        Assert.Contains(standardTemplate.Sections.SelectMany(section => section.Fields), field => field.Key == "metaDescription");
-        Assert.Contains(standardTemplate.Sections.SelectMany(section => section.Fields), field => field.Key == "__displayName");
-        Assert.Contains(standardTemplate.Sections.SelectMany(section => section.Fields), field => field.Key == "__helpLink");
-        Assert.Contains(standardTemplate.Sections.SelectMany(section => section.Fields), field => field.Key == "__publish");
-        Assert.Contains(standardTemplate.Sections.SelectMany(section => section.Fields), field => field.Key == "__created");
-        Assert.Contains(standardTemplate.Sections.SelectMany(section => section.Fields), field => field.Key == "__versionName");
+        Assert.Contains(standardSections.SelectMany(section => section.Fields), field => field.Key == "navigationTitle");
+        Assert.Contains(standardSections.SelectMany(section => section.Fields), field => field.Key == "metaDescription");
+        Assert.Contains(standardSections.SelectMany(section => section.Fields), field => field.Key == "__displayName");
+        Assert.Contains(standardSections.SelectMany(section => section.Fields), field => field.Key == "__helpLink");
+        Assert.Contains(standardSections.SelectMany(section => section.Fields), field => field.Key == "__publish");
+        Assert.Contains(standardSections.SelectMany(section => section.Fields), field => field.Key == "__created");
+        Assert.Contains(standardSections.SelectMany(section => section.Fields), field => field.Key == "__versionName");
         Assert.Contains(
-            standardTemplate.Sections.SelectMany(section => section.Fields),
+            standardSections.SelectMany(section => section.Fields),
             field => field.Key == "__hidden" && field.IsShared);
         Assert.Contains(
-            standardTemplate.Sections.SelectMany(section => section.Fields),
+            standardSections.SelectMany(section => section.Fields),
             field => field.Key == "__displayName" && field.IsUnversioned);
         Assert.Contains(
-            standardTemplate.Sections.SelectMany(section => section.Fields),
+            standardSections.SelectMany(section => section.Fields),
             field => field.Key == "__publish" && field.IsVersioned);
         Assert.Contains(
-            standardTemplate.Sections.SelectMany(section => section.Fields),
+            standardSections.SelectMany(section => section.Fields),
             field =>
                 field.Key == "__publishingGroups"
                 && field.FieldType == FieldType.Multilist
                 && field.IsShared);
         Assert.Contains(
-            standardTemplate.Sections.SelectMany(section => section.Fields),
+            standardSections.SelectMany(section => section.Fields),
             field => field.Key == "__hideVersion" && field.IsShared);
         Assert.Contains(
-            standardTemplate.Sections.SelectMany(section => section.Fields),
+            standardSections.SelectMany(section => section.Fields),
             field => field.Key == "__validFrom" && field.IsUnversioned);
         Assert.Contains(
-            standardTemplate.Sections.SelectMany(section => section.Fields),
+            standardSections.SelectMany(section => section.Fields),
             field => field.Key == "__updated" && field.IsShared);
         Assert.Contains(
-            standardTemplate.Sections.SelectMany(section => section.Fields),
+            standardSections.SelectMany(section => section.Fields),
             field => field.Key == "__versionName" && field.IsVersioned);
         Assert.Contains(
-            standardTemplate.Sections.SelectMany(section => section.Fields),
+            standardSections.SelectMany(section => section.Fields),
             field => field.Key == "__archiveDate" && field.FieldType == FieldType.DateTime && field.IsShared);
         Assert.Contains(
-            standardTemplate.Sections.SelectMany(section => section.Fields),
+            standardSections.SelectMany(section => section.Fields),
             field => field.Key == "__archiveVersionDate" && field.FieldType == FieldType.DateTime && field.IsVersioned);
         Assert.Contains(
-            standardTemplate.Sections.SelectMany(section => section.Fields),
+            standardSections.SelectMany(section => section.Fields),
             field => field.Key == "__reminderText" && field.FieldType == FieldType.MultiLineText && field.IsShared);
         Assert.Contains(itemTemplate.Sections.SelectMany(section => section.Fields), field => field.Key == "body");
 
@@ -185,7 +208,7 @@ public sealed class DefaultContentBootstrapperTests
 
         var effectiveItemTemplate =
             await catalog.GetEffectiveTemplateAsync(
-                BuiltInTemplateKeys.Item,
+                new TemplateKey("page"),
                 TestContext.Current.CancellationToken);
 
         Assert.NotNull(effectiveItemTemplate);
@@ -232,7 +255,7 @@ public sealed class DefaultContentBootstrapperTests
                 about!.Id,
                 TestContext.Current.CancellationToken);
 
-        Assert.Equal(3, templates.Count);
+        Assert.Equal(BuiltInTemplateKeys.All.Count + 1, templates.Count);
         Assert.Single(rootItems);
         Assert.Equal(
             ["content", "media", "system", "templates"],
@@ -325,7 +348,7 @@ public sealed class DefaultContentBootstrapperTests
                 TestContext.Current.CancellationToken);
         var itemTemplate =
             await catalog.GetEffectiveTemplateAsync(
-                BuiltInTemplateKeys.Item,
+                new TemplateKey("page"),
                 TestContext.Current.CancellationToken);
         Assert.NotNull(home);
         Assert.NotNull(itemTemplate);
@@ -405,7 +428,7 @@ public sealed class DefaultContentBootstrapperTests
                 catalog,
                 contentRepository,
                 contentItemService,
-                logger),
+                logger, builtInTemplateRepository),
             builtInTemplateRepository,
             contentRepository,
             catalog,

@@ -1,4 +1,17 @@
+## Template composition correction (2026-09-16)
+
+Item is now the domain base type. Standard inherits the eight reusable system section templates; Template and Folder inherit Standard. Page is seeded as an editable authored template and inherits Standard. Template definitions expose a separate defining template ID. Existing installations need the explicit JSON/content-ID conversion before deployment; see [ADR-0013](decisions/ADR-0013-items-and-template-composition.md).
+
 # TemplarCMS - Current State Summary
+
+## Content editor section grouping
+
+The content editor shows Content first, followed by all custom sections from the
+effective template (including inherited sections), then system-owned sections.
+Section sort order applies within each group; fields remain together within their
+section. Stored fields absent from the effective template appear last. The template
+field collection includes optional `sectionMetadata`, preserving section ownership
+without hiding author-visible fields inside system sections.
 
 ## Repository
 

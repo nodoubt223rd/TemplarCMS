@@ -48,6 +48,11 @@ namespace TemplarCMS.ContentModeling.Serialization
         {
             ArgumentNullException.ThrowIfNull(template);
 
+            if (template.TemplateId is { } definingTemplateId && definingTemplateId != SystemTemplateIds.Template.Value)
+            {
+                throw new ArgumentException("Template definitions must be created from the system Template template.", nameof(template));
+            }
+
             var sections =
                 MapSections(template.Sections);
 

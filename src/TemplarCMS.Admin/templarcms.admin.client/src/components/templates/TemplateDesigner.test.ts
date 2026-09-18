@@ -21,6 +21,14 @@ function setup() {
 }
 
 describe('TemplateDesigner input identity', () => {
+  it.each(['standard', 'template', 'folder', 'advanced', 'appearance', 'help', 'lifetime', 'publishing', 'statistics', 'tasks', 'version'])('protects the system template %s while leaving Page editable', async (key) => {
+    const wrapper = setup()
+    expect(wrapper.findAll('button').find(b => b.text() === 'Save')!.attributes('disabled')).toBeUndefined()
+    await wrapper.setProps({ selectedTemplate: { ...template, id: key, key } })
+    expect(wrapper.text()).toContain('This system template is source-controlled')
+    expect(wrapper.findAll('button').find(b => b.text() === 'Save')!.attributes('disabled')).toBeDefined()
+  })
+
   it('retains DOM identity and focus while changing section and field names', async () => {
     const wrapper = setup()
     for (const input of wrapper.findAll('input')) {

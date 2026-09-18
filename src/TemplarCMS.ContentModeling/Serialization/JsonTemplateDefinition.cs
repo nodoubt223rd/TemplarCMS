@@ -10,6 +10,9 @@ public sealed class JsonTemplateDefinition
     [JsonPropertyName("id")]
     public Guid Id { get; set; }
 
+    [JsonPropertyName("templateId")]
+    public Guid? TemplateId { get; set; }
+
     [JsonPropertyName("name")]
     public string? Name { get; set; }
 

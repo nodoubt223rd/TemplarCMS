@@ -226,6 +226,7 @@ public sealed class AuthoringSecurityIntegrationTests
                         new Dictionary<string, string?>
                         {
                             ["OpenApi:Enabled"] = "false",
+                            ["Persistence:Provider"] = "Sqlite",
                             ["AuthoringSecurity:Enabled"] = "true",
                             ["AuthoringSecurity:ApiKeyHeaderName"] = "X-Templar-Api-Key",
                             ["AuthoringSecurity:ApiKey"] = ValidApiKey,

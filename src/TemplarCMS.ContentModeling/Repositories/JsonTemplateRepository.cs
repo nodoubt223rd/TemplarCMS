@@ -265,6 +265,7 @@ public sealed class JsonTemplateRepository : ITemplateRepository
         return new JsonTemplateDefinition
         {
             Id = template.Id.Value,
+            TemplateId = template.TemplateId.Value,
             Name = template.Name,
             Key = template.Key.ToString(),
             Icon = template.Icon,
