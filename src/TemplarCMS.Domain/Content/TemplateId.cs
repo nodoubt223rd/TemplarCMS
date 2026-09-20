@@ -9,6 +9,7 @@ public readonly record struct TemplateId
     /// Initializes a new instance of the <see cref="TemplateId" /> struct.
     /// </summary>
     /// <param name="value">The template identifier value.</param>
+    [System.Text.Json.Serialization.JsonConstructor]
     public TemplateId(Guid value)
     {
         if (value == Guid.Empty)

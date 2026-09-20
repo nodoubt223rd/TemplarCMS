@@ -51,7 +51,9 @@ public sealed class BuiltInTemplateProvider : IBuiltInTemplateProvider
             SystemTemplateIds.Template, "Template", BuiltInTemplateKeys.Template,
             standardTemplate, [], icon: "layout");
 
-        return [standardTemplate, folderTemplate, templateTemplate, .. sectionTemplates];
+        var templateFolder = new TemplateDefinition(SystemTemplateIds.TemplateFolder,
+            "Template Folder", BuiltInTemplateKeys.TemplateFolder, standardTemplate, [], icon: "folder");
+        return [standardTemplate, folderTemplate, templateTemplate, templateFolder, .. sectionTemplates];
     }
 
     /// <summary>Creates the editable starter Page for a new instance only.</summary>
