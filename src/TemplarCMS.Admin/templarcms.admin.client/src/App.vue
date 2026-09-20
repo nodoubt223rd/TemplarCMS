@@ -1,13 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
-import ContentInspectorPane from './components/ContentInspectorPane.vue'
 import TemplateCatalogPane from './components/TemplateCatalogPane.vue'
 import TemplateInspectorPane from './components/TemplateInspectorPane.vue'
 import TemplateDesignerPane from './components/TemplateDesignerPane.vue'
-import TreeBranch from './components/TreeBranch.vue'
 import AuthorWorkspace from './components/AuthorWorkspace.vue'
 import TopBar from './components/layout/TopBar.vue'
-import NavRail from './components/layout/NavRail.vue'
 import StatusBar from './components/layout/StatusBar.vue'
 import ContentTree from './components/tree/ContentTree.vue'
 import ContentEditor from './components/editor/ContentEditor.vue'
@@ -26,7 +23,6 @@ import type {
   TemplateFieldItemResponse,
   TemplateSummaryResponse
 } from './types/admin-api'
-import type { GeneralLinkDraft } from './types/general-link'
 import type {
   TemplateDesignerFormState,
   TemplateDraftSection
@@ -54,7 +50,6 @@ import {
   createFieldTypeLookup
 } from './utils/editor-fields'
 import {
-  getCheckboxFieldValue,
   normalizeFieldValue,
   normalizeOptionalValue,
   setCheckboxFieldValue,
@@ -69,11 +64,6 @@ import {
   withJsonDefaults
 } from './utils/request-helpers'
 import { buildTemplateWorkspaceViewModel } from './utils/template-workspace'
-import {
-  normalizeGeneralLinkKind,
-  parseGeneralLinkValue,
-  updateGeneralLinkDraft as updateGeneralLinkDraftValue
-} from './utils/general-link'
 import {
   addTemplateDraftField,
   addTemplateDraftSection,
@@ -149,7 +139,6 @@ const baseTemplatePreviewError = ref<string | null>(null)
 const templateDesignerForm = reactive<TemplateDesignerFormState>(createNewTemplateDesignerState().form)
 const templateDraftSections = ref<TemplateDraftSection[]>([])
 
-const treeCount = computed(() => countNodes(rootNodes.value))
 const selectedCreateTemplate = computed(() =>
   creatableTemplates.value.find(template => template.id === createForm.templateId) ?? null)
 const creatableTemplates = computed(() =>
@@ -296,58 +285,6 @@ async function submitCreate() {
     await applyMutationResponse(response)
     resetCreateForm()
     successMessage.value = `Created ${response.item.name} and refreshed the affected branch.`
-  } catch (error) {
-    pageError.value = getErrorMessage(error)
-  } finally {
-    isSubmitting.value = false
-  }
-}
-
-async function submitRename() {
-  if (isSubmitting.value || selectedItem.value == null) {
-    return
-  }
-
-  pageError.value = null
-  successMessage.value = null
-  isSubmitting.value = true
-
-  try {
-    const response = await sendMutation<ContentMutationResponse>(selectedItem.value._links.rename.href, {
-      method: 'POST',
-      body: JSON.stringify({
-        name: renameForm.name
-      })
-    })
-
-    await applyMutationResponse(response)
-    successMessage.value = `Renamed ${response.item.name} and refreshed the branch in place.`
-  } catch (error) {
-    pageError.value = getErrorMessage(error)
-  } finally {
-    isSubmitting.value = false
-  }
-}
-
-async function submitMove() {
-  if (isSubmitting.value || selectedItem.value == null) {
-    return
-  }
-
-  pageError.value = null
-  successMessage.value = null
-  isSubmitting.value = true
-
-  try {
-    const response = await sendMutation<ContentMutationResponse>(selectedItem.value._links.move.href, {
-      method: 'POST',
-      body: JSON.stringify({
-        parentId: normalizeOptionalValue(moveForm.parentId)
-      })
-    })
-
-    await applyMutationResponse(response)
-    successMessage.value = `Moved ${response.item.name} and refreshed the affected branches.`
   } catch (error) {
     pageError.value = getErrorMessage(error)
   } finally {
@@ -1155,10 +1092,6 @@ function withContext(url: string) {
   return withRequestContext(url, language.value, version.value)
 }
 
-function getCheckboxValue(key: string) {
-  return getCheckboxFieldValue(fieldForm, key)
-}
-
 function setCheckboxValue(key: string, checked: boolean) {
   setCheckboxFieldValue(fieldForm, key, checked)
 }
@@ -1175,41 +1108,6 @@ function onFieldInput(key: string, value: string) {
   setFieldValue(key, value)
 }
 
-function getGeneralLinkDraft(key: string): GeneralLinkDraft {
-  return parseGeneralLinkValue(fieldForm[key])
-}
-
-function updateGeneralLinkDraft(
-  key: string,
-  update: Partial<GeneralLinkDraft>)
-{
-  fieldForm[key] = updateGeneralLinkDraftValue(fieldForm[key], update)
-}
-
-function onGeneralLinkKindInput(key: string, value: string) {
-  const kind = normalizeGeneralLinkKind(value)
-  updateGeneralLinkDraft(key, { kind })
-}
-
-function onGeneralLinkItemIdInput(key: string, value: string) {
-  updateGeneralLinkDraft(key, { itemId: value })
-}
-
-function onGeneralLinkUrlInput(key: string, value: string) {
-  updateGeneralLinkDraft(key, { url: value })
-}
-
-function onGeneralLinkTextInput(key: string, value: string) {
-  updateGeneralLinkDraft(key, { text: value })
-}
-
-function onGeneralLinkTargetInput(key: string, value: string) {
-  updateGeneralLinkDraft(key, { target: value })
-}
-
-function countNodes(nodes: TreeNode[]): number {
-  return nodes.reduce((total, node) => total + 1 + countNodes(node.children), 0)
-}
 </script>
 
 <template>

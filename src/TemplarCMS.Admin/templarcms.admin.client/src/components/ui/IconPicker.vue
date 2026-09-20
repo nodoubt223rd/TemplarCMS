@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import { ALL_ICONS, ICON_LABELS, ICON_SVG } from '@/data/icons'
 import type { IconKey } from '@/types'
 
-const props = defineProps<{ modelValue: IconKey }>()
+defineProps<{ modelValue: IconKey }>()
 const emit = defineEmits<{ (e: 'update:modelValue', v: IconKey): void }>()
 
 const open = ref(false)
