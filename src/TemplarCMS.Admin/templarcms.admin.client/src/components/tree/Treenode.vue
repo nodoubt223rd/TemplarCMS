@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import type { TreeNode } from '@/types/admin-ui'
 import { treeNodeMatchesFilter } from '@/utils/content-tree'
+import type { TreeMenuRequest } from '@/types/tree-actions'
 
 defineOptions({ name: 'ContentTreeNode' })
 
@@ -16,6 +17,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   toggle: [node: TreeNode]
   select: [node: TreeNode]
+  menu: [request: TreeMenuRequest]
 }>()
 
 const hasChildren = computed(() => props.node.isWorkspaceRoot === true || !props.node.isBranchLoaded || props.node.children.length > 0)
@@ -38,6 +40,17 @@ function selectNode() {
   }
 }
 
+function openMenu(event: MouseEvent | KeyboardEvent) {
+  if (isWorkspaceRoot.value) return
+  if (event instanceof KeyboardEvent && event.key !== 'ContextMenu' && !(event.shiftKey && event.key === 'F10')) return
+  event.preventDefault()
+  event.stopPropagation()
+  const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
+  emit('menu', { target: { kind: 'content', id: props.node.item.id }, label: props.node.item.name,
+    x: event instanceof MouseEvent && event.type === 'contextmenu' ? event.clientX : rect.left,
+    y: event instanceof MouseEvent && event.type === 'contextmenu' ? event.clientY : rect.bottom })
+}
+
 function toggle(event: MouseEvent) {
   event.stopPropagation()
 
@@ -49,6 +62,7 @@ function toggle(event: MouseEvent) {
 
 <template>
   <div>
+    <div class="flex items-center">
     <button
       class="w-full flex items-center gap-1.5 px-2 py-1 rounded-md text-left text-sm transition-colors group"
       :class="isSelected
@@ -58,6 +72,8 @@ function toggle(event: MouseEvent) {
       type="button"
       :disabled="isWorkspaceRoot"
       @click="selectNode"
+      @contextmenu="openMenu"
+      @keydown="openMenu"
     >
       <span
         class="w-3.5 h-3.5 flex items-center justify-center shrink-0 text-stone-400 transition-transform"
@@ -79,6 +95,8 @@ function toggle(event: MouseEvent) {
 
       <span class="truncate flex-1 text-[13px]">{{ node.item.name }}</span>
     </button>
+    <button v-if="!isWorkspaceRoot" type="button" :aria-label="node.item.name + ' actions'" class="px-2 text-stone-500" @click="openMenu">⋯</button>
+    </div>
 
     <template v-if="node.isExpanded && visibleChildren.length > 0">
       <Treenode
@@ -91,6 +109,7 @@ function toggle(event: MouseEvent) {
         :template-icons="templateIcons"
         @toggle="emit('toggle', $event)"
         @select="emit('select', $event)"
+        @menu="emit('menu', $event)"
       />
     </template>
   </div>
