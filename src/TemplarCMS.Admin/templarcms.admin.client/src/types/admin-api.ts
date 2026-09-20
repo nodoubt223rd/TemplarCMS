@@ -3,6 +3,7 @@ export type LinkResponse = {
 }
 
 export type ContentItemResponse = {
+  sortOrder?: number | null
   id: string
   name: string
   templateId: string
