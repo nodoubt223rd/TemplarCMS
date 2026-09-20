@@ -75,6 +75,7 @@ app.MapHealthChecks("/health")
 app.MapContentLookupEndpoints();
 app.MapFieldTypeEndpoints();
 app.MapTemplateEndpoints();
+app.MapTemplateOrganizationEndpoints();
 app.MapMediaEndpoints();
 app.MapUserDirectoryEndpoints();
 app.MapSwaggerUiAssetFallback();

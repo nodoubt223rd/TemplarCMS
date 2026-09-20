@@ -48,6 +48,12 @@ internal static class DefaultContentBootstrapServiceCollectionExtensions
         services.AddSingleton<IBuiltInTemplateProvider, BuiltInTemplateProvider>();
         services.AddSingleton<IJsonTemplateMapper, JsonTemplateMapper>();
         services.AddSingleton<JsonTemplateRepository>();
+        services.AddSingleton(sp => new TemplarCMS.ContentModeling.Organization.JsonTemplateOrganizationRepository(
+            sp.GetRequiredService<IOptions<JsonTemplateRepositoryOptions>>().Value.TemplatesPath));
+        services.AddSingleton(sp => new TemplarCMS.ContentModeling.Organization.TemplateMutationCoordinator(
+            sp.GetRequiredService<IOptions<JsonTemplateRepositoryOptions>>().Value.TemplatesPath,
+            sp.GetRequiredService<TemplarCMS.ContentModeling.Organization.JsonTemplateOrganizationRepository>()));
+        services.AddSingleton<TemplarCMS.Application.Templates.TemplateOrganizationService>();
         services.AddSingleton<ITemplateRepository>(
             serviceProvider =>
                 new BuiltInTemplateRepository(

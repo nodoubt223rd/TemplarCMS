@@ -71,6 +71,12 @@ public sealed class AuthoringSecurityIntegrationTests
     [InlineData("POST", "/api/v1/content/00000000-0000-0000-0000-000000000001/values")]
     [InlineData("DELETE", "/api/v1/content/00000000-0000-0000-0000-000000000001")]
     [InlineData("POST", "/api/v1/templates")]
+    [InlineData("POST", "/api/v1/template-folders")]
+    [InlineData("POST", "/api/v1/template-folders/00000000-0000-0000-0000-000000000001/rename")]
+    [InlineData("POST", "/api/v1/template-folders/00000000-0000-0000-0000-000000000001/move")]
+    [InlineData("DELETE", "/api/v1/template-folders/00000000-0000-0000-0000-000000000001?expectedRevision=00000000-0000-0000-0000-000000000000")]
+    [InlineData("POST", "/api/v1/templates/00000000-0000-0000-0000-000000000001/rename")]
+    [InlineData("POST", "/api/v1/templates/00000000-0000-0000-0000-000000000001/move")]
     [InlineData("PUT", "/api/v1/templates/00000000-0000-0000-0000-000000000001")]
     [InlineData("DELETE", "/api/v1/templates/00000000-0000-0000-0000-000000000001")]
     public async Task AuthoringEndpoints_ShouldReturn401_WhenApiKeyIsMissing(

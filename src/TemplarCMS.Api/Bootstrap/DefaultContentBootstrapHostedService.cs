@@ -54,6 +54,8 @@ public sealed class DefaultContentBootstrapHostedService : IHostedService
         }
 
         Directory.CreateDirectory(templatesPath);
+        await scope.ServiceProvider.GetRequiredService<TemplarCMS.ContentModeling.Organization.TemplateMutationCoordinator>()
+            .RecoverAsync(cancellationToken);
 
         if (isSqlite) await dbContext.Database.EnsureCreatedAsync(cancellationToken);
         else await SqlServerSchemaVerifier.VerifyAsync(dbContext, cancellationToken);
