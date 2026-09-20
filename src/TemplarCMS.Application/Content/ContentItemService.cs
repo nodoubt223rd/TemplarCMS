@@ -130,7 +130,9 @@ public sealed class ContentItemService : IContentItemService
                     cancellationToken));
         }
 
-        return resolvedItems;
+        return resolvedItems.OrderBy(item => ContentSiblingOrdering.Parse(item.Fields.GetValueOrDefault("__sortorder")?.Value).HasValue ? 0 : 1)
+            .ThenBy(item => ContentSiblingOrdering.Parse(item.Fields.GetValueOrDefault("__sortorder")?.Value))
+            .ThenBy(item => item.Item.Key.ToString(), StringComparer.OrdinalIgnoreCase).ThenBy(item => item.Item.Id.Value).ToArray();
     }
 
     /// <inheritdoc />

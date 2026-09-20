@@ -70,6 +70,8 @@ internal static class DefaultContentBootstrapServiceCollectionExtensions
         services.AddSingleton<IContentModelCatalog, ContentModelCatalog>();
 
         services.AddScoped<IContentRepository, EfContentRepository>();
+        services.AddScoped<IContentOrderingRepository, EfContentOrderingRepository>();
+        services.AddScoped<ContentOrderingService>();
         services.AddScoped<TemplarCMS.Abstractions.Security.IUserDirectoryRepository,
             TemplarCMS.Persistence.Security.EfUserDirectoryRepository>();
         services.AddScoped<IMediaAssetRepository, EfMediaAssetRepository>();

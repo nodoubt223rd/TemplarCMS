@@ -998,6 +998,7 @@ public static class ContentLookupEndpoints
             Name = item.Item.Name,
             TemplateId = item.Item.TemplateId.Value.ToString(),
             Icon = item.Item.Icon,
+            SortOrder = ContentSiblingOrdering.Parse(item.Fields.GetValueOrDefault("__sortorder")?.Value),
             Path = canonicalPath,
             Language = context.Language.ToString(),
             Version = context.Version.Value,

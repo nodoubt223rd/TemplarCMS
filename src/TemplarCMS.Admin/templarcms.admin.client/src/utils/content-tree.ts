@@ -129,5 +129,12 @@ function mergeTreeNode(node: TreeNode, item: ContentItemResponse): TreeNode {
 }
 
 function compareTreeNodes(left: TreeNode, right: TreeNode): number {
-  return left.item.path.localeCompare(right.item.path)
+  const leftOrder = left.item.sortOrder
+  const rightOrder = right.item.sortOrder
+  if (leftOrder != null && rightOrder == null) return -1
+  if (leftOrder == null && rightOrder != null) return 1
+  if (leftOrder != null && rightOrder != null && leftOrder !== rightOrder) return leftOrder - rightOrder
+  const leftKey = left.item.path.split('/').pop()?.toLowerCase() ?? ''
+  const rightKey = right.item.path.split('/').pop()?.toLowerCase() ?? ''
+  return leftKey < rightKey ? -1 : leftKey > rightKey ? 1 : left.item.id.localeCompare(right.item.id)
 }

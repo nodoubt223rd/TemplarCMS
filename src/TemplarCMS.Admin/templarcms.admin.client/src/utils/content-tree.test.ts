@@ -11,6 +11,13 @@ import {
 } from './content-tree'
 
 describe('content tree utilities', () => {
+  it('preserves server sort order when a branch is reconciled', () => {
+    const result = applyBranchToTree([], createBranch(null, [
+      createItem({ id: 'a', path: '/a', sortOrder: 2 }),
+      createItem({ id: 'z', path: '/z', sortOrder: 0 })
+    ]))
+    expect(result.map(node => node.item.id)).toEqual(['z', 'a'])
+  })
   it('extracts a parent id from a content link', () => {
     expect(extractParentIdFromHref('/api/v1/content/parent-123?lang=en&version=1')).toBe('parent-123')
   })

@@ -41,6 +41,7 @@ public sealed class SetContentFieldValuesRequest
 
 public sealed class ContentItemResponse
 {
+    public int? SortOrder { get; init; }
     public required string Id { get; init; }
 
     public required string Name { get; init; }
