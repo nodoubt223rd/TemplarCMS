@@ -3,6 +3,8 @@ import { computed } from 'vue'
 import type { TreeNode } from '@/types/admin-ui'
 import { treeNodeMatchesFilter } from '@/utils/content-tree'
 
+defineOptions({ name: 'ContentTreeNode' })
+
 const props = defineProps<{
   node: TreeNode
   depth: number
