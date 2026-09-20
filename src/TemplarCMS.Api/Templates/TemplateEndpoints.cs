@@ -31,6 +31,7 @@ public static class TemplateEndpoints
                 "/api/v1/templates",
                 CreateAsync)
             .WithName("CreateTemplate")
+            .AddEndpointFilter<TemplateMutationFilter>()
             .WithTags("Templates")
             .Produces<TemplateResponse>(StatusCodes.Status201Created)
             .ProducesProblem(StatusCodes.Status400BadRequest)
@@ -43,6 +44,7 @@ public static class TemplateEndpoints
                 "/api/v1/templates/{id:guid}",
                 UpdateAsync)
             .WithName("UpdateTemplate")
+            .AddEndpointFilter<TemplateMutationFilter>()
             .WithTags("Templates")
             .Produces<TemplateResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
@@ -56,6 +58,7 @@ public static class TemplateEndpoints
                 "/api/v1/templates/{id:guid}",
                 DeleteAsync)
             .WithName("DeleteTemplate")
+            .AddEndpointFilter<TemplateMutationFilter>()
             .WithTags("Templates")
             .Produces(StatusCodes.Status204NoContent)
             .ProducesProblem(StatusCodes.Status400BadRequest)
@@ -969,3 +972,4 @@ public static class TemplateEndpoints
         }
     }
 }
+

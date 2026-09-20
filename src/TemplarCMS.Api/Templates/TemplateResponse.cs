@@ -50,6 +50,8 @@ public sealed class TemplateCollectionResponse
 
 public sealed class CreateTemplateRequest
 {
+    public Guid? ParentFolderId { get; init; }
+    public Guid? ExpectedOrganizationRevision { get; init; }
     public required string Name { get; init; }
 
     public required string Key { get; init; }
@@ -192,6 +194,8 @@ public sealed class TemplateFieldCollectionLinksResponse
 
 public sealed class TemplateLinksResponse
 {
+    public LinkResponse? Rename { get; init; }
+    public LinkResponse? Move { get; init; }
     public required LinkResponse Self { get; init; }
 
     public required LinkResponse Fields { get; init; }
