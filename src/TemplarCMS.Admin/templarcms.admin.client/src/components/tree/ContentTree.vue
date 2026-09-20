@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import type { TreeNode } from '@/types/admin-ui'
 import TreeNodeItem from './Treenode.vue'
+import type { TreeMenuRequest } from '@/types/tree-actions'
 
 withDefaults(defineProps<{
   rootNode: TreeNode
@@ -15,6 +16,7 @@ withDefaults(defineProps<{
 const emit = defineEmits<{
   select: [node: TreeNode]
   toggle: [node: TreeNode]
+  menu: [request: TreeMenuRequest]
 }>()
 
 const treeFilter = ref('')
@@ -57,6 +59,7 @@ const treeFilter = ref('')
         :template-icons="templateIcons"
         @select="emit('select', $event)"
         @toggle="emit('toggle', $event)"
+        @menu="emit('menu', $event)"
       />
     </div>
   </aside>

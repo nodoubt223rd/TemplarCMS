@@ -1,114 +1,55 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import type { TreeItem } from '@/types'
-
-const props = defineProps<{
-  node: TreeItem
-  x: number
-  y: number
-}>()
-
-const emit = defineEmits<{
-  (e: 'close'): void
-  (e: 'action', action: string): void
-}>()
-
-const menuRef = ref<HTMLElement>()
-const adjustedX = ref(props.x)
-const adjustedY = ref(props.y)
-
+import { onMounted, onBeforeUnmount, ref } from 'vue'
+import type { TreeActionTarget, TreeActionDescriptor, TreeActionRequest } from '@/types/tree-actions'
+const props = defineProps<{ target: TreeActionTarget; label: string; actions: TreeActionDescriptor[]; x: number; y: number }>()
+const emit = defineEmits<{ close: []; action: [request: TreeActionRequest] }>()
+const menu = ref<HTMLElement>()
+const left = ref(props.x)
+const top = ref(props.y)
+const previousFocus = document.activeElement as HTMLElement | null
+function buttons() { return Array.from(menu.value?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)') ?? []) }
+function onKey(event: KeyboardEvent) {
+  if (event.key === 'Escape' || event.key === 'Tab') { event.preventDefault(); emit('close'); return }
+  const options = buttons()
+  if (!options.length) return
+  const index = options.indexOf(document.activeElement as HTMLButtonElement)
+  let target = index
+  if (event.key === 'ArrowDown') target = (index + 1) % options.length
+  else if (event.key === 'ArrowUp') target = (index - 1 + options.length) % options.length
+  else if (event.key === 'Home') target = 0
+  else if (event.key === 'End') target = options.length - 1
+  else return
+  event.preventDefault()
+  options[target]?.focus()
+}
+function onOutside(event: PointerEvent) { if (!menu.value?.contains(event.target as Node)) emit('close') }
 onMounted(() => {
-  const el = menuRef.value
-  if (!el) return
-  const rect = el.getBoundingClientRect()
-  if (props.x + rect.width > window.innerWidth)  adjustedX.value = props.x - rect.width
-  if (props.y + rect.height > window.innerHeight) adjustedY.value = props.y - rect.height
-
-  const close = () => emit('close')
-  window.addEventListener('keydown', (e) => { if (e.key === 'Escape') close() }, { once: true })
+  const rect = menu.value!.getBoundingClientRect()
+  left.value = Math.max(8, Math.min(props.x, window.innerWidth - rect.width - 8))
+  top.value = Math.max(8, Math.min(props.y, window.innerHeight - rect.height - 8))
+  buttons()[0]?.focus()
+  window.addEventListener('keydown', onKey)
+  window.addEventListener('pointerdown', onOutside)
 })
-
-const isTemplate = computed(() => props.node.type === 'template')
-const isRoot     = computed(() => props.node.type === 'root')
-
-type MenuGroup = { items: { label: string; action: string; icon: string; danger?: boolean; disabled?: boolean }[] }
-
-const groups = computed<MenuGroup[]>(() => {
-  const g: MenuGroup[] = []
-
-  // Create
-  if (!isRoot.value) {
-    g.push({ items: [
-      isTemplate.value
-        ? { label: 'New Template',          action: 'new-template', icon: '＋' }
-        : { label: 'New Item from Template…', action: 'new-item',    icon: '＋' },
-      { label: 'New Folder',                action: 'new-folder',   icon: '🗂' },
-    ]})
-  }
-
-  // Reorder
-  if (!isRoot.value) {
-    g.push({ items: [
-      { label: 'Move Up',      action: 'move-up',    icon: '↑' },
-      { label: 'Move Down',    action: 'move-down',  icon: '↓' },
-      { label: 'Move to Top',  action: 'move-first', icon: '⇑' },
-      { label: 'Move to Bottom', action: 'move-last', icon: '⇓' },
-    ]})
-  }
-
-  // Reparent
-  if (!isRoot.value) {
-    g.push({ items: [
-      { label: 'Move to…',    action: 'reparent',  icon: '↗' },
-    ]})
-  }
-
-  // Danger
-  if (!isRoot.value) {
-    g.push({ items: [
-      { label: 'Rename',  action: 'rename', icon: '✎' },
-      { label: 'Delete',  action: 'delete', icon: '×', danger: true },
-    ]})
-  }
-
-  return g
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onKey)
+  window.removeEventListener('pointerdown', onOutside)
+  previousFocus?.focus()
 })
 </script>
-
 <template>
   <Teleport to="body">
-    <!-- Backdrop -->
-    <div class="fixed inset-0 z-[998]" @click="emit('close')" @contextmenu.prevent="emit('close')" />
-
-    <!-- Menu -->
-    <div
-      ref="menuRef"
-      class="fixed z-[999] w-52 bg-white rounded-xl shadow-xl ring-1 ring-black/10 py-1.5 overflow-hidden"
-      :style="{ left: `${adjustedX}px`, top: `${adjustedY}px` }"
-    >
-      <!-- Node label header -->
-      <div class="px-3 py-1.5 mb-0.5">
-        <p class="text-[11px] font-semibold text-stone-400 uppercase tracking-wider truncate">{{ node.label }}</p>
-      </div>
-
-      <template v-for="(group, gi) in groups" :key="gi">
-        <div v-if="gi > 0" class="my-1 mx-2 border-t border-stone-100" />
-        <button
-          v-for="item in group.items"
-          :key="item.action"
-          @click="emit('action', item.action); emit('close')"
-          :disabled="item.disabled"
-          class="w-full flex items-center gap-2.5 px-3 py-1.5 text-left text-[13px] transition-colors"
-          :class="item.danger
-            ? 'text-rose-600 hover:bg-rose-50'
-            : item.disabled
-              ? 'text-stone-300 cursor-not-allowed'
-              : 'text-stone-700 hover:bg-[#f0f0fd] hover:text-[#3a4eb0]'"
-        >
-          <span class="w-4 text-center text-[13px] shrink-0 opacity-60">{{ item.icon }}</span>
-          {{ item.label }}
-        </button>
-      </template>
+    <div ref="menu" role="menu" :aria-label="label + ' actions'" class="tree-action-menu" :style="{ left: left + 'px', top: top + 'px' }">
+      <div class="menu-label">{{ label }}</div>
+      <button v-for="entry in actions" :key="entry.action" role="menuitem" :disabled="entry.disabled" type="button"
+        @click="emit('action', { target, action: entry.action }); emit('close')">{{ entry.label }}</button>
     </div>
   </Teleport>
 </template>
+<style scoped>
+.tree-action-menu { position: fixed; z-index: 999; min-width: 210px; max-height: calc(100vh - 16px); overflow-y: auto; background: white; border: 1px solid #ddd; border-radius: 8px; padding: 6px; box-shadow: 0 8px 30px #0003; }
+.menu-label { padding: 5px 10px; color: #777; font-size: 12px; }
+button { display: block; width: 100%; text-align: left; border: 0; background: transparent; padding: 7px 10px; border-radius: 4px; font-size: 13px; }
+button:focus, button:hover { background: #e8eaf8; outline: 2px solid #5970e3; }
+button:disabled { opacity: .45; }
+</style>
