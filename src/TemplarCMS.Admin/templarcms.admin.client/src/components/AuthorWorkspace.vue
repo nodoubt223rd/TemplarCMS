@@ -12,6 +12,7 @@ import ToastContainer from './ui/ToastContainer.vue'
 import { useToast } from '@/composables/useToast'
 import type { ContentItemDependencyResponse, ContentItemResponse, FieldTypeResponse, TemplateResponse, TemplateSummaryResponse } from '@/types/admin-api'
 import type { EditorFieldModel, TreeNode } from '@/types/admin-ui'
+import type { TreeMenuRequest } from '@/types/tree-actions'
 
 type Workspace = 'content' | 'templates' | 'media' | 'system'
 
@@ -31,6 +32,7 @@ const props = defineProps<{
   isSubmitting: boolean
   dependencies: ContentItemDependencyResponse | null
   templates: TemplateSummaryResponse[]
+  templateFolders?: { id: string; name: string }[]
   selectedTemplateId: string | null
   selectedTemplate: TemplateResponse | null
   isLoadingTemplates: boolean
@@ -70,6 +72,7 @@ const emit = defineEmits<{
   'close-actions': []
   selectNode: [node: TreeNode]
   toggleNode: [node: TreeNode]
+  treeMenu: [request: TreeMenuRequest]
   save: []
   delete: []
   updateItemIcon: [icon: string | null]
@@ -115,6 +118,7 @@ type TemplateSaveRequest = {
         :template-icons="templateIcons"
         @select="emit('selectNode', $event)"
         @toggle="emit('toggleNode', $event)"
+        @menu="emit('treeMenu', $event)"
       />
       <main class="flex min-w-0 flex-1">
         <template v-if="activeWorkspace === 'content'">
@@ -143,6 +147,7 @@ type TemplateSaveRequest = {
         <TemplateDesigner
           v-else-if="activeWorkspace === 'templates'"
           :templates="templates"
+          :folders="templateFolders"
           :selected-template-id="selectedTemplateId"
           :selected-template="selectedTemplate"
           :is-loading="isLoadingTemplates"
@@ -152,6 +157,7 @@ type TemplateSaveRequest = {
           @update-icon="emit('updateTemplateIcon', $event)"
           @update-base-template-ids="emit('updateTemplateBaseTemplateIds', $event)"
           @save-template="emit('saveTemplate', $event)"
+          @menu="emit('treeMenu', $event)"
         />
         <UserDirectory v-else-if="activeWorkspace === 'system'" />
         <section v-else class="flex flex-1 items-center justify-center text-sm text-stone-400">
