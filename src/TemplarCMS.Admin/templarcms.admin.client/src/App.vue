@@ -4,6 +4,10 @@ import TemplateCatalogPane from './components/TemplateCatalogPane.vue'
 import TemplateInspectorPane from './components/TemplateInspectorPane.vue'
 import TemplateDesignerPane from './components/TemplateDesignerPane.vue'
 import AuthorWorkspace from './components/AuthorWorkspace.vue'
+import ContextMenu from './components/tree/ContextMenu.vue'
+import TreeActionDialog from './components/tree/TreeActionDialog.vue'
+import { useTreeActions } from './composables/useTreeActions'
+import { reconcileTreeAction } from './utils/reconcile-tree-action'
 import TopBar from './components/layout/TopBar.vue'
 import StatusBar from './components/layout/StatusBar.vue'
 import ContentTree from './components/tree/ContentTree.vue'
@@ -103,6 +107,48 @@ const selectedItemId = ref<string | null>(null)
 const selectedNode = computed(() => findTreeNodeById(rootNodes.value, selectedItemId.value))
 const selectedItem = computed(() => selectedNode.value?.item ?? null)
 const contentWorkspaceRoot = computed<TreeNode>(() => rootNodes.value[0] ?? createFallbackContentWorkspaceRoot())
+
+const treeActions = useTreeActions({
+  templates: () => availableTemplates.value,
+  context: () => ({ language: language.value, version: version.value }),
+  contentRoot: () => contentWorkspaceRoot.value.item,
+  beforeAction: request => {
+    if (isSubmitting.value) return false
+    if (request.target.kind === 'template' && request.target.id === selectedTemplateId.value && ['rename', 'delete'].includes(request.action))
+      return window.confirm('This action will reload or close the selected template. Discard any unsaved template edits?')
+    if (request.target.kind === 'content' && request.target.id === selectedItemId.value && request.action === 'delete')
+      return window.confirm('Delete the selected item and discard its unsaved edits?')
+    return true
+  },
+  onContentChanged: async response => {
+    rootNodes.value = await reconcileTreeAction(rootNodes.value, response, getItem,
+      id => id ? getBranch(id) : getRootBranch(), shouldApplyWorkspaceBranch)
+    if (treeActions.dialog.value?.request.action === 'delete' && selectedItemId.value === response.item.id) {
+      selectedItemId.value = null
+      resetInspectorForms()
+      clearFieldFormValues(fieldForm)
+    }
+    successMessage.value = 'Tree action saved.'
+  },
+  onReordered: async parentId => {
+    const branch = parentId ? await getBranch(parentId) : await getRootBranch()
+    rootNodes.value = applyBranchToContentTree(rootNodes.value, branch)
+    successMessage.value = 'Item order saved.'
+  },
+  onTemplatesChanged: async request => {
+    const wasSelected = request.target.kind === 'template' && request.target.id === selectedTemplateId.value
+    const response = await fetchJson<TemplateCollectionResponse>('/api/v1/templates')
+    availableTemplates.value = response.embedded.templates
+    if (request.target.kind === 'template' && wasSelected) {
+      if (request.action === 'delete') { selectedTemplateId.value = null; selectedTemplateDetail.value = null }
+      else if (request.action === 'rename') await loadTemplateDetail(request.target.id)
+    }
+    successMessage.value = 'Template action saved.'
+  }
+})
+watch(activeWorkspace, workspace => {
+  if (workspace === 'templates') void treeActions.refreshOrganization().catch(error => { pageError.value = getErrorMessage(error) })
+})
 
 const createForm = reactive({
   name: '',
@@ -1127,6 +1173,7 @@ function onFieldInput(key: string, value: string) {
     :is-submitting="isSubmitting"
     :dependencies="selectedItemDependencies"
     :templates="visibleTemplates"
+    :template-folders="treeActions.folders.value"
     :selected-template-id="selectedTemplateId"
     :selected-template="selectedTemplateDetail"
     :is-loading-templates="isLoadingTemplates"
@@ -1140,6 +1187,7 @@ function onFieldInput(key: string, value: string) {
     @close-actions="showActions = false"
     @select-node="selectNode"
     @toggle-node="toggleNode"
+    @tree-menu="treeActions.open"
     @save="submitValues"
     @delete="submitDelete"
     @update-item-icon="updateSelectedItemIcon"
@@ -1150,6 +1198,15 @@ function onFieldInput(key: string, value: string) {
     @update-template-base-template-ids="updateSelectedTemplateBaseTemplates"
     @save-template="saveSelectedTemplate"
   />
+
+  <ContextMenu v-if="treeActions.menu.value" v-bind="treeActions.menu.value" :actions="treeActions.actions.value"
+    @close="treeActions.menu.value = null" @action="treeActions.choose" />
+  <TreeActionDialog v-if="treeActions.dialog.value" v-bind="treeActions.dialog.value" :busy="treeActions.busy.value"
+    :error="treeActions.error.value" :destructive="treeActions.dialog.value.request.action === 'delete'"
+    @cancel="treeActions.dialog.value = null" @submit="treeActions.submit" />
+  <div v-if="treeActions.error.value && !treeActions.dialog.value" role="alert" class="fixed bottom-12 right-4 z-50 max-w-md rounded border border-red-200 bg-white p-4 text-red-800">
+    {{ treeActions.error.value }} <button type="button" aria-label="Dismiss action error" @click="treeActions.error.value = null">×</button>
+  </div>
 
   <div v-if="false" class="workspace-shell">
     <TopBar
@@ -1474,4 +1531,5 @@ function onFieldInput(key: string, value: string) {
     <StatusBar class="workspace-statusbar" :selected-item="selectedItem" />
   </div>
 </template>
+
 
