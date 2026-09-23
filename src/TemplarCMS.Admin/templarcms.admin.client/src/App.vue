@@ -466,7 +466,7 @@ async function updateSelectedTemplateBaseTemplates(templateIds: string[]) {
         body: JSON.stringify({
           name: template.name,
           key: template.key,
-          icon: template.icon,
+          icon: template.authoredIcon === undefined ? template.icon ?? null : template.authoredIcon,
           baseTemplateKeys,
           sections: template.sections.map(section => ({
             name: section.name,
@@ -498,7 +498,7 @@ async function updateSelectedTemplateBaseTemplates(templateIds: string[]) {
 async function saveSelectedTemplate(template: {
   name: string
   key: string
-  icon: string
+  icon: string | null
   baseTemplateKeys: string[]
   sections: Array<{
     name: string
@@ -1474,3 +1474,4 @@ function onFieldInput(key: string, value: string) {
     <StatusBar class="workspace-statusbar" :selected-item="selectedItem" />
   </div>
 </template>
+

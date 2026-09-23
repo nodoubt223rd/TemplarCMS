@@ -5,6 +5,7 @@ namespace TemplarCMS.Api.Templates;
 
 public sealed class TemplateResponse
 {
+    public string? AuthoredIcon { get; init; }
     public required string Id { get; init; }
 
     public string TemplateId { get; init; } = TemplarCMS.Domain.Content.SystemTemplateIds.Template.Value.ToString();
