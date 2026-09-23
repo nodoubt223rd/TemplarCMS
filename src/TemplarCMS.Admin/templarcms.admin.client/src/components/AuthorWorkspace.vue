@@ -84,7 +84,7 @@ const emit = defineEmits<{
 type TemplateSaveRequest = {
   name: string
   key: string
-  icon: string
+  icon: string | null
   baseTemplateKeys: string[]
   sections: Array<{
     name: string
@@ -163,3 +163,4 @@ type TemplateSaveRequest = {
     <StatusBar :selected-item="selectedItem" />
   </div>
 </template>
+

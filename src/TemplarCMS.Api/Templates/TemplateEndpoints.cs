@@ -573,6 +573,7 @@ public static class TemplateEndpoints
             Name = template.Name,
             Key = template.Key.ToString(),
             Icon = template.Icon ?? "file",
+            AuthoredIcon = template.Icon,
             BaseTemplates = template.BaseTemplates
                 .Select(
                     baseTemplate => new TemplateBaseTemplateResponse

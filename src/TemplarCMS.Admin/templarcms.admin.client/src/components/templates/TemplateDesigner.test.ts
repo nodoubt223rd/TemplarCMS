@@ -21,6 +21,12 @@ function setup() {
 }
 
 describe('TemplateDesigner input identity', () => {
+  it('keeps an inherited icon absent on ordinary saves', async () => {
+    const wrapper = setup()
+    await wrapper.setProps({ selectedTemplate: { ...template, icon: 'star', authoredIcon: null } })
+    await wrapper.findAll('button').find(button => button.text() === 'Save')!.trigger('click')
+    expect((wrapper.emitted('saveTemplate')?.[0]?.[0] as { icon: string | null }).icon).toBeNull()
+  })
   it.each(['standard', 'template', 'folder', 'advanced', 'appearance', 'help', 'lifetime', 'publishing', 'statistics', 'tasks', 'version'])('protects the system template %s while leaving Page editable', async (key) => {
     const wrapper = setup()
     expect(wrapper.findAll('button').find(b => b.text() === 'Save')!.attributes('disabled')).toBeUndefined()

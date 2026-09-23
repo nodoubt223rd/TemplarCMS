@@ -128,6 +128,7 @@ export type TemplateSectionResponse = {
 }
 
 export type TemplateResponse = {
+  authoredIcon?: string | null
   id: string
   templateId?: string
   name: string
