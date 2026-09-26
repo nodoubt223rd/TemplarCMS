@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import type { TreeMenuRequest, TreeActionTarget } from '@/types/tree-actions'
+import type { TreeMenuRequest } from '@/types/tree-actions'
+import type { TemplateOrganization } from '@/types/template-organization'
+import TemplateTree from './TemplateTree.vue'
 import type { FieldTypeResponse, TemplateResponse, TemplateSummaryResponse } from '@/types/admin-api'
 import { ALL_ICONS, ICON_LABELS } from '@/types/icons'
 import { type MultilistOption } from '@/components/fields/MultilistWithSearchField.vue'
@@ -10,7 +12,7 @@ type Section = { editorId: string; name: string; key: string; sortOrder: number;
 type Draft = { name: string; key: string; icon: string | null; baseTemplateIds: string[]; sections: Section[] }
 type SaveRequest = { name: string; key: string; icon: string | null; baseTemplateKeys: string[]; sections: Array<Omit<Section, 'editorId' | 'fields'> & { fields: Array<Omit<Field, 'editorId'>> }> }
 
-const props = defineProps<{ templates: TemplateSummaryResponse[]; folders?: { id: string; name: string }[]; selectedTemplateId: string | null; selectedTemplate: TemplateResponse | null; availableFieldTypes: FieldTypeResponse[]; isLoading: boolean; isSubmitting: boolean }>()
+const props = defineProps<{ templates: TemplateSummaryResponse[]; organization?: TemplateOrganization | null; selectedTemplateId: string | null; selectedTemplate: TemplateResponse | null; availableFieldTypes: FieldTypeResponse[]; isLoading: boolean; isSubmitting: boolean }>()
 const emit = defineEmits<{ select: [id: string]; saveTemplate: [template: SaveRequest]; menu: [request: TreeMenuRequest] }>()
 const tab = ref<'builder' | 'info'>('builder')
 const draft = ref<Draft | null>(null)
@@ -38,26 +40,11 @@ function save() {
       fields: section.fields.map(field => ({ name: field.name, key: field.key, type: field.type, isShared: field.isShared, isUnversioned: field.isUnversioned })) }))
   })
 }
-function openActions(event: MouseEvent | KeyboardEvent, target: TreeActionTarget, label: string) {
-  if (event instanceof KeyboardEvent && event.key !== 'ContextMenu' && !(event.shiftKey && event.key === 'F10')) return
-  event.preventDefault()
-  const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
-  emit('menu', { target, label, x: event instanceof MouseEvent && event.type === 'contextmenu' ? event.clientX : rect.left,
-    y: event instanceof MouseEvent && event.type === 'contextmenu' ? event.clientY : rect.bottom })
-}
 </script>
 
 <template>
   <div class="flex min-w-0 flex-1 overflow-hidden">
-    <aside class="flex w-52 shrink-0 flex-col overflow-y-auto border-r border-stone-200 bg-[#f7f5f1]">
-      <button type="button" class="px-3 pt-3 text-left text-sm" @click="openActions($event, { kind: 'templates-root', id: null }, 'Templates')" @contextmenu="openActions($event, { kind: 'templates-root', id: null }, 'Templates')">Templates ⋯</button>
-      <div v-for="folder in folders" :key="folder.id" class="flex items-center px-3 py-1 text-sm"><span class="flex-1 truncate">▱ {{ folder.name }}</span><button type="button" :aria-label="folder.name + ' actions'" @click="openActions($event, { kind: 'template-folder', id: folder.id }, folder.name)" @contextmenu="openActions($event, { kind: 'template-folder', id: folder.id }, folder.name)" @keydown="openActions($event, { kind: 'template-folder', id: folder.id }, folder.name)">⋯</button></div><div v-if="isLoading" class="px-3 py-2 text-xs text-stone-400">Loading templates...</div>
-      <div v-for="template in templates" :key="template.id" class="flex items-center">
-        <button class="min-w-0 flex-1 px-3 py-2 text-left text-sm" :class="template.id === selectedTemplateId ? 'bg-[#e8eaf8]' : ''" type="button" @click="emit('select', template.id)"
-          @contextmenu="openActions($event, { kind: 'template', id: template.id }, template.name)" @keydown="openActions($event, { kind: 'template', id: template.id }, template.name)">{{ template.name }}</button>
-        <button type="button" :aria-label="template.name + ' actions'" class="px-2" @click="openActions($event, { kind: 'template', id: template.id }, template.name)">⋯</button>
-      </div>
-    </aside>
+    <TemplateTree :templates="templates" :organization="organization" :selected-id="selectedTemplateId" :loading="isLoading" @select="emit('select', $event)" @menu="emit('menu', $event)" />
     <section v-if="draft" class="flex min-w-0 flex-1 flex-col overflow-hidden bg-white"><header class="flex items-center gap-3 border-b border-stone-200 px-5 py-3"><div class="flex h-9 w-9 items-center justify-center rounded-lg bg-[#e8eaf8] text-[#5970e3]">▧</div><div><h2 class="text-base font-semibold text-stone-800">{{ draft.name }}</h2><p class="font-mono text-[11px] text-stone-400">{{ draft.key }}</p></div><button class="ml-auto rounded-lg bg-[#5970e3] px-4 py-1.5 text-sm font-medium text-white disabled:opacity-40" :disabled="!editable || isSubmitting" type="button" @click="save">Save</button></header>
       <div class="flex border-b border-stone-200 px-5"><button v-for="entry in ['builder', 'info'] as const" :key="entry" class="-mb-px border-b-2 px-4 py-2.5 text-[13px] font-medium capitalize" :class="tab === entry ? 'border-[#5970e3] text-[#5970e3]' : 'border-transparent text-stone-500'" type="button" @click="tab = entry">{{ entry }}</button></div>
       <p v-if="!editable" class="border-b border-amber-100 bg-amber-50 px-5 py-2 text-xs text-amber-800">This system template is source-controlled. Define author fields on Page or another authored template.</p>
@@ -69,6 +56,3 @@ function openActions(event: MouseEvent | KeyboardEvent, target: TreeActionTarget
     </section><div v-else class="flex flex-1 items-center justify-center bg-white text-sm text-stone-400">Select a template to inspect it.</div>
   </div>
 </template>
-
-
-

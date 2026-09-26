@@ -120,8 +120,13 @@ public sealed class AuthoringSecurityIntegrationTests
         AssertProblemCode(problem, "authoring-authentication-failed");
     }
 
-    [Fact]
-    public async Task AuthoringEndpoint_ShouldReturn403_WhenAuthorizationFailsAfterAuthentication()
+    [Theory]
+    [InlineData("/api/v1/templates")]
+    [InlineData("/api/v1/template-folders")]
+    [InlineData("/api/v1/template-folders/00000000-0000-0000-0000-000000000001/move")]
+    [InlineData("/api/v1/templates/00000000-0000-0000-0000-000000000001/rename")]
+    [InlineData("/api/v1/content/00000000-0000-0000-0000-000000000001/reorder")]
+    public async Task AuthoringEndpoint_ShouldReturn403_WhenAuthorizationFailsAfterAuthentication(string route)
     {
         var cancellationToken = TestContext.Current.CancellationToken;
 
@@ -131,7 +136,7 @@ public sealed class AuthoringSecurityIntegrationTests
 
         using var response =
             await client.PostAsJsonAsync(
-                "/api/v1/templates",
+                route,
                 CreateTemplateRequest(),
                 cancellationToken);
 

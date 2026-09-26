@@ -3,8 +3,9 @@ import type { ContentItemResponse, ContentMutationResponse, TemplateSummaryRespo
 import type { TreeActionRequest, TreeMenuRequest, TreeActionDescriptor } from '@/types/tree-actions'
 import { fetchJson, fetchWithNoContent, sendMutation, withContext } from '@/utils/request-helpers'
 import { extractParentIdFromHref } from '@/utils/content-tree'
+import type { TemplateOrganization as Organization } from '@/types/template-organization'
+import { templateFolderPath } from '@/utils/template-tree'
 
-type Organization = { revision: string; folders: { id: { value: string }; name: string; parentId: { value: string } | null }[]; templates: { id: string; isProtected: boolean; parentId: string | null }[] }
 type Order = { parentId: string | null; revision: string; items: { id: string; supported: boolean }[] }
 export type ActionValues = { name: string; parentId: string; templateId: string }
 export type ActionDialogState = { request: TreeActionRequest; title: string; initialName: string; showName: boolean; destinations?: { id: string; label: string }[]; templates?: TemplateSummaryResponse[]; initialParent?: string }
@@ -26,7 +27,7 @@ export function useTreeActions(options: Options) {
   const dialog = ref<ActionDialogState | null>(null)
   const busy = ref(false)
   const error = ref<string | null>(null)
-  const folders = ref<{ id: string; name: string }[]>([])
+  const treeOrganization = ref<Organization | null>(null)
   let organization: Organization | null = null
   let targetItem: ContentItemResponse | null = null
   let order: Order | null = null
@@ -34,7 +35,7 @@ export function useTreeActions(options: Options) {
   const contextual = (path: string) => { const context = options.context(); return withContext(path, context.language, context.version) }
   async function refreshOrganization() {
     const current = await fetchJson<Organization>('/api/v1/template-organization')
-    folders.value = current.folders.map(folder => ({ id: folder.id.value, name: folder.name }))
+    treeOrganization.value = current
     return current
   }
 
@@ -103,7 +104,7 @@ export function useTreeActions(options: Options) {
         const excluded = new Set<string>(request.target.kind === 'template-folder' ? [request.target.id] : [])
         let changed = true
         while (changed) { changed = false; for (const folder of organization!.folders) if (folder.parentId && excluded.has(folder.parentId.value) && !excluded.has(folder.id.value)) { excluded.add(folder.id.value); changed = true } }
-        destinations = [{ id: '', label: 'Templates root' }, ...organization!.folders.filter(folder => !excluded.has(folder.id.value)).map(folder => ({ id: folder.id.value, label: folder.name }))]
+        destinations = [{ id: '', label: 'Templates root' }, ...organization!.folders.filter(folder => !excluded.has(folder.id.value)).map(folder => ({ id: folder.id.value, label: templateFolderPath(organization!, folder.id.value) }))]
       }
       if (request.action === 'delete' && request.target.kind !== 'template-folder') {
         const url = request.target.kind === 'content' ? targetItem!._links.dependencies.href : `/api/v1/templates/${request.target.id}/dependencies`
@@ -113,7 +114,7 @@ export function useTreeActions(options: Options) {
       dialog.value = { request, title: `${labels[request.action]}${request.action.startsWith('new-') ? ' under ' : ': '}${label}`,
         initialName: request.action === 'rename' ? label : '', showName: request.action !== 'delete' && request.action !== 'move', destinations,
         templates: request.action === 'new-item' ? options.templates().filter(template => !protectedKeys.has(template.key) || template.key === 'folder') : undefined,
-        initialParent: request.target.kind === 'content' ? extractParentIdFromHref(targetItem?._links.parent?.href) ?? '' : organization?.templates.find(template => template.id === request.target.id)?.parentId ?? '' }
+        initialParent: request.target.kind === 'content' ? extractParentIdFromHref(targetItem?._links.parent?.href) ?? '' : request.target.kind === 'template-folder' ? organization?.folders.find(folder => folder.id.value === request.target.id)?.parentId?.value ?? '' : organization?.templates.find(template => template.id === request.target.id)?.parentId ?? '' }
     } catch (failure) { error.value = failure instanceof Error ? failure.message : String(failure) }
     finally { busy.value = false }
   }
@@ -167,5 +168,5 @@ export function useTreeActions(options: Options) {
       if (request.target.kind !== 'content') organization = await fetchJson<Organization>('/api/v1/template-organization').catch(() => organization)
     } finally { busy.value = false }
   }
-  return { menu, actions, dialog, busy, error, folders, refreshOrganization, open, choose, submit }
+  return { menu, actions, dialog, busy, error, treeOrganization, refreshOrganization, open, choose, submit }
 }

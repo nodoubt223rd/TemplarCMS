@@ -147,7 +147,7 @@ public static class TemplateEndpoints
             }
 
             return TypedResults.Ok(
-                MapResponse(template));
+                MapResponse(template, (await contentModelCatalog.GetEffectiveTemplateAsync(template.Id, cancellationToken))?.Icon));
         }
         catch (ArgumentException exception)
         {
@@ -214,7 +214,7 @@ public static class TemplateEndpoints
 
             return TypedResults.Created(
                 location,
-                MapResponse(createdTemplate));
+                MapResponse(createdTemplate, (await contentModelCatalog.GetEffectiveTemplateAsync(createdTemplate.Id, cancellationToken))?.Icon));
         }
         catch (ContentModelCatalogRefreshException exception)
         {
@@ -314,7 +314,7 @@ public static class TemplateEndpoints
             }
 
             return TypedResults.Ok(
-                MapResponse(refreshedTemplate));
+                MapResponse(refreshedTemplate, (await contentModelCatalog.GetEffectiveTemplateAsync(refreshedTemplate.Id, cancellationToken))?.Icon));
         }
         catch (ContentModelCatalogRefreshException exception)
         {
@@ -565,14 +565,14 @@ public static class TemplateEndpoints
     }
 
     private static TemplateResponse MapResponse(
-        TemplateDefinition template)
+        TemplateDefinition template, string? effectiveIcon = null)
     {
         return new TemplateResponse
         {
             Id = template.Id.Value.ToString(),
             Name = template.Name,
             Key = template.Key.ToString(),
-            Icon = template.Icon ?? "file",
+            Icon = effectiveIcon ?? template.Icon ?? "file",
             AuthoredIcon = template.Icon,
             BaseTemplates = template.BaseTemplates
                 .Select(
@@ -973,4 +973,3 @@ public static class TemplateEndpoints
         }
     }
 }
-
