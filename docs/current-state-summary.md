@@ -22,7 +22,7 @@ https://github.com/nodoubt223rd/TemplarCMS
 Default branch:
 
 ```text
-master
+trunk
 ```
 
 Summary scope:
@@ -1076,8 +1076,12 @@ The runtime content concepts now live outside
 - `TemplarCMS.ContentModeling` remains focused on template definitions,
   inheritance, validation, effective template building, JSON template
   mapping, and the current resolver implementations.
-# Tree actions milestone (2026-09-22)
+# Tree actions (2026-09-25)
 
 The TEM-7/TEM-8 feature branch connects content and template workspace action menus to the authoring APIs. Content actions create children/folders, rename, move, reorder, and perform guarded deletion. Template and folder actions create, rename, move, and perform guarded deletion. Actions target the clicked identity independently of editor selection. Branch refreshes preserve unrelated drafts and use the active language/version.
 
-Template organization is revisioned JSON under `Templates/Organization`; template mutations use a recovery journal. Content ordering writes shared `__sortorder` values transactionally. No SQL schema migration is introduced. Template folders are currently listed flat; nested presentation, additional icon display work, and full isolated UI acceptance remain outstanding. This milestone does not complete TEM-7 or TEM-8.
+Template organization is revisioned JSON under the configured template directory's `Organization` subdirectory; template mutations use a recovery journal. The template tree renders nested folders and definitions, retains expansion, and labels move destinations with full folder paths. Content ordering writes shared `__sortorder` values transactionally. No SQL schema migration is introduced.
+
+Tree and selected-item icons follow the effective template unless explicitly overridden. Template detail responses distinguish effective `icon` from nullable `authoredIcon`. Icon updates preserve unsaved content fields; reordering reconciles the selected sibling's draft order without resetting other edits. See [ADR-0014](decisions/ADR-0014-template-containment-and-content-ordering.md) for recovery, revisions, routes, and deployment preservation.
+
+The completion slice adds isolated browser checks, application restart/readback, permission-denied routes, concurrent SQLite writers, nested-tree/dialog regressions, and inherited-icon display coverage. Optional SQL Server rehearsal tests remain separately configured and were not run against a live database.

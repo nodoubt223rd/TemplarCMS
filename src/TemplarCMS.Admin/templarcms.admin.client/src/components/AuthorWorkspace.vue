@@ -13,6 +13,7 @@ import { useToast } from '@/composables/useToast'
 import type { ContentItemDependencyResponse, ContentItemResponse, FieldTypeResponse, TemplateResponse, TemplateSummaryResponse } from '@/types/admin-api'
 import type { EditorFieldModel, TreeNode } from '@/types/admin-ui'
 import type { TreeMenuRequest } from '@/types/tree-actions'
+import type { TemplateOrganization } from '@/types/template-organization'
 
 type Workspace = 'content' | 'templates' | 'media' | 'system'
 
@@ -32,7 +33,7 @@ const props = defineProps<{
   isSubmitting: boolean
   dependencies: ContentItemDependencyResponse | null
   templates: TemplateSummaryResponse[]
-  templateFolders?: { id: string; name: string }[]
+  templateOrganization?: TemplateOrganization | null
   selectedTemplateId: string | null
   selectedTemplate: TemplateResponse | null
   isLoadingTemplates: boolean
@@ -124,7 +125,7 @@ type TemplateSaveRequest = {
         <template v-if="activeWorkspace === 'content'">
           <ContentEditor
             :item="selectedItem"
-            :template-name="templateName"
+            :template-name="templateName" :template-icon="selectedItem ? templateIcons[selectedItem.templateId] : undefined"
             :fields="fields"
             :field-form="fieldForm"
             :is-loading-fields="isLoadingFields"
@@ -147,7 +148,7 @@ type TemplateSaveRequest = {
         <TemplateDesigner
           v-else-if="activeWorkspace === 'templates'"
           :templates="templates"
-          :folders="templateFolders"
+          :organization="templateOrganization"
           :selected-template-id="selectedTemplateId"
           :selected-template="selectedTemplate"
           :is-loading="isLoadingTemplates"
@@ -169,4 +170,3 @@ type TemplateSaveRequest = {
     <StatusBar :selected-item="selectedItem" />
   </div>
 </template>
-

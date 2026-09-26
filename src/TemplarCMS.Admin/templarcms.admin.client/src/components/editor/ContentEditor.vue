@@ -3,10 +3,13 @@ import { computed, ref } from 'vue'
 import type { ContentItemResponse } from '@/types/admin-api'
 import type { EditorFieldModel } from '@/types/admin-ui'
 import FieldRow from './FieldRow.vue'
+import ItemIcon from '@/components/ui/ItemIcon.vue'
+import { resolveItemIcon } from '@/utils/item-icon'
 
 const props = defineProps<{
   item: ContentItemResponse | null
   templateName: string | null
+  templateIcon?: string
   fields: EditorFieldModel[]
   fieldForm: Record<string, string>
   isLoadingFields: boolean
@@ -46,7 +49,7 @@ function toggleSection(name: string) {
 <template>
   <div class="flex min-w-0 flex-1 flex-col overflow-hidden bg-white">
     <div v-if="item" class="flex items-center gap-3 border-b border-stone-200 px-5 py-3">
-      <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-[#e8eaf8] text-[#5970e3]">□</span>
+      <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-[#e8eaf8] text-[#5970e3]"><ItemIcon :icon="resolveItemIcon(item.icon, templateIcon)" /></span>
       <div class="min-w-0 flex-1">
         <h2 class="truncate text-base font-semibold text-stone-800">{{ item.name }}</h2>
         <p class="mt-0.5 text-[11px] text-stone-400">

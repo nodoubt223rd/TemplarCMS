@@ -102,7 +102,8 @@ public sealed class TemplateEndpointsTests
                 authoredTemplate.Id,
                 authoredTemplate.Name,
                 authoredTemplate.Key,
-                authoredTemplate.Sections.ToArray());
+                authoredTemplate.Sections.ToArray(),
+                icon: authoredTemplate.Icon);
         var catalog =
             new FakeContentModelCatalog(
                 [authoredTemplate],
@@ -131,7 +132,7 @@ public sealed class TemplateEndpointsTests
         Assert.Equal($"/api/v1/templates/{template.Id.Value}/dependencies", response.Links.Dependencies.Href);
         Assert.Equal("/api/v1/content", response.Links.CreateItem.Href);
         Assert.Empty(response.BaseTemplates);
-        Assert.Null(catalog.LastRequestedTemplateId);
+        Assert.Equal(template.Id, catalog.LastRequestedTemplateId);
     }
 
     [Fact]

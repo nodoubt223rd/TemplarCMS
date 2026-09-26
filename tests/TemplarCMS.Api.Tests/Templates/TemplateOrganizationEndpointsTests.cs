@@ -13,6 +13,52 @@ namespace TemplarCMS.Api.Tests.Templates;
 public sealed class TemplateOrganizationEndpointsTests
 {
     [Fact]
+    public async Task TemplateDetailsKeepAuthoredIconSeparateFromInheritedDisplay()
+    {
+        await using var factory = new Factory();
+        using var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Add("X-Templar-Api-Key", "organization-tests");
+        var ct = TestContext.Current.CancellationToken;
+        using var baseResponse = await client.PostAsJsonAsync("/api/v1/templates", new { name = "Base", key = "icon-base", icon = "star", sections = Array.Empty<object>() }, ct);
+        baseResponse.EnsureSuccessStatusCode();
+        var parent = (await baseResponse.Content.ReadFromJsonAsync<TemplateResponse>(ct))!;
+        using var childResponse = await client.PostAsJsonAsync("/api/v1/templates", new { name = "Child", key = "icon-child", baseTemplateKeys = new[] { "icon-base" }, sections = Array.Empty<object>() }, ct);
+        childResponse.EnsureSuccessStatusCode();
+        var child = (await childResponse.Content.ReadFromJsonAsync<TemplateResponse>(ct))!;
+        Assert.Null(child.AuthoredIcon);
+        Assert.Equal("star", child.Icon);
+        using var update = await client.PutAsJsonAsync($"/api/v1/templates/{parent.Id}", new { name = "Base", key = "icon-base", icon = "article", sections = Array.Empty<object>() }, ct);
+        update.EnsureSuccessStatusCode();
+        var inherited = (await client.GetFromJsonAsync<TemplateResponse>($"/api/v1/templates/{child.Id}", ct))!;
+        Assert.Null(inherited.AuthoredIcon);
+        Assert.Equal("article", inherited.Icon);
+    }
+
+    [Fact]
+    public async Task OrganizationSurvivesApplicationRestart()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "templar-restart-" + Guid.NewGuid().ToString("N"));
+        var ct = TestContext.Current.CancellationToken;
+        Guid revision;
+        try
+        {
+            await using (var first = new Factory(path, false))
+            {
+                using var client = first.CreateClient();
+                client.DefaultRequestHeaders.Add("X-Templar-Api-Key", "organization-tests");
+                using var response = await client.PostAsJsonAsync("/api/v1/template-folders", new { name = "Retained", key = "retained", expectedRevision = Guid.Empty }, ct);
+                response.EnsureSuccessStatusCode();
+                revision = (await response.Content.ReadFromJsonAsync<TemplateOrganizationSnapshot>(ct))!.Revision;
+            }
+            await using var second = new Factory(path, false);
+            using var reader = second.CreateClient();
+            var restored = (await reader.GetFromJsonAsync<TemplateOrganizationSnapshot>("/api/v1/template-organization", ct))!;
+            Assert.Equal(revision, restored.Revision);
+            Assert.Equal("Retained", Assert.Single(restored.Folders).Name);
+        }
+        finally { Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools(); if (Directory.Exists(path)) Directory.Delete(path, true); }
+    }
+    [Fact]
     public async Task FolderAndTemplateMutationsPreserveContainmentAndRejectStaleState()
     {
         await using var factory = new Factory();
@@ -46,9 +92,9 @@ public sealed class TemplateOrganizationEndpointsTests
         Assert.Equal(definition.Key, updated.Key);
     }
 
-    private sealed class Factory : WebApplicationFactory<Program>
+    private sealed class Factory(string? runtimeRoot = null, bool deleteOnDispose = true) : WebApplicationFactory<Program>
     {
-        private readonly string root = Path.Combine(Path.GetTempPath(), "templar-org-api-" + Guid.NewGuid().ToString("N"));
+        private readonly string root = runtimeRoot ?? Path.Combine(Path.GetTempPath(), "templar-org-api-" + Guid.NewGuid().ToString("N"));
         protected override void ConfigureWebHost(IWebHostBuilder builder) => builder.ConfigureAppConfiguration((_, configuration) =>
             configuration.AddInMemoryCollection(new Dictionary<string, string?>
             {
@@ -62,9 +108,8 @@ public sealed class TemplateOrganizationEndpointsTests
         public override async ValueTask DisposeAsync()
         {
             await base.DisposeAsync();
-            try { if (Directory.Exists(root)) Directory.Delete(root, true); }
+            try { if (deleteOnDispose && Directory.Exists(root)) Directory.Delete(root, true); }
             catch (IOException) { }
         }
     }
 }
-

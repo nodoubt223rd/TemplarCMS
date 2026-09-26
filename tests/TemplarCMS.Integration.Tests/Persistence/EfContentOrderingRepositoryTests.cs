@@ -12,6 +12,44 @@ namespace TemplarCMS.Integration.Tests.Persistence;
 public sealed class EfContentOrderingRepositoryTests
 {
     [Fact]
+    public async Task ConcurrentWritersUsingSameRevisionHaveOneWinner()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var path = Path.Combine(Path.GetTempPath(), "templar-order-" + Guid.NewGuid().ToString("N") + ".db");
+        var options = new DbContextOptionsBuilder<TemplarCmsDbContext>().UseSqlite($"Data Source={path};Pooling=False").Options;
+        var templateId = new TemplateId(Guid.NewGuid());
+        var field = new FieldDefinition(new FieldId(Guid.NewGuid()), "Sort", "__sortorder", FieldType.SingleLineText, isShared: true);
+        var catalog = new TestCatalog(new EffectiveTemplateDefinition(templateId, "Page", new TemplateKey("page"),
+            [new TemplateSectionDefinition(Guid.NewGuid(), "Appearance", "appearance", 0, [field])]));
+        var id = Guid.NewGuid();
+        try
+        {
+            string revision;
+            await using (var setup = new TemplarCmsDbContext(options))
+            {
+                await setup.Database.EnsureCreatedAsync(ct);
+                setup.ContentItems.AddRange(new PersistenceContentItem { Id = Guid.NewGuid(), Name = "A", Key = "a", TemplateId = templateId.Value },
+                    new PersistenceContentItem { Id = id, Name = "B", Key = "b", TemplateId = templateId.Value });
+                await setup.SaveChangesAsync(ct);
+                revision = (await new EfContentOrderingRepository(setup, catalog).ReadAsync(null, ct)).Revision;
+            }
+            var start = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            async Task<bool> WriteAsync()
+            {
+                await start.Task;
+                await using var context = new TemplarCmsDbContext(options);
+                try { await new EfContentOrderingRepository(context, catalog).ReorderAsync(id, ContentOrderDirection.First, revision, ct); return true; }
+                catch (ContentOrderConflictException) { return false; }
+            }
+            var first = Task.Run(WriteAsync, ct);
+            var second = Task.Run(WriteAsync, ct);
+            start.SetResult();
+            Assert.Single(await Task.WhenAll(first, second), success => success);
+        }
+        finally { if (File.Exists(path)) File.Delete(path); }
+    }
+
+    [Fact]
     public async Task ReorderPersistsSharedValuesAndRejectsStaleRevision()
     {
         var ct = TestContext.Current.CancellationToken;

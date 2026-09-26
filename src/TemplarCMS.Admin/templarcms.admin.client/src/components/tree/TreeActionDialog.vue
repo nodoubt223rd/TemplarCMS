@@ -17,7 +17,7 @@ onBeforeUnmount(() => previousFocus?.focus())
 <template>
   <Teleport to="body">
     <dialog ref="dialog" class="tree-action-dialog" :aria-label="title" @cancel.prevent="!busy && emit('cancel')">
-      <form @submit.prevent="emit('submit', { name, parentId, templateId })">
+      <form @submit.prevent="!busy && emit('submit', { name, parentId, templateId })">
         <h2>{{ title }}</h2>
         <p v-if="destructive">This action cannot be undone. Items with dependencies cannot be deleted.</p>
         <label v-if="showName">Name<input v-model="name" required :disabled="busy" /></label>

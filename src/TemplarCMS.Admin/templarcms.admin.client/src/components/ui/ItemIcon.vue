@@ -1,23 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { ICON_SVG } from '@/data/icons'
-import type { IconKey } from '@/types'
-
-const props = withDefaults(defineProps<{
-  iconKey: IconKey
-  size?: number
-  class?: string
-}>(), { size: 16 })
-
-const svg = computed(() => ICON_SVG[props.iconKey] ?? '')
+import { ICON_SVG, type IconKey } from '@/types/icons'
+const props = defineProps<{ icon: string }>()
+// Only source-controlled SVG fragments are rendered; API strings select a known key.
+const markup = computed(() => Object.prototype.hasOwnProperty.call(ICON_SVG, props.icon) ? ICON_SVG[props.icon as IconKey] : ICON_SVG.file)
 </script>
-
 <template>
-  <svg
-    :width="size"
-    :height="size"
-    viewBox="0 0 16 16"
-    xmlns="http://www.w3.org/2000/svg"
-    v-html="svg"
-  />
+  <!-- eslint-disable-next-line vue/no-v-html -->
+  <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" :data-icon="icon" v-html="markup" />
 </template>

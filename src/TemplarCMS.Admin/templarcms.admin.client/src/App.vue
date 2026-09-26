@@ -8,6 +8,7 @@ import ContextMenu from './components/tree/ContextMenu.vue'
 import TreeActionDialog from './components/tree/TreeActionDialog.vue'
 import { useTreeActions } from './composables/useTreeActions'
 import { reconcileTreeAction } from './utils/reconcile-tree-action'
+import { reconcileOrderDraft } from './utils/reconcile-order-draft'
 import TopBar from './components/layout/TopBar.vue'
 import StatusBar from './components/layout/StatusBar.vue'
 import ContentTree from './components/tree/ContentTree.vue'
@@ -133,6 +134,7 @@ const treeActions = useTreeActions({
   onReordered: async parentId => {
     const branch = parentId ? await getBranch(parentId) : await getRootBranch()
     rootNodes.value = applyBranchToContentTree(rootNodes.value, branch)
+    reconcileOrderDraft(fieldForm, selectedItemId.value, branch.embedded.children)
     successMessage.value = 'Item order saved.'
   },
   onTemplatesChanged: async request => {
@@ -430,7 +432,6 @@ async function updateSelectedItemIcon(icon: string | null) {
       extractParentIdFromHref(response._links.parent?.href),
       response
     )
-    await syncInspectorFromItem(response)
     successMessage.value = icon == null
       ? `Cleared the icon override for ${response.name}.`
       : `Updated the icon for ${response.name}.`
@@ -1173,7 +1174,7 @@ function onFieldInput(key: string, value: string) {
     :is-submitting="isSubmitting"
     :dependencies="selectedItemDependencies"
     :templates="visibleTemplates"
-    :template-folders="treeActions.folders.value"
+    :template-organization="treeActions.treeOrganization.value"
     :selected-template-id="selectedTemplateId"
     :selected-template="selectedTemplateDetail"
     :is-loading-templates="isLoadingTemplates"
@@ -1531,5 +1532,3 @@ function onFieldInput(key: string, value: string) {
     <StatusBar class="workspace-statusbar" :selected-item="selectedItem" />
   </div>
 </template>
-
-
