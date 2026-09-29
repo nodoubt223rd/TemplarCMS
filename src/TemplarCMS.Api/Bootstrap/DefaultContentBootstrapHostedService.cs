@@ -85,6 +85,10 @@ public sealed class DefaultContentBootstrapHostedService : IHostedService
 
         await bootstrapper.EnsureInitializedAsync(cancellationToken);
 
+        var organization = scope.ServiceProvider.GetRequiredService<TemplarCMS.Application.Templates.TemplateOrganizationService>();
+        await scope.ServiceProvider.GetRequiredService<TemplarCMS.ContentModeling.Organization.TemplateMutationCoordinator>()
+            .ExecuteAsync(organization.EnsureDefaultFoldersAsync, cancellationToken);
+
         _logger.LogInformation("CMS runtime initialization completed successfully.");
     }
 
