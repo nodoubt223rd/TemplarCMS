@@ -1078,6 +1078,8 @@ The runtime content concepts now live outside
   mapping, and the current resolver implementations.
 # Tree actions (2026-09-25)
 
+Template organization defaults (2026-09-26): startup creates Common, System, and an empty Media folder beneath Templates. Folder and Template Folder belong to Common; the section templates and Template belong to System. Standard remains hidden in the author UI and is grouped with System internally. Existing folder keys and template placements are preserved, and Page stays in its current location. The defaults apply to both new and existing installations without a SQL migration.
+
 The TEM-7/TEM-8 feature branch connects content and template workspace action menus to the authoring APIs. Content actions create children/folders, rename, move, reorder, and perform guarded deletion. Template and folder actions create, rename, move, and perform guarded deletion. Actions target the clicked identity independently of editor selection. Branch refreshes preserve unrelated drafts and use the active language/version.
 
 Template organization is revisioned JSON under the configured template directory's `Organization` subdirectory; template mutations use a recovery journal. The template tree renders nested folders and definitions, retains expansion, and labels move destinations with full folder paths. Content ordering writes shared `__sortorder` values transactionally. No SQL schema migration is introduced.

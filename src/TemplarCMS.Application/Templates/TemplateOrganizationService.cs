@@ -11,6 +11,39 @@ public sealed class TemplateOrganizationService(JsonTemplateOrganizationReposito
 {
     public Task<TemplateOrganizationSnapshot> ReadAsync(CancellationToken ct) => organization.ReadAsync(ct);
 
+    /// <summary>Adds the default organization without changing authored placements. Caller holds the mutation lock.</summary>
+    public async Task EnsureDefaultFoldersAsync(CancellationToken ct)
+    {
+        var state = await ReadAsync(ct);
+        var folders = state.Folders.ToList();
+        var placements = state.Placements.ToList();
+        TemplateFolderId EnsureFolder(string name)
+        {
+            var key = name.ToLowerInvariant();
+            var existing = folders.FirstOrDefault(f => f.ParentId is null &&
+                string.Equals(f.Key, key, StringComparison.OrdinalIgnoreCase));
+            if (existing is not null) return existing.Id;
+            var folder = new TemplateFolderDefinition(new(Guid.NewGuid()), name, key, null);
+            folders.Add(folder);
+            return folder.Id;
+        }
+
+        var common = EnsureFolder("Common");
+        var system = EnsureFolder("System");
+        EnsureFolder("Media");
+        foreach (var template in builtIns.GetTemplates())
+        {
+            if (placements.Any(p => p.TemplateId == template.Id)) continue;
+            var parent = template.Key == BuiltInTemplateKeys.Folder || template.Key == BuiltInTemplateKeys.TemplateFolder
+                ? common : system;
+            placements.Add(new(template.Id, parent));
+        }
+
+        // A repeat startup must not invalidate clients' organization revisions.
+        if (folders.Count != state.Folders.Count || placements.Count != state.Placements.Count)
+            await SaveAsync(state with { Folders = folders, Placements = placements }, ct);
+    }
+
     public async Task<TemplateOrganizationSnapshot> ChangeFolderAsync(string action, Guid? id, string? name,
         string? key, Guid? parentId, Guid expectedRevision, CancellationToken ct)
     {

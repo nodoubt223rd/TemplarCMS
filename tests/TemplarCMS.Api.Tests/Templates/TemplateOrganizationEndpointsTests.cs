@@ -13,6 +13,26 @@ namespace TemplarCMS.Api.Tests.Templates;
 public sealed class TemplateOrganizationEndpointsTests
 {
     [Fact]
+    public async Task StartupGroupsBuiltInsAndLeavesMediaEmpty()
+    {
+        await using var factory = new Factory();
+        using var client = factory.CreateClient();
+        var ct = TestContext.Current.CancellationToken;
+        var state = (await client.GetFromJsonAsync<TemplateOrganizationSnapshot>("/api/v1/template-organization", ct))!;
+        Assert.Equal(new[] { "Common", "Media", "System" }, state.Folders.Select(f => f.Name).Order().ToArray());
+        Assert.All(state.Folders, folder => Assert.Null(folder.ParentId));
+        var builtIns = new TemplarCMS.ContentModeling.Definitions.BuiltInTemplateProvider().GetTemplates();
+        foreach (var template in builtIns)
+        {
+            var folder = state.Folders.Single(f => f.Name == (template.Key.ToString() is "folder" or "template-folder" ? "Common" : "System"));
+            Assert.Contains(state.Placements, p => p.TemplateId == template.Id && p.ParentId == folder.Id);
+        }
+        var media = state.Folders.Single(f => f.Name == "Media");
+        Assert.DoesNotContain(state.Placements, p => p.ParentId == media.Id);
+        Assert.DoesNotContain(state.Placements, p => p.TemplateId.Value == new Guid("562BA716-A878-45E5-9BA7-397F46BA7B1D"));
+    }
+
+    [Fact]
     public async Task TemplateDetailsKeepAuthoredIconSeparateFromInheritedDisplay()
     {
         await using var factory = new Factory();
@@ -35,6 +55,33 @@ public sealed class TemplateOrganizationEndpointsTests
     }
 
     [Fact]
+    public async Task UpgradeReusesExistingFolderAndPreservesCustomPlacement()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "templar-org-upgrade-" + Guid.NewGuid().ToString("N"));
+        var ct = TestContext.Current.CancellationToken;
+        var common = new TemplateFolderDefinition(new(Guid.NewGuid()), "Common", "COMMON", null);
+        var custom = new TemplateFolderDefinition(new(Guid.NewGuid()), "Custom", "custom", common.Id);
+        var pageId = new TemplateId(new Guid("562BA716-A878-45E5-9BA7-397F46BA7B1D"));
+        try
+        {
+            var repository = new JsonTemplateOrganizationRepository(Path.Combine(path, "Templates"));
+            await repository.SaveAsync(new(Guid.Empty, [common, custom], [new(pageId, custom.Id)]), Guid.Empty, ct);
+            var before = await repository.ReadAsync(ct);
+            await using var factory = new Factory(path, false);
+            using var client = factory.CreateClient();
+            var after = (await client.GetFromJsonAsync<TemplateOrganizationSnapshot>("/api/v1/template-organization", ct))!;
+            Assert.NotEqual(before.Revision, after.Revision);
+            Assert.Equal(4, after.Folders.Count);
+            Assert.Equal(common.Id, Assert.Single(after.Folders, f => f.Key.Equals("common", StringComparison.OrdinalIgnoreCase)).Id);
+            Assert.Contains(after.Folders, f => f.Id == custom.Id && f.ParentId == common.Id);
+            Assert.Contains(after.Placements, p => p.TemplateId == pageId && p.ParentId == custom.Id);
+            Assert.Contains(after.Placements, p => p.TemplateId == SystemTemplateIds.TemplateFolder && p.ParentId == common.Id);
+            Assert.Equal(2, after.Folders.Count - before.Folders.Count);
+        }
+        finally { Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools(); if (Directory.Exists(path)) Directory.Delete(path, true); }
+    }
+
+    [Fact]
     public async Task OrganizationSurvivesApplicationRestart()
     {
         var path = Path.Combine(Path.GetTempPath(), "templar-restart-" + Guid.NewGuid().ToString("N"));
@@ -46,7 +93,8 @@ public sealed class TemplateOrganizationEndpointsTests
             {
                 using var client = first.CreateClient();
                 client.DefaultRequestHeaders.Add("X-Templar-Api-Key", "organization-tests");
-                using var response = await client.PostAsJsonAsync("/api/v1/template-folders", new { name = "Retained", key = "retained", expectedRevision = Guid.Empty }, ct);
+                var initial = (await client.GetFromJsonAsync<TemplateOrganizationSnapshot>("/api/v1/template-organization", ct))!;
+                using var response = await client.PostAsJsonAsync("/api/v1/template-folders", new { name = "Retained", key = "retained", expectedRevision = initial.Revision }, ct);
                 response.EnsureSuccessStatusCode();
                 revision = (await response.Content.ReadFromJsonAsync<TemplateOrganizationSnapshot>(ct))!.Revision;
             }
@@ -54,7 +102,8 @@ public sealed class TemplateOrganizationEndpointsTests
             using var reader = second.CreateClient();
             var restored = (await reader.GetFromJsonAsync<TemplateOrganizationSnapshot>("/api/v1/template-organization", ct))!;
             Assert.Equal(revision, restored.Revision);
-            Assert.Equal("Retained", Assert.Single(restored.Folders).Name);
+            Assert.Equal(4, restored.Folders.Count);
+            Assert.Contains(restored.Folders, f => f.Name == "Retained");
         }
         finally { Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools(); if (Directory.Exists(path)) Directory.Delete(path, true); }
     }
@@ -67,10 +116,11 @@ public sealed class TemplateOrganizationEndpointsTests
         using var unauthorized = await client.PostAsJsonAsync("/api/v1/template-folders", new { name = "Pages", key = "pages", expectedRevision = Guid.Empty }, ct);
         Assert.Equal(HttpStatusCode.Unauthorized, unauthorized.StatusCode);
         client.DefaultRequestHeaders.Add("X-Templar-Api-Key", "organization-tests");
-        using var created = await client.PostAsJsonAsync("/api/v1/template-folders", new { name = "Pages", key = "pages", expectedRevision = Guid.Empty }, ct);
+        var initial = (await client.GetFromJsonAsync<TemplateOrganizationSnapshot>("/api/v1/template-organization", ct))!;
+        using var created = await client.PostAsJsonAsync("/api/v1/template-folders", new { name = "Pages", key = "pages", expectedRevision = initial.Revision }, ct);
         created.EnsureSuccessStatusCode();
         var state = (await created.Content.ReadFromJsonAsync<TemplateOrganizationSnapshot>(ct))!;
-        var folder = Assert.Single(state.Folders);
+        var folder = Assert.Single(state.Folders, f => f.Key == "pages");
         using var stale = await client.PostAsJsonAsync($"/api/v1/template-folders/{folder.Id}/rename", new { name = "Changed", expectedRevision = Guid.Empty }, ct);
         Assert.Equal(HttpStatusCode.Conflict, stale.StatusCode);
         using var cycle = await client.PostAsJsonAsync($"/api/v1/template-folders/{folder.Id}/move", new { parentId = folder.Id.Value, expectedRevision = state.Revision }, ct);
@@ -80,7 +130,7 @@ public sealed class TemplateOrganizationEndpointsTests
         template.EnsureSuccessStatusCode();
         var definition = (await template.Content.ReadFromJsonAsync<TemplateResponse>(ct))!;
         state = (await client.GetFromJsonAsync<TemplateOrganizationSnapshot>("/api/v1/template-organization", ct))!;
-        Assert.Equal(definition.Id, Assert.Single(state.Placements).TemplateId.ToString());
+        Assert.Equal(definition.Id, Assert.Single(state.Placements, p => p.ParentId == folder.Id).TemplateId.ToString());
         using var nonempty = await client.DeleteAsync($"/api/v1/template-folders/{folder.Id}?expectedRevision={state.Revision}", ct);
         Assert.Equal(HttpStatusCode.Conflict, nonempty.StatusCode);
         using var protectedTemplate = await client.PostAsJsonAsync($"/api/v1/templates/{SystemTemplateIds.Template}/move", new { parentId = folder.Id.Value, expectedRevision = state.Revision }, ct);

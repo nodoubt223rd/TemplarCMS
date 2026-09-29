@@ -1,14 +1,15 @@
 <script setup lang="ts">
+import ItemIcon from '@/components/ui/ItemIcon.vue'
 type Workspace = 'content' | 'templates' | 'media' | 'system'
 
 defineProps<{ active: Workspace }>()
 const emit = defineEmits<{ (e: 'change', s: Workspace): void }>()
 
 const items: { key: Workspace; label: string; icon: string }[] = [
-  { key: 'content', label: 'Content', icon: '▤' },
-  { key: 'templates', label: 'Templates', icon: '⌘' },
-  { key: 'media', label: 'Media', icon: '◫' },
-  { key: 'system', label: 'System', icon: '⚙' }
+  { key: 'content', label: 'Content', icon: 'layers' },
+  { key: 'templates', label: 'Templates', icon: 'layout' },
+  { key: 'media', label: 'Media', icon: 'image' },
+  { key: 'system', label: 'System', icon: 'settings' }
 ]
 </script>
 
@@ -24,7 +25,7 @@ const items: { key: Workspace; label: string; icon: string }[] = [
         ? 'bg-[#5970e3] text-white'
         : 'text-[#7a7268] hover:bg-white/8 hover:text-[#c8c3bc]'"
     >
-      <span class="text-base leading-none" aria-hidden="true">{{ item.icon }}</span>
+      <ItemIcon :icon="item.icon" />
       <span class="text-[8px] leading-none tracking-wide font-medium">{{ item.label }}</span>
     </button>
   </nav>

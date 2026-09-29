@@ -32,6 +32,8 @@ Authoring authorization applies to mutation routes. API validation and conflict 
 
 ## Deployment and validation
 
+On startup, new and existing instances gain root-level Common, System, and Media folders. Common receives unplaced Folder and Template Folder definitions; System receives the remaining unplaced built-ins, including the hidden Standard baseline. Media is initially empty; Image and Document templates are deferred. Matching root folder keys are reused case-insensitively, and existing placements and custom folders are preserved. Repeat startup does not change the organization revision when nothing needs adding. This initialization uses the existing mutation lock and recovery journal and requires no SQL script.
+
 Runtime data is excluded from API publish output. Existing deployment preservation covers `RuntimeData` and populated legacy `App_Data/Templates`, including nested organization data. If templates are configured outside these paths, operators must preserve and back up that configured location. Never replace instance organization data with another environment's data or publish artifacts.
 
 Acceptance uses isolated SQLite and temporary JSON storage. Tests cover recovery, revision conflicts, concurrent SQLite reorder writers, permission denial, application restart, dependency guards, and icon inheritance. Browser checks cover nested creation/move/rename/reload and draft preservation. Optional SQL Server rehearsal tests require explicit configuration; SQLite evidence does not establish SQL Server concurrency behavior.
