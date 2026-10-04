@@ -382,6 +382,28 @@ public interface ICookieService
 
 ## Admin UI
 
+### Responsive User Account Screens
+
+Status: Future
+
+Problem:
+The user directory, profile dialogs, and role membership controls need
+better layouts at narrow viewport widths. Responsive layouts were outside
+the agreed scope of the initial user-account UX work and TEM-11.
+Desktop use, keyboard interactions, and zoom checks have been accepted;
+this follow-up does not block that scope.
+
+Goals:
+- Agree supported viewport sizes and responsive behavior with UX before
+  implementation
+- Adapt directory columns, search, filters, and actions for narrow screens
+  without losing access to user details
+- Keep profile and pending-user dialogs, role descriptions, validation,
+  and discard confirmations readable and reachable on smaller viewports
+- Preserve keyboard focus, accessible controls, and the accepted zoom behavior
+- Verify the updated flows at the agreed viewport sizes in both the UX
+  reference and the production authoring client
+
 ### Template Designer Information Density
 
 Status: Future
