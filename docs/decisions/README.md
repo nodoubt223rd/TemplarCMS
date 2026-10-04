@@ -44,3 +44,4 @@ Optional follow-up decisions or implementation work.
 | ADR-0006 | Effective Template Runtime Model | Accepted |
 | ADR-0007 | Strong Domain Typing and Pragmatic Patterns | Accepted |
 | ADR-0008 | Pragmatic Logging Baseline | Accepted |
+| [ADR-0009](../adr/ADR-0009-target-role-catalog-contract-and-boundary-validation.md) | Target Role Catalog Contract and Boundary Validation | Accepted |
