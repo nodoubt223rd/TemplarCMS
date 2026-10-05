@@ -18,6 +18,7 @@ public sealed class EfUserDirectoryRepository(TemplarCmsDbContext db) : IUserDir
 
     public async Task<DirectoryWriteResult> CreateAsync(DirectoryUserProfile profile, CancellationToken cancellationToken)
     {
+        if (!DirectoryRoleCatalog.CanAssignRoles(profile.Roles)) return new(DirectoryWriteStatus.InvalidRoles);
         var row = new DirectoryUserRow { Id = Guid.NewGuid(), CreatedAt = DateTimeOffset.UtcNow };
         Apply(row, profile);
         db.DirectoryUsers.Add(row);
@@ -29,6 +30,9 @@ public sealed class EfUserDirectoryRepository(TemplarCmsDbContext db) : IUserDir
         var row = await db.DirectoryUsers.SingleOrDefaultAsync(u => u.Id == id, cancellationToken);
         if (row is null) return new(DirectoryWriteStatus.NotFound);
         if (row.Revision != revision) return new(DirectoryWriteStatus.Conflict);
+        // Validate against the same tracked revision that EF checks when saving.
+        if (!DirectoryRoleCatalog.CanAssignRoles(profile.Roles, Map(row).Roles))
+            return new(DirectoryWriteStatus.InvalidRoles);
         Apply(row, profile);
         return await SaveAsync(row, cancellationToken);
     }

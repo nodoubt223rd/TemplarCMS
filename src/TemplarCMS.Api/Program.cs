@@ -38,6 +38,7 @@ builder.Services.AddSwaggerGen(
                 Description = "API key required for authoring endpoints when AuthoringSecurity is enabled."
             });
         options.OperationFilter<AuthoringSecurityOperationFilter>();
+        options.SchemaFilter<DirectoryRoleSchemaFilter>();
     });
 builder.Services.AddTemplarApiAuthoringSecurity(
     builder.Configuration);

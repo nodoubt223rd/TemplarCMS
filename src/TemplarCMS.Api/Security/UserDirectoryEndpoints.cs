@@ -22,11 +22,12 @@ public static class UserDirectoryEndpoints
                 ? await next(context)
                 : Problem(503, "directory-unavailable", "The user directory is not enabled on this instance.");
         });
-        group.MapGet("/roles", () => TypedResults.Ok(new
-        {
-            items = Enum.GetValues<DirectoryRole>().Select(role => new { id = role.ToString(), label = Label(role) }),
-            _links = new { self = new { href = Root + "/roles" } }
-        })).WithName("GetDirectoryRoles").Produces(401).Produces(403).ProducesProblem(503);
+        group.MapGet("/roles", () => TypedResults.Ok(new DirectoryRoleCatalogResponse(
+            DirectoryRoleCatalog.Entries.Select(entry => new DirectoryRoleResponse(entry.Role.ToString(), entry.Label,
+                entry.Description, entry.IsAssignable, entry.IsAssignable ? "available" : "planned")).ToArray(),
+            new Dictionary<string, DirectoryLink> { ["self"] = new(Root + "/roles") })))
+            .WithName("GetDirectoryRoles").Produces(401).Produces(403).ProducesProblem(503)
+            .WithDescription("Five catalog roles; only available roles can be newly assigned. Memberships do not grant permissions.");
         group.MapGet("/users", ListAsync).WithName("GetDirectoryUsers")
             .Produces<DirectoryListResponse>().ProducesProblem(400).Produces(401).Produces(403).ProducesProblem(503);
         group.MapGet("/users/{id:guid}", GetAsync).WithName("GetDirectoryUser")
@@ -36,16 +37,6 @@ public static class UserDirectoryEndpoints
         group.MapPut("/users/{id:guid}", UpdateAsync).WithName("UpdateDirectoryUser")
             .Produces<DirectoryUserResponse>().ProducesValidationProblem().ProducesProblem(404).ProducesProblem(409).Produces(401).Produces(403).ProducesProblem(503);
     }
-
-    private static string Label(DirectoryRole role) => role switch
-    {
-        DirectoryRole.PlatformAdministrator => "Platform Administrator",
-        DirectoryRole.SecurityAdministrator => "Security Administrator",
-        DirectoryRole.TemplateDesigner => "Template Designer",
-        DirectoryRole.ContentAuthor => "Content Author",
-        DirectoryRole.MediaManager => "Media Manager",
-        _ => role.ToString()
-    };
 
     public static async Task<IResult> ListAsync(IUserDirectoryRepository repository, CancellationToken cancellationToken,
         string? search = null, string? role = null, string? status = null, int offset = 0, int limit = 50)
@@ -84,6 +75,8 @@ public static class UserDirectoryEndpoints
         var profile = new DirectoryUserProfile(request.FirstName ?? "", request.LastName ?? "", request.Email ?? "",
             request.Language ?? "en", request.Roles.Select(Enum.Parse<DirectoryRole>).ToArray());
         var errors = DirectoryProfileValidation.Validate(profile);
+        if (!id.HasValue && !DirectoryRoleCatalog.CanAssignRoles(profile.Roles))
+            errors["roles"] = [DirectoryProfileValidation.AssignmentError];
         if (id.HasValue && (!request.Revision.HasValue || request.Revision == Guid.Empty))
             errors["revision"] = ["The loaded profile revision is required."];
         if (errors.Count > 0) return TypedResults.ValidationProblem(errors);
@@ -97,6 +90,8 @@ public static class UserDirectoryEndpoints
             DirectoryWriteStatus.Saved => TypedResults.Ok(Response(result.User!)),
             DirectoryWriteStatus.NotFound => Problem(404, "directory-user-not-found", "The directory user was not found."),
             DirectoryWriteStatus.DuplicateEmail => Problem(409, "directory-email-conflict", "A directory record already uses this email address."),
+            DirectoryWriteStatus.InvalidRoles => TypedResults.ValidationProblem(
+                new Dictionary<string, string[]> { ["roles"] = [DirectoryProfileValidation.AssignmentError] }),
             _ => Problem(409, "directory-revision-conflict", "This profile changed. Reload it before saving again.")
         };
     }
@@ -120,6 +115,9 @@ public sealed record DirectoryProfileRequest(string? FirstName, string? LastName
     string[]? Roles, string? Language = "en", Guid? Revision = null);
 
 public sealed record DirectoryLink(string Href);
+public sealed record DirectoryRoleResponse(string Id, string Label, string Description, bool IsAssignable, string Availability);
+public sealed record DirectoryRoleCatalogResponse(DirectoryRoleResponse[] Items,
+    [property: JsonPropertyName("_links")] Dictionary<string, DirectoryLink> Links);
 public sealed record DirectoryUserResponse(Guid Id, string FirstName, string LastName, string Email,
     string Language, string Status, string[] Roles, DateTimeOffset CreatedAt, DateTimeOffset? LastLogin,
     Guid Revision, [property: JsonPropertyName("_links")] Dictionary<string, DirectoryLink> Links);

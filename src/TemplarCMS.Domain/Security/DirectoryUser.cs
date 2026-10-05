@@ -1,7 +1,7 @@
 namespace TemplarCMS.Domain.Security;
 
 public enum DirectoryUserStatus { Invited, Active, Suspended, Deactivated }
-public enum DirectoryRole { PlatformAdministrator, SecurityAdministrator, TemplateDesigner, Publisher, ContentAuthor, MediaManager, Reviewer }
+public enum DirectoryRole { Author, Developer, FormsEditor, TemplarAdmin, MarketingAutomationEditors }
 
 public sealed record DirectoryUser(
     Guid Id, string FirstName, string LastName, string Email, string Language,
@@ -11,5 +11,5 @@ public sealed record DirectoryUser(
 public sealed record DirectoryUserProfile(string FirstName, string LastName, string Email,
     string Language, IReadOnlyList<DirectoryRole> Roles);
 
-public enum DirectoryWriteStatus { Saved, NotFound, Conflict, DuplicateEmail }
+public enum DirectoryWriteStatus { Saved, NotFound, Conflict, DuplicateEmail, InvalidRoles }
 public sealed record DirectoryWriteResult(DirectoryWriteStatus Status, DirectoryUser? User = null);
