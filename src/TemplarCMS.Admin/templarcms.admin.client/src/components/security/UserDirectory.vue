@@ -2,12 +2,11 @@
 import { nextTick, onBeforeUnmount, reactive, ref } from 'vue'
 import { fetchJson, getErrorMessage } from '@/utils/request-helpers'
 import { useToast } from '@/composables/useToast'
-import MultilistWithSearchField from '@/components/fields/MultilistWithSearchField.vue'
 
 type Status = 'invited' | 'active' | 'suspended' | 'deactivated'
 type User = { id: string; firstName: string; lastName: string; email: string; language: string;
   roles: string[]; status: Status; revision: string; createdAt: string; lastLogin: string | null }
-type Role = { id: string; label: string }
+type Role = { id: string; label: string; description: string; isAssignable: boolean; availability: 'available' | 'planned' }
 const statuses: Status[] = ['invited', 'active', 'suspended', 'deactivated']
 const users = ref<User[]>([])
 const roles = ref<Role[]>([])
@@ -164,7 +163,19 @@ const date = (value: string | null) => value ? new Date(value).toLocaleDateStrin
             <p class="text-sm">Account status: <strong class="capitalize">{{ selected?.status ?? 'invited' }}</strong></p>
             <p class="text-xs text-stone-500">Status changes are not available yet. Creating this record does not send an invitation.</p>
           </div>
-          <fieldset v-show="tab === 'member-of'" class="space-y-3"><legend class="mb-3 text-sm">Role membership</legend><MultilistWithSearchField v-model="draft.roles" :available="roles.map(r => ({ value: r.id, label: r.label }))" :readonly="saving" /></fieldset>
+          <fieldset v-show="tab === 'member-of'" class="space-y-3">
+            <legend class="mb-3 text-sm">Role membership</legend>
+            <p class="text-xs text-stone-500">Direct memberships are recorded only and do not grant permissions.</p>
+            <p v-if="draft.roles.length === 0" class="text-sm">No roles assigned</p>
+            <label v-for="r in roles" :key="r.id" class="flex items-start gap-3 rounded border border-stone-200 p-3 text-sm">
+              <input v-model="draft.roles" type="checkbox" :value="r.id"
+                :disabled="saving || (!r.isAssignable && !draft.roles.includes(r.id))" class="mt-1" />
+              <span><span class="font-medium">{{ r.label }}</span>
+                <span v-if="!r.isAssignable" class="ml-2 text-xs text-stone-500">Planned — unavailable for new assignments</span>
+                <span class="mt-1 block text-xs text-stone-500">{{ r.description }}</span>
+              </span>
+            </label>
+          </fieldset>
           <label v-show="tab === 'language'" data-language class="block text-sm">Preferred interface language<input v-model="draft.language" required maxlength="35" pattern="[A-Za-z0-9-]+" class="mt-2 w-full rounded border border-stone-300 p-2" /><span class="mt-2 block text-xs text-stone-500">Records a preference; available translations are unchanged.</span></label>
           <p v-if="formError" role="alert" class="mt-4 rounded bg-rose-50 p-3 text-sm text-rose-800">{{ formError }}</p>
         </div>

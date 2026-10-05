@@ -5,6 +5,8 @@ namespace TemplarCMS.Application.Security;
 
 public static class DirectoryProfileValidation
 {
+    public const string AssignmentError = "Roles must be distinct catalog entries; MarketingAutomationEditors is planned and cannot be newly assigned.";
+
     public static Dictionary<string, string[]> Validate(DirectoryUserProfile profile)
     {
         var errors = new Dictionary<string, string[]>();

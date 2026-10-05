@@ -268,6 +268,23 @@ login. Roles are stored assignments only. Status transitions, invitation deliver
 credentials, and production identity remain deferred. See the
 [directory boundary](docs/decisions/ADR-0007-user-directory-foundation.md).
 
+The role catalog contains `Author`, `Developer`, `FormsEditor`, `TemplarAdmin`,
+and planned `MarketingAutomationEditors`. `/api/v1/security/roles` supplies
+readable labels, capability-intent descriptions, `isAssignable`, and
+`availability` (`available` or `planned`). Membership is an unordered set:
+empty and multiple memberships are valid; unknown, retired, differently cased,
+and duplicate role keys return `400` ProblemDetails. The planned role cannot be
+assigned on creation or newly added on update. An existing planned membership
+may be preserved or removed; updates still require the current revision and
+stale saves return `409`. Memberships do not grant permissions.
+
+For TEM-13, recreate affected disposable review directory data before running
+the new catalog. All seven old keys are retired, with no translation layer.
+Fresh SQLite bootstrap or the existing SQL Server provisioning scripts create
+an empty directory; no demo users are seeded. The JSON string-key storage and
+database schema are unchanged. This slice adds no data migration, backup, or
+production rollout tooling. See [ADR-0009](docs/adr/ADR-0009-target-role-catalog-contract-and-boundary-validation.md).
+
 Write endpoints now support a first-pass authoring security model that can be
 enabled for Postman and shared test instances.
 

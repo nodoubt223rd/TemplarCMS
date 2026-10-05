@@ -5,8 +5,11 @@ Status: Accepted for the directory slice; identity integration remains deferred.
 ## Scope
 
 The System workspace presents the user directory using the UX reference at
-TemplarCMS-VUE commit c3a571f. The directory stores profiles and the seven fixed
-role identifiers. It does not authenticate these users or use their assignments
+TemplarCMS-VUE commit c3a571f. The directory stores profiles and fixed role
+identifiers. The original seven-role catalog is superseded by
+[ADR-0009](../adr/ADR-0009-target-role-catalog-contract-and-boundary-validation.md),
+which defines five catalog entries, four assignable roles, and planned-role
+preservation/removal rules. It does not authenticate these users or use their assignments
 to authorize authoring. No example users are seeded into production data.
 
 Users have stable GUIDs, a normalized unique email, preferred interface language,

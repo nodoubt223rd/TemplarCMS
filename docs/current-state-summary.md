@@ -4,6 +4,21 @@ Item is now the domain base type. Standard inherits the eight reusable system se
 
 # TemplarCMS - Current State Summary
 
+## Five-role directory contract (TEM-13)
+
+The directory uses the five catalog entries from
+[ADR-0009](adr/ADR-0009-target-role-catalog-contract-and-boundary-validation.md).
+The API exposes labels, descriptions, and assignment availability. Author,
+Developer, FormsEditor, and TemplarAdmin can be assigned; planned
+MarketingAutomationEditors can only be preserved or removed from an existing
+profile. Empty and multiple direct memberships are valid. Unknown, retired,
+duplicate, or incorrectly cased role keys return 400 ProblemDetails; updates
+retain revision conflicts and the ManageUserDirectory operator policy.
+The admin consumes that metadata through an unordered checkbox selector.
+Storage remains a JSON array of string keys for both SQLite and SQL Server,
+with no seeded accounts or schema change. Affected disposable review directory
+records must be reset before running this catalog; no legacy mapping is provided.
+
 ## Content editor section grouping
 
 The content editor shows Content first, followed by all custom sections from the
