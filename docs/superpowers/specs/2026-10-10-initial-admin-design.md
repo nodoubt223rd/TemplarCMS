@@ -10,6 +10,10 @@ random temporary password for each installation and a dedicated setup command
 that provisions the account and displays that password once. First login must
 require a password change before CMS access is granted.
 
+Client-facing sites must authenticate their content API requests with a delivery
+API key. Account login secures the authoring workspace; delivery keys secure
+site-to-CMS content reads and grant no authoring or user-management permissions.
+
 The account is provisioned automatically by the setup command, rather than by
 every application startup. This reconciles initial provisioning with deliberate,
 one-time delivery of the secret. Application startup remains locked before setup.
@@ -86,7 +90,7 @@ change, logout, and obtaining an antiforgery request token. Successful temporary
 password login establishes a restricted session and returns
 `mustChangePassword: true`. The SPA then displays the change-password screen.
 
-Every protected API request checks current account existence, Active directory
+Every account-authenticated API request checks current account existence, Active directory
 status, security stamp, password-change state, and current role membership.
 Enforcement must not depend on a stale cookie role or a Vue route guard.
 Restricted sessions may inspect their session, obtain an antiforgery token,
@@ -140,15 +144,16 @@ access. Disabling directory UI must not disable authentication.
 
 After the mandatory password change, an Active account with `TemplarAdmin` may
 use the existing authoring and directory-management policies. Other catalog roles
-gain no permissions in this slice. Public content delivery and health remain
-anonymous. Inventory endpoints during implementation and explicitly protect
+gain no permissions in this slice. Content delivery APIs require authentication;
+health remains anonymous. Inventory endpoints during implementation and explicitly protect
 workspace trees, editing metadata, template design, media management, and all
-authoring mutations, while preserving the documented delivery read contract.
+authoring mutations. Preserve delivery response shapes while changing their
+authentication requirement as described below.
 
 Remove the transitional operator API key as an authoring authentication path for
 this flow; it must not bypass setup or mandatory password change. This is a
-documented breaking change for existing operator tooling. Machine authentication
-is separate follow-up work. Tests provision identities explicitly rather than
+documented breaking change for existing operator tooling. Read-only delivery keys
+remain a supported machine authentication path. Tests provision identities explicitly rather than
 relying on disabled security or shipped fixture credentials.
 
 Pending profiles remain unable to log in: assigning a role does not issue
@@ -157,6 +162,49 @@ credentials or activate them. Protect the bootstrap account from removal of its
 stable when its directory email changes; keep associated identity email data
 consistent transactionally. Bootstrap status changes and deletion remain
 unavailable. Broader delegated administration and final-admin rules are deferred.
+
+## API keys for client-facing sites
+
+Use a separate delivery authentication scheme and `ReadContent` policy. Sites send
+their delivery key in `X-Templar-Api-Key` over HTTPS. A delivery key never produces
+an `AuthorContent` or `ManageUserDirectory` permission, and the old operator key
+is not automatically converted to a delivery credential.
+
+For the first slice, configure named per-site delivery keys through protected
+deployment configuration outside source control. A local `generate-delivery-key`
+command generates at least 256 bits of cryptographic randomness and displays the
+key once with its SHA-256 digest for configuration. Store the named digest in the
+CMS configuration and the raw key in the consuming site's server-side secret
+configuration. Only generated high-entropy keys are supported; compare digests
+in constant time. No credential values appear in logs, URLs, OpenAPI examples,
+browser bundles, localStorage, or sessionStorage.
+
+No configured keys means delivery access is denied. Missing or invalid keys return
+`401` ProblemDetails; a valid delivery key used on authoring or directory endpoints
+returns `403`. Rotation consists of provisioning a new named digest and updating
+the consuming site; remove the old digest to revoke that key. Document whether
+the hosting configuration provider reloads changes or requires an API restart.
+No key-management UI or key database tables are needed for this initial scope.
+
+Require `ReadContent` on content reads by ID/path and delivery children reads.
+Allow a fully authenticated, unrestricted TemplarAdmin session on these same
+shared endpoints so the Admin SPA does not need a delivery key. Site requests use
+API keys; restricted admin sessions cannot use their cookie to read content.
+Workspace branch/tree endpoints and authoring metadata remain admin-only. Audit
+any additional delivery route, including any route returning content through an
+alternate path, so it cannot bypass this policy. Health and content-free API
+discovery may remain anonymous. Align OpenAPI security declarations and HATEOAS
+links with these per-endpoint policies.
+
+Visitors may browse a site's rendered pages without possessing the key. The site
+server, serverless function, or backend-for-frontend authenticates its CMS calls.
+A browser-only site needs such a server-side boundary to keep the key secret;
+embedding a shared API key in public JavaScript would expose it to every visitor.
+The API's existing sample HTML renderer is not a content API and may remain
+public, but must not become an anonymous proxy returning raw content API data.
+
+Implement and verify delivery authentication as a distinct slice alongside the
+account-login slice, with explicit tests for their shared content-read policy.
 
 ## Recovery, storage, and failures
 
@@ -189,6 +237,11 @@ Durable audit services remain follow-up work.
   setup path are verified when a test server is available, with limitations recorded.
 - Anonymous authoring is denied before and after setup. Temporary-password sessions
   cannot call protected reads or writes directly, including using the old operator key.
+- Content delivery rejects missing/invalid keys and allows valid per-site keys.
+  Delivery keys cannot write content, read the user directory, or obtain an admin
+  session. An unrestricted admin cookie can read shared content endpoints; a
+  restricted cookie alone cannot. Revoked keys fail after configuration reload
+  or the documented restart, and no configured keys means no anonymous fallback.
 - Password change enables admin access, invalidates the temporary password and old
   sessions, persists across restart, and remains restricted on failed/conflicting saves.
 - Invited, suspended, deactivated, missing, and non-admin profiles cannot obtain admin
@@ -202,10 +255,13 @@ Durable audit services remain follow-up work.
 - Update README, current-state summary, and an identity ADR during implementation.
   Treat this as a separate identity feature from TEM-16's directory verification;
   retain the prohibitions on demo users and operator secrets in browser storage.
+  Document delivery-key provisioning, rotation, site-server usage, and the new
+  authentication requirement for previously anonymous content API consumers.
 
 ## Scope exclusions
 
 No public registration, email invitations, self-service email reset, external
 identity providers, MFA, permission inheritance, general account lifecycle UI,
-additional login-capable users, machine credentials, or durable audit subsystem.
+additional login-capable users, machine authoring credentials, a delivery-key
+management UI, or durable audit subsystem.
 These exclusions do not relax bootstrap protection or first-login enforcement.
