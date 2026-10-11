@@ -1,6 +1,7 @@
 # Initial administrator and secure first login
 
-Status: Proposed for review. Product implementation has not started.
+Status: Approved by the user on 2026-10-10, including required delivery API keys.
+Product implementation has not started.
 
 ## Intent and agreed requirements
 
@@ -18,8 +19,8 @@ The account is provisioned automatically by the setup command, rather than by
 every application startup. This reconciles initial provisioning with deliberate,
 one-time delivery of the secret. Application startup remains locked before setup.
 
-The remaining details below are proposals for review, particularly local identity,
-the retirement of the transitional operator key, and administrator recovery.
+The approved design below includes local identity, retirement of the transitional
+operator key for authoring, and administrator recovery.
 
 ## Existing boundaries
 
