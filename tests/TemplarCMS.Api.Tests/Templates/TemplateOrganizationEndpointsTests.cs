@@ -7,6 +7,7 @@ using TemplarCMS.Api.Templates;
 using TemplarCMS.ContentModeling.Organization;
 using TemplarCMS.Domain.Content;
 using Xunit;
+using TemplarCMS.Api.Tests.Support;
 
 namespace TemplarCMS.Api.Tests.Templates;
 
@@ -113,7 +114,8 @@ public sealed class TemplateOrganizationEndpointsTests
         await using var factory = new Factory();
         using var client = factory.CreateClient();
         var ct = TestContext.Current.CancellationToken;
-        using var unauthorized = await client.PostAsJsonAsync("/api/v1/template-folders", new { name = "Pages", key = "pages", expectedRevision = Guid.Empty }, ct);
+        using var anonymous = factory.CreateAnonymousClient();
+        using var unauthorized = await anonymous.PostAsJsonAsync("/api/v1/template-folders", new { name = "Pages", key = "pages", expectedRevision = Guid.Empty }, ct);
         Assert.Equal(HttpStatusCode.Unauthorized, unauthorized.StatusCode);
         client.DefaultRequestHeaders.Add("X-Templar-Api-Key", "organization-tests");
         var initial = (await client.GetFromJsonAsync<TemplateOrganizationSnapshot>("/api/v1/template-organization", ct))!;
@@ -142,10 +144,14 @@ public sealed class TemplateOrganizationEndpointsTests
         Assert.Equal(definition.Key, updated.Key);
     }
 
-    private sealed class Factory(string? runtimeRoot = null, bool deleteOnDispose = true) : WebApplicationFactory<Program>
+    private sealed class Factory(string? runtimeRoot = null, bool deleteOnDispose = true) : AdminIdentityApiFactory
     {
         private readonly string root = runtimeRoot ?? Path.Combine(Path.GetTempPath(), "templar-org-api-" + Guid.NewGuid().ToString("N"));
-        protected override void ConfigureWebHost(IWebHostBuilder builder) => builder.ConfigureAppConfiguration((_, configuration) =>
+        public new HttpClient CreateClient() => CreateAdminClientAsync(true, TestContext.Current.CancellationToken).GetAwaiter().GetResult();
+        protected override void ConfigureWebHost(IWebHostBuilder builder)
+        {
+            base.ConfigureWebHost(builder);
+            builder.ConfigureAppConfiguration((_, configuration) =>
             configuration.AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["Persistence:Provider"] = "Sqlite",
@@ -155,6 +161,7 @@ public sealed class TemplateOrganizationEndpointsTests
                 ["AuthoringSecurity:ApiKey"] = "organization-tests",
                 ["OpenApi:Enabled"] = "false"
             }));
+        }
         public override async ValueTask DisposeAsync()
         {
             await base.DisposeAsync();

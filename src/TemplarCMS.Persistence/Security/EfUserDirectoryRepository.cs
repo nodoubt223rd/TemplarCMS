@@ -4,10 +4,11 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using TemplarCMS.Abstractions.Security;
 using TemplarCMS.Domain.Security;
+using Microsoft.AspNetCore.Identity;
 
 namespace TemplarCMS.Persistence.Security;
 
-public sealed class EfUserDirectoryRepository(TemplarCmsDbContext db) : IUserDirectoryRepository
+public sealed class EfUserDirectoryRepository(TemplarCmsDbContext db, ILookupNormalizer? normalizer = null) : IUserDirectoryRepository
 {
     public async Task<IReadOnlyList<DirectoryUser>> ListAsync(CancellationToken cancellationToken) =>
         (await db.DirectoryUsers.AsNoTracking().OrderBy(u => u.NormalizedEmail).ToListAsync(cancellationToken))
@@ -33,6 +34,15 @@ public sealed class EfUserDirectoryRepository(TemplarCmsDbContext db) : IUserDir
         // Validate against the same tracked revision that EF checks when saving.
         if (!DirectoryRoleCatalog.CanAssignRoles(profile.Roles, Map(row).Roles))
             return new(DirectoryWriteStatus.InvalidRoles);
+        if (await db.AdminProvisioning.AnyAsync(marker => marker.UserId == id, cancellationToken) && !profile.Roles.Contains(DirectoryRole.TemplarAdmin))
+            return new(DirectoryWriteStatus.ProtectedAdministrator);
+        var account = await db.Users.SingleOrDefaultAsync(value => value.Id == id, cancellationToken);
+        if (account is not null && account.Email != profile.Email)
+        {
+            account.Email = profile.Email;
+            account.NormalizedEmail = (normalizer ?? new UpperInvariantLookupNormalizer()).NormalizeEmail(profile.Email);
+            account.ConcurrencyStamp = Guid.NewGuid().ToString("N");
+        }
         Apply(row, profile);
         return await SaveAsync(row, cancellationToken);
     }
@@ -46,14 +56,14 @@ public sealed class EfUserDirectoryRepository(TemplarCmsDbContext db) : IUserDir
         }
         catch (DbUpdateConcurrencyException)
         {
-            db.Entry(row).State = EntityState.Detached;
+            db.ChangeTracker.Clear();
             return new(DirectoryWriteStatus.Conflict);
         }
         catch (DbUpdateException exception) when (
             exception.InnerException is SqliteException { SqliteExtendedErrorCode: 2067 } ||
             exception.InnerException is SqlException { Number: 2601 or 2627 })
         {
-            db.Entry(row).State = EntityState.Detached;
+            db.ChangeTracker.Clear();
             return new(DirectoryWriteStatus.DuplicateEmail);
         }
     }

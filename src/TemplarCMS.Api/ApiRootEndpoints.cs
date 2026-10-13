@@ -19,6 +19,7 @@ public static class ApiRootEndpoints
             "/",
             GetLandingPageAsync)
             .WithName("GetSampleHomePage")
+            .AllowAnonymous()
             .WithTags("Public site")
             .ExcludeFromDescription();
 
@@ -26,6 +27,7 @@ public static class ApiRootEndpoints
             "/{**contentPath}",
             GetContentPageAsync)
             .WithName("GetPublicContentPage")
+            .AllowAnonymous()
             .WithTags("Public site")
             .ExcludeFromDescription();
 
@@ -33,6 +35,7 @@ public static class ApiRootEndpoints
                 "/api/v1",
                 () => GetAsync(openApiEnabled))
             .WithName("GetApiRoot")
+            .AllowAnonymous()
             .WithTags("Discovery")
             .Produces<ApiRootResponse>(StatusCodes.Status200OK);
 
