@@ -2,13 +2,15 @@ using Microsoft.EntityFrameworkCore;
 using TemplarCMS.Persistence.Content;
 using TemplarCMS.Persistence.Media;
 using TemplarCMS.Domain.Content;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using TemplarCMS.Persistence.Security;
 
 namespace TemplarCMS.Persistence;
 
 /// <summary>
 /// EF Core database context for TemplarCMS persistence.
 /// </summary>
-public sealed class TemplarCmsDbContext : DbContext
+public sealed class TemplarCmsDbContext : IdentityUserContext<CmsIdentityUser, Guid>
 {
     public TemplarCmsDbContext(
         DbContextOptions<TemplarCmsDbContext> options)
@@ -21,9 +23,12 @@ public sealed class TemplarCmsDbContext : DbContext
     public DbSet<PersistenceContentFieldValue> ContentFieldValues => Set<PersistenceContentFieldValue>();
     public DbSet<PersistenceMediaAsset> MediaAssets => Set<PersistenceMediaAsset>();
     public DbSet<Security.DirectoryUserRow> DirectoryUsers => Set<Security.DirectoryUserRow>();
+    public DbSet<AdminProvisioningRow> AdminProvisioning => Set<AdminProvisioningRow>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        base.OnModelCreating(modelBuilder);
+        IdentityModelConfiguration.Configure(modelBuilder);
         var user = modelBuilder.Entity<Security.DirectoryUserRow>();
         user.ToTable("DirectoryUsers");
         user.HasKey(u => u.Id);

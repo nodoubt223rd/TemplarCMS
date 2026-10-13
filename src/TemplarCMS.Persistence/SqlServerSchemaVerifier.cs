@@ -6,6 +6,7 @@ namespace TemplarCMS.Persistence;
 public static class SqlServerSchemaVerifier
 {
     public const string RequiredVersion = "2026-09-tighten-columns-and-indexes-v1";
+    public const string IdentityVersion = "2026-10-admin-identity-v1";
     public const string Collation = "SQL_Latin1_General_CP1_CI_AS";
 
     public static async Task VerifyAsync(TemplarCmsDbContext db, CancellationToken cancellationToken = default)
@@ -15,6 +16,7 @@ public static class SqlServerSchemaVerifier
         {
             var versions = await db.Database.SqlQueryRaw<string>("SELECT VersionKey AS Value FROM dbo.SchemaVersions").ToListAsync(cancellationToken);
             if (!versions.Contains(RequiredVersion)) Fail("Required deployment version is missing.");
+            if (!versions.Contains(IdentityVersion)) Fail("Identity schema version is missing. Apply database/sqlserver/007-admin-identity.sql.");
             var collation = await db.Database.SqlQueryRaw<string>("SELECT CONVERT(nvarchar(128), DATABASEPROPERTYEX(DB_NAME(), 'Collation')) AS Value").SingleAsync(cancellationToken);
             if (collation != Collation) Fail("Database collation does not match the approved baseline.");
             var columns = await db.Database.SqlQueryRaw<ColumnShape>("""
