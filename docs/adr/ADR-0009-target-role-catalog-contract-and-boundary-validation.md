@@ -55,7 +55,7 @@ The `MarketingAutomationEditors` identifier is a recognized catalog entry but re
 
 #### Negative
 * Application-layer validation code must explicitly check the current stored record during profile updates to differentiate between allowed preservation/removal and forbidden additions of the planned role.
-* Directory memberships do not grant permissions; the existing operator authentication and ManageUserDirectory policy remain required.
+* The original directory-only authentication boundary is superseded by [ADR-0015](../decisions/ADR-0015-admin-identity-and-delivery-authentication.md): unrestricted Active TemplarAdmin identities grant authoring/directory access; other memberships remain assignments without permissions.
 
 ### References
 * [ADR-0007: Strong Domain Typing and Pragmatic Patterns](ADR-0007-strong-domain-typing-and-pragmatic-patterns.md)

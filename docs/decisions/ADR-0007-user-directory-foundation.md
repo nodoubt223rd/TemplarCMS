@@ -1,6 +1,12 @@
 # User directory foundation
 
-Status: Accepted for the directory slice; identity integration remains deferred.
+Status: Accepted for the original directory slice. Its authentication and
+credentials-deferred boundary is superseded by
+[ADR-0015](ADR-0015-admin-identity-and-delivery-authentication.md).
+
+The text below records the original directory-only decision. Current authoring
+uses account sessions, one CLI-provisioned administrator, and mandatory first
+password change; profile/lifecycle restrictions otherwise remain in place.
 
 ## Scope
 
