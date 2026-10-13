@@ -5,12 +5,14 @@ defineProps<{
   language: string
   version: number
   showActions: boolean
+  userName?: string
 }>()
 
 const emit = defineEmits<{
   (e: 'update:language', v: string): void
   (e: 'update:version', v: number): void
   (e: 'toggle-actions'): void
+  (e: 'logout'): void
 }>()
 
 const languages = ['en', 'en-US', 'fr-FR', 'de-DE', 'es-ES', 'ja-JP']
@@ -72,9 +74,10 @@ const versions = [1, 2, 3]
     </button>
 
     <!-- User avatar -->
+    <button type="button" class="px-2.5 py-1 text-xs text-[#c8c3bc]" @click="emit('logout')">Sign out</button>
     <div class="w-7 h-7 rounded-full bg-[#5970e3] flex items-center justify-center
-                text-[11px] font-bold text-white select-none cursor-pointer" title="A. Kumar">
-      AK
+                text-[11px] font-bold text-white select-none" :title="userName ?? 'TemplarAdmin'">
+      {{ (userName ?? 'TemplarAdmin').slice(0, 2).toUpperCase() }}
     </div>
   </header>
 </template>

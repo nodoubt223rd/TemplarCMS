@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, reactive, ref } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { fetchJson, getErrorMessage } from '@/utils/request-helpers'
 import { useToast } from '@/composables/useToast'
 
@@ -15,8 +15,6 @@ const offset = ref(0)
 const search = ref('')
 const status = ref('')
 const role = ref('')
-const key = ref('')
-const headerName = ref('X-Templar-Api-Key')
 const connected = ref(false)
 const loading = ref(false)
 const saving = ref(false)
@@ -28,7 +26,7 @@ const tab = ref('general')
 const draft = reactive({ firstName: '', lastName: '', email: '', language: 'en', roles: [] as string[] })
 const toast = useToast()
 let controller: AbortController | undefined
-const headers = () => ({ [headerName.value]: key.value, 'Content-Type': 'application/json' })
+const headers = () => ({ 'Content-Type': 'application/json' })
 
 async function load(reset = false) {
   if (reset) offset.value = 0
@@ -98,7 +96,6 @@ async function save() {
 
 function disconnect() {
   controller?.abort()
-  key.value = ''
   users.value = []
   roles.value = []
   selected.value = null
@@ -107,6 +104,7 @@ function disconnect() {
   dialog.value?.close()
 }
 onBeforeUnmount(disconnect)
+onMounted(() => { void load() })
 const roleLabel = (id: string) => roles.value.find(r => r.id === id)?.label ?? id
 const date = (value: string | null) => value ? new Date(value).toLocaleDateString() : 'Never'
 </script>
@@ -116,18 +114,10 @@ const date = (value: string | null) => value ? new Date(value).toLocaleDateStrin
     <header class="flex flex-wrap items-center justify-between gap-3 border-b border-stone-200 px-6 py-4">
       <div><h1 class="text-base font-semibold">Security</h1><p class="text-xs text-stone-500">User directory and role assignments</p></div>
       <div v-if="connected" class="flex gap-2">
-        <button class="rounded-lg px-3 py-2 text-sm hover:bg-stone-100" @click="disconnect">Disconnect</button>
         <button class="rounded-lg bg-[#5970e3] px-3 py-2 text-sm text-white" @click="edit(null)">Add pending user</button>
       </div>
     </header>
-    <p class="border-b border-stone-200 bg-stone-50 px-6 py-3 text-xs text-stone-600">Invitation delivery, account activation, and sign-in permissions are not available yet. Role assignments are recorded for the upcoming access-control release.</p>
-    <form v-if="!connected" class="mx-auto my-8 w-full max-w-md space-y-4 px-6" @submit.prevent="load(true)">
-      <h2 class="font-semibold">Connect to the user directory</h2>
-      <p class="text-sm">Use the configured operator API key. It is held only while this screen is open.</p>
-      <label class="block text-sm">API key header<input v-model="headerName" required class="mt-1 w-full rounded border border-stone-300 p-2" /></label>
-      <label class="block text-sm">Operator API key<input v-model="key" required type="password" autocomplete="off" class="mt-1 w-full rounded border border-stone-300 p-2" /></label>
-      <button :disabled="loading" class="rounded-lg bg-[#5970e3] px-4 py-2 text-white disabled:opacity-50">{{ loading ? 'Connecting...' : 'Connect' }}</button>
-    </form>
+    <p class="border-b border-stone-200 bg-stone-50 px-6 py-3 text-xs text-stone-600">New profiles remain pending and cannot sign in. No invitations are sent.</p>
     <form v-if="connected" class="flex flex-wrap gap-3 border-b border-stone-200 px-6 py-3" @submit.prevent="load(true)">
       <label class="text-xs">Search<input v-model="search" type="search" class="ml-2 rounded border border-stone-300 p-2 text-sm" placeholder="Name or email" /></label>
       <label class="text-xs">Status<select v-model="status" class="ml-2 rounded border border-stone-300 p-2 text-sm" @change="load(true)"><option value="">All statuses</option><option v-for="s in statuses" :key="s" :value="s">{{ s }}</option></select></label>
@@ -165,7 +155,7 @@ const date = (value: string | null) => value ? new Date(value).toLocaleDateStrin
           </div>
           <fieldset v-show="tab === 'member-of'" class="space-y-3">
             <legend class="mb-3 text-sm">Role membership</legend>
-            <p class="text-xs text-stone-500">Direct memberships are recorded only and do not grant permissions.</p>
+            <p class="text-xs text-stone-500">Assigning roles does not create credentials or activate pending users.</p>
             <p v-if="draft.roles.length === 0" class="text-sm">No roles assigned</p>
             <label v-for="r in roles" :key="r.id" class="flex items-start gap-3 rounded border border-stone-200 p-3 text-sm">
               <input v-model="draft.roles" type="checkbox" :value="r.id"

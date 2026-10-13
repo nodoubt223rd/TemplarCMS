@@ -1,5 +1,8 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { useAuthSession } from './composables/useAuthSession'
+import LoginForm from './components/security/LoginForm.vue'
+import ChangePasswordForm from './components/security/ChangePasswordForm.vue'
 import TemplateCatalogPane from './components/TemplateCatalogPane.vue'
 import TemplateInspectorPane from './components/TemplateInspectorPane.vue'
 import TemplateDesignerPane from './components/TemplateDesignerPane.vue'
@@ -95,6 +98,9 @@ import {
 } from './utils/template-designer-state'
 
 const language = ref('en')
+const auth = useAuthSession()
+const workspaceInitialized = ref(false)
+const loadedAccountId = ref<string | null>(null)
 const version = ref(1)
 const activeWorkspace = ref<'content' | 'templates' | 'media' | 'system'>('content')
 const isBootstrapping = ref(false)
@@ -114,6 +120,7 @@ const treeActions = useTreeActions({
   context: () => ({ language: language.value, version: version.value }),
   contentRoot: () => contentWorkspaceRoot.value.item,
   beforeAction: request => {
+    if (auth.state.value !== 'authenticated') return false
     if (isSubmitting.value) return false
     if (request.target.kind === 'template' && request.target.id === selectedTemplateId.value && ['rename', 'delete'].includes(request.action))
       return window.confirm('This action will reload or close the selected template. Discard any unsaved template edits?')
@@ -149,7 +156,7 @@ const treeActions = useTreeActions({
   }
 })
 watch(activeWorkspace, workspace => {
-  if (workspace === 'templates') void treeActions.refreshOrganization().catch(error => { pageError.value = getErrorMessage(error) })
+  if (auth.state.value === 'authenticated' && workspace === 'templates') void treeActions.refreshOrganization().catch(error => { pageError.value = getErrorMessage(error) })
 })
 
 const createForm = reactive({
@@ -234,22 +241,66 @@ const selectedItemTemplateName = computed(() => {
 const editorFields = computed<EditorFieldModel[]>(() =>
   buildEditorFields(fieldForm, templateFields.value, fieldTypeLookup.value))
 
-onMounted(async () => {
-  await loadFieldTypes()
-  await loadTemplates()
-  await refreshRootBranch()
+onMounted(() => { void auth.initialize() })
+onBeforeUnmount(auth.dispose)
 
-  if (selectedTemplateId.value != null) {
-    await loadTemplateWorkspace(selectedTemplateId.value)
+watch(auth.state, async state => {
+  if (state !== 'authenticated') {
+    document.querySelectorAll<HTMLDialogElement>('dialog[open]').forEach(dialog => dialog.close())
+    treeActions.menu.value = null
+    treeActions.dialog.value = null
+    return
   }
+  const accountId = auth.session.value?.userId ?? null
+  if (loadedAccountId.value !== accountId) clearWorkspaceState()
+  loadedAccountId.value = accountId
+  if (workspaceInitialized.value) return
+  try {
+    language.value = auth.session.value?.language ?? 'en'
+    await loadFieldTypes()
+    await loadTemplates()
+    await refreshRootBranch()
+    if (selectedTemplateId.value != null) await loadTemplateWorkspace(selectedTemplateId.value)
+    if (auth.state.value === 'authenticated') workspaceInitialized.value = true
+  } catch (cause) { pageError.value = getErrorMessage(cause) }
 })
 
 watch(
   () => templateDesignerForm.baseTemplateId,
   async baseTemplateId => {
-    await loadBaseTemplatePreview(baseTemplateId)
+    if (auth.state.value === 'authenticated') await loadBaseTemplatePreview(baseTemplateId)
   }
 )
+
+function clearWorkspaceState() {
+  workspaceInitialized.value = false
+  loadedAccountId.value = null
+  rootNodes.value = []
+  selectedItemId.value = null
+  selectedTemplateId.value = null
+  selectedTemplateDetail.value = null
+  selectedTemplateDependencies.value = null
+  selectedItemDependencies.value = null
+  selectedBaseTemplateDetail.value = null
+  availableTemplates.value = []
+  availableFieldTypes.value = []
+  templateFields.value = []
+  templateDraftSections.value = []
+  Object.assign(templateDesignerForm, createNewTemplateDesignerState().form)
+  resetInspectorForms()
+  clearFieldFormValues(fieldForm)
+  treeActions.menu.value = null
+  treeActions.dialog.value = null
+  treeActions.treeOrganization.value = null
+  treeActions.actions.value = []
+  treeActions.error.value = null
+  pageError.value = null
+  successMessage.value = null
+  activeWorkspace.value = 'content'
+}
+async function logoutWorkspace() {
+  if (await auth.logout()) clearWorkspaceState()
+}
 
 async function refreshRootBranch() {
   isBootstrapping.value = true
@@ -1158,7 +1209,18 @@ function onFieldInput(key: string, value: string) {
 </script>
 
 <template>
+  <p v-if="auth.state.value === 'checking'" role="status" class="p-8">Checking your session…</p>
+  <LoginForm v-else-if="auth.state.value === 'anonymous'" :busy="auth.busy.value" :error="auth.error.value"
+    @submit="auth.login($event.loginName, $event.password)" />
+  <ChangePasswordForm v-else-if="auth.state.value === 'change-password'" :busy="auth.busy.value" :error="auth.error.value"
+    @submit="auth.changePassword($event.currentPassword, $event.newPassword)" @logout="logoutWorkspace" />
+  <p v-if="auth.state.value === 'authenticated' && !workspaceInitialized" role="status" class="p-8">Loading the workspace…</p>
+  <div v-if="auth.state.value === 'authenticated' && auth.error.value" role="alert" class="bg-rose-50 p-3 text-rose-800">{{ auth.error.value }}</div>
   <AuthorWorkspace
+    v-if="workspaceInitialized"
+    v-show="auth.state.value === 'authenticated'"
+    :user-name="auth.session.value?.loginName ?? 'TemplarAdmin'"
+    @logout="logoutWorkspace"
     :active-workspace="activeWorkspace"
     :language="language"
     :version="version"
@@ -1200,9 +1262,9 @@ function onFieldInput(key: string, value: string) {
     @save-template="saveSelectedTemplate"
   />
 
-  <ContextMenu v-if="treeActions.menu.value" v-bind="treeActions.menu.value" :actions="treeActions.actions.value"
+  <ContextMenu v-if="auth.state.value === 'authenticated' && treeActions.menu.value" v-bind="treeActions.menu.value" :actions="treeActions.actions.value"
     @close="treeActions.menu.value = null" @action="treeActions.choose" />
-  <TreeActionDialog v-if="treeActions.dialog.value" v-bind="treeActions.dialog.value" :busy="treeActions.busy.value"
+  <TreeActionDialog v-if="auth.state.value === 'authenticated' && treeActions.dialog.value" v-bind="treeActions.dialog.value" :busy="treeActions.busy.value"
     :error="treeActions.error.value" :destructive="treeActions.dialog.value.request.action === 'delete'"
     @cancel="treeActions.dialog.value = null" @submit="treeActions.submit" />
   <div v-if="treeActions.error.value && !treeActions.dialog.value" role="alert" class="fixed bottom-12 right-4 z-50 max-w-md rounded border border-red-200 bg-white p-4 text-red-800">

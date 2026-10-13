@@ -30,8 +30,6 @@ afterEach(() => {
 async function connect() {
   const wrapper = mount(UserDirectory)
   wrappers.push(wrapper)
-  await wrapper.get('input[type="password"]').setValue('operator-key')
-  await wrapper.get('form').trigger('submit')
   await flushPromises()
   return wrapper
 }
@@ -41,7 +39,8 @@ describe('UserDirectory', () => {
     const wrapper = await connect()
     expect(wrapper.get('tbody').text()).toContain('deactivated')
     expect(fetchMock.mock.calls[0]![0]).not.toContain('status=')
-    expect(fetchMock.mock.calls[0]![1].headers['X-Templar-Api-Key']).toBe('operator-key')
+    expect(wrapper.find('input[type="password"]').exists()).toBe(false)
+    expect(new Headers((fetchMock.mock.calls[0]![1] as RequestInit).headers).has('X-Templar-Api-Key')).toBe(false)
     await wrapper.get('tbody button').trigger('click')
     expect(wrapper.get('dialog').text()).toContain('Status changes are not available yet')
     expect(wrapper.find('dialog input[type="password"]').exists()).toBe(false)
@@ -83,11 +82,11 @@ describe('UserDirectory', () => {
     expect(fetchMock.mock.calls.some(c => c[1].method === 'POST')).toBe(false)
   })
 
-  it('clears the operator key when disconnected', async () => {
+  it('uses the shared account session without separate connection controls', async () => {
     const wrapper = await connect()
-    await wrapper.findAll('button').find(b => b.text() === 'Disconnect')!.trigger('click')
-    expect((wrapper.get('input[type="password"]').element as HTMLInputElement).value).toBe('')
-    expect(wrapper.find('tbody').exists()).toBe(false)
+    expect(wrapper.find('input[type="password"]').exists()).toBe(false)
+    expect(wrapper.findAll('button').some(button => button.text() === 'Disconnect')).toBe(false)
+    expect(wrapper.find('tbody').exists()).toBe(true)
   })
 
   it('shows server descriptions and prevents assigning the planned role', async () => {

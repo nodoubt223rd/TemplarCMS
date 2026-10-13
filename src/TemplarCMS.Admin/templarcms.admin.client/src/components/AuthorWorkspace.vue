@@ -22,6 +22,7 @@ const props = defineProps<{
   language: string
   version: number
   showActions: boolean
+  userName?: string
   rootNode: TreeNode
   selectedItem: ContentItemResponse | null
   selectedItemId: string | null
@@ -71,6 +72,7 @@ const emit = defineEmits<{
   'update:version': [version: number]
   'toggle-actions': []
   'close-actions': []
+  logout: []
   selectNode: [node: TreeNode]
   toggleNode: [node: TreeNode]
   treeMenu: [request: TreeMenuRequest]
@@ -102,6 +104,8 @@ type TemplateSaveRequest = {
 <template>
   <div class="flex h-screen flex-col overflow-hidden bg-[#f5f3ef]">
     <TopBar
+      :user-name="userName"
+      @logout="emit('logout')"
       :language="language"
       :version="version"
       :show-actions="showActions"
