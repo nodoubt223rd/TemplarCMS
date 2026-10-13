@@ -90,4 +90,13 @@ describe('request helpers', () => {
     expect(getErrorMessage(new Error('Boom'))).toBe('Boom')
     expect(getErrorMessage('oops')).toBe('Something went wrong while talking to the authoring API.')
   })
+
+  it('retains authentication status, problem code and validation fields', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      detail: 'Sign in again.', code: 'authoring-authentication-required', errors: { password: ['Required.'] }
+    }), { status: 401 }))
+    await expect(fetchJson('/api/v1/content/root/branch')).rejects.toMatchObject({
+      status: 401, code: 'authoring-authentication-required', fieldErrors: { password: ['Required.'] }
+    })
+  })
 })
