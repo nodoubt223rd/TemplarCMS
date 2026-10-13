@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
+import { ref } from 'vue'
 import UserDirectory from './UserDirectory.vue'
 
 const user = { id: 'user-1', firstName: 'Ada', lastName: 'Lovelace', email: 'ada@example.test',
@@ -35,6 +36,19 @@ async function connect() {
 }
 
 describe('UserDirectory', () => {
+  it('resumes an open profile draft after the same account signs back in', async () => {
+    const suspended = ref(false)
+    const wrapper = mount(UserDirectory, { global: { provide: { 'workspace-suspended': suspended } } }); wrappers.push(wrapper)
+    await flushPromises()
+    await wrapper.get('tbody button').trigger('click')
+    await wrapper.get('dialog input').setValue('Unsaved first name')
+    suspended.value = true; await flushPromises()
+    expect((wrapper.get('dialog').element as HTMLDialogElement).open).toBe(false)
+    suspended.value = false; await flushPromises()
+    expect((wrapper.get('dialog').element as HTMLDialogElement).open).toBe(true)
+    expect((wrapper.get('dialog input').element as HTMLInputElement).value).toBe('Unsaved first name')
+  })
+
   it('includes deactivated users by default and keeps lifecycle actions absent', async () => {
     const wrapper = await connect()
     expect(wrapper.get('tbody').text()).toContain('deactivated')

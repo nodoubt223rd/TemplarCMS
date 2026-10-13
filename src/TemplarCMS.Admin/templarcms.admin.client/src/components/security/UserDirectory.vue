@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { inject, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch, type Ref } from 'vue'
 import { fetchJson, getErrorMessage } from '@/utils/request-helpers'
 import { useToast } from '@/composables/useToast'
 
@@ -21,6 +21,12 @@ const saving = ref(false)
 const error = ref('')
 const formError = ref('')
 const dialog = ref<HTMLDialogElement>()
+const suspended = inject<Ref<boolean>>('workspace-suspended', ref(false))
+let resumeDialog = false
+watch(suspended, value => {
+  if (value) { resumeDialog = dialog.value?.open ?? false; dialog.value?.close() }
+  else if (resumeDialog) { dialog.value?.showModal(); resumeDialog = false }
+})
 const selected = ref<User | null>(null)
 const tab = ref('general')
 const draft = reactive({ firstName: '', lastName: '', email: '', language: 'en', roles: [] as string[] })

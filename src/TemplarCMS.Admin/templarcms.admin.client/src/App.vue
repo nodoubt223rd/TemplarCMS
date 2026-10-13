@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, provide, reactive, ref, watch } from 'vue'
+import { getAuthRequestGeneration, withinSession } from './utils/auth-request-context'
 import { useAuthSession } from './composables/useAuthSession'
 import LoginForm from './components/security/LoginForm.vue'
 import ChangePasswordForm from './components/security/ChangePasswordForm.vue'
@@ -99,6 +100,8 @@ import {
 
 const language = ref('en')
 const auth = useAuthSession()
+provide('workspace-suspended', computed(() => auth.state.value !== 'authenticated'))
+
 const workspaceInitialized = ref(false)
 const loadedAccountId = ref<string | null>(null)
 const version = ref(1)
@@ -129,8 +132,9 @@ const treeActions = useTreeActions({
     return true
   },
   onContentChanged: async response => {
-    rootNodes.value = await reconcileTreeAction(rootNodes.value, response, getItem,
-      id => id ? getBranch(id) : getRootBranch(), shouldApplyWorkspaceBranch)
+    const generation = getAuthRequestGeneration()
+    rootNodes.value = await withinSession(reconcileTreeAction(rootNodes.value, response, getItem,
+      id => id ? getBranch(id) : getRootBranch(), shouldApplyWorkspaceBranch), generation)
     if (treeActions.dialog.value?.request.action === 'delete' && selectedItemId.value === response.item.id) {
       selectedItemId.value = null
       resetInspectorForms()
@@ -139,24 +143,29 @@ const treeActions = useTreeActions({
     successMessage.value = 'Tree action saved.'
   },
   onReordered: async parentId => {
-    const branch = parentId ? await getBranch(parentId) : await getRootBranch()
+    const generation = getAuthRequestGeneration()
+    const branch = parentId ? await withinSession(getBranch(parentId), generation) : await withinSession(getRootBranch(), generation)
     rootNodes.value = applyBranchToContentTree(rootNodes.value, branch)
     reconcileOrderDraft(fieldForm, selectedItemId.value, branch.embedded.children)
     successMessage.value = 'Item order saved.'
   },
   onTemplatesChanged: async request => {
+    const generation = getAuthRequestGeneration()
     const wasSelected = request.target.kind === 'template' && request.target.id === selectedTemplateId.value
-    const response = await fetchJson<TemplateCollectionResponse>('/api/v1/templates')
+    const response = await withinSession(fetchJson<TemplateCollectionResponse>('/api/v1/templates'), generation)
     availableTemplates.value = response.embedded.templates
     if (request.target.kind === 'template' && wasSelected) {
       if (request.action === 'delete') { selectedTemplateId.value = null; selectedTemplateDetail.value = null }
-      else if (request.action === 'rename') await loadTemplateDetail(request.target.id)
+      else if (request.action === 'rename') await withinSession(loadTemplateDetail(request.target.id), generation)
     }
     successMessage.value = 'Template action saved.'
   }
 })
 watch(activeWorkspace, workspace => {
-  if (auth.state.value === 'authenticated' && workspace === 'templates') void treeActions.refreshOrganization().catch(error => { pageError.value = getErrorMessage(error) })
+  const generation = getAuthRequestGeneration()
+  if (auth.state.value === 'authenticated' && workspace === 'templates') void treeActions.refreshOrganization().catch(error => {
+    if (generation === getAuthRequestGeneration()) pageError.value = getErrorMessage(error)
+  })
 })
 
 const createForm = reactive({
@@ -245,35 +254,49 @@ onMounted(() => { void auth.initialize() })
 onBeforeUnmount(auth.dispose)
 
 watch(auth.state, async state => {
+  const generation = getAuthRequestGeneration()
   if (state !== 'authenticated') {
-    document.querySelectorAll<HTMLDialogElement>('dialog[open]').forEach(dialog => dialog.close())
     treeActions.menu.value = null
-    treeActions.dialog.value = null
     return
   }
   const accountId = auth.session.value?.userId ?? null
   if (loadedAccountId.value !== accountId) clearWorkspaceState()
   loadedAccountId.value = accountId
+  isSubmitting.value = false
+  treeActions.busy.value = false
+  isBootstrapping.value = false
+  isLoadingFieldTypes.value = false
+  isLoadingTemplates.value = false
+  isLoadingTemplateFields.value = false
+  isLoadingItemDependencies.value = false
+  isLoadingTemplateDetail.value = false
+  isLoadingTemplateDependencies.value = false
+  isLoadingBaseTemplatePreview.value = false
   if (workspaceInitialized.value) return
   try {
     language.value = auth.session.value?.language ?? 'en'
-    await loadFieldTypes()
-    await loadTemplates()
-    await refreshRootBranch()
-    if (selectedTemplateId.value != null) await loadTemplateWorkspace(selectedTemplateId.value)
+    await withinSession(loadFieldTypes(), generation)
+    await withinSession(loadTemplates(), generation)
+    await withinSession(refreshRootBranch(), generation)
+    if (selectedTemplateId.value != null) await withinSession(loadTemplateWorkspace(selectedTemplateId.value), generation)
     if (auth.state.value === 'authenticated') workspaceInitialized.value = true
-  } catch (cause) { pageError.value = getErrorMessage(cause) }
+  } catch (cause) {
+    if (generation !== getAuthRequestGeneration()) return
+    pageError.value = getErrorMessage(cause)
+  }
 })
 
 watch(
   () => templateDesignerForm.baseTemplateId,
   async baseTemplateId => {
-    if (auth.state.value === 'authenticated') await loadBaseTemplatePreview(baseTemplateId)
+    const generation = getAuthRequestGeneration()
+    if (auth.state.value === 'authenticated') await withinSession(loadBaseTemplatePreview(baseTemplateId), generation)
   }
 )
 
 function clearWorkspaceState() {
   workspaceInitialized.value = false
+  isSubmitting.value = false
   loadedAccountId.value = null
   rootNodes.value = []
   selectedItemId.value = null
@@ -289,11 +312,7 @@ function clearWorkspaceState() {
   Object.assign(templateDesignerForm, createNewTemplateDesignerState().form)
   resetInspectorForms()
   clearFieldFormValues(fieldForm)
-  treeActions.menu.value = null
-  treeActions.dialog.value = null
-  treeActions.treeOrganization.value = null
-  treeActions.actions.value = []
-  treeActions.error.value = null
+  treeActions.reset()
   pageError.value = null
   successMessage.value = null
   activeWorkspace.value = 'content'
@@ -303,66 +322,73 @@ async function logoutWorkspace() {
 }
 
 async function refreshRootBranch() {
+  const generation = getAuthRequestGeneration()
   isBootstrapping.value = true
   pageError.value = null
 
   try {
-    const branch = await getRootBranch()
+    const branch = await withinSession(getRootBranch(), generation)
     rootNodes.value = branch.item == null ? [] : [createWorkspaceRootNode(branch)]
 
     if (selectedItemId.value != null) {
       const currentNode = findTreeNodeById(rootNodes.value, selectedItemId.value)
       if (currentNode != null) {
-        await syncInspectorFromItem(currentNode.item)
+        await withinSession(syncInspectorFromItem(currentNode.item), generation)
       } else {
         selectedItemId.value = null
         resetInspectorForms()
       }
     }
   } catch (error) {
+    if (generation !== getAuthRequestGeneration()) return
     pageError.value = getErrorMessage(error)
   } finally {
-    isBootstrapping.value = false
+    if (generation === getAuthRequestGeneration()) isBootstrapping.value = false
   }
 }
 
 async function selectNode(node: TreeNode) {
+  const generation = getAuthRequestGeneration()
   selectedItemId.value = node.item.id
-  await syncInspectorFromItem(node.item)
+  await withinSession(syncInspectorFromItem(node.item), generation)
 
   if (!node.isBranchLoaded && !node.isBranchLoading) {
-    await loadBranch(node)
+    await withinSession(loadBranch(node), generation)
   }
 }
 
 async function toggleNode(node: TreeNode) {
+  const generation = getAuthRequestGeneration()
   node.isExpanded = !node.isExpanded
 
   if (node.isExpanded && !node.isBranchLoaded && !node.isBranchLoading) {
-    await loadBranch(node)
+    await withinSession(loadBranch(node), generation)
   }
 }
 
 async function loadBranch(node: TreeNode) {
+  const generation = getAuthRequestGeneration()
   node.isBranchLoading = true
   pageError.value = null
 
   try {
-    const branch = await getBranch(node.item.id)
+    const branch = await withinSession(getBranch(node.item.id), generation)
     node.children = branch.embedded.children.map(branchChild => {
       const currentChild = node.children.find(child => child.item.id === branchChild.id)
       return currentChild == null ? createTreeNode(branchChild) : currentChild
     }).sort((left, right) => left.item.path.localeCompare(right.item.path))
     node.isBranchLoaded = true
   } catch (error) {
+    if (generation !== getAuthRequestGeneration()) return
     pageError.value = getErrorMessage(error)
     node.isExpanded = false
   } finally {
-    node.isBranchLoading = false
+    if (generation === getAuthRequestGeneration()) node.isBranchLoading = false
   }
 }
 
 async function submitCreate() {
+  const generation = getAuthRequestGeneration()
   if (isSubmitting.value) {
     return
   }
@@ -372,26 +398,28 @@ async function submitCreate() {
   isSubmitting.value = true
 
   try {
-    const response = await sendMutation<ContentMutationResponse>('/api/v1/content', {
+    const response = await withinSession(sendMutation<ContentMutationResponse>('/api/v1/content', {
       method: 'POST',
       body: JSON.stringify({
         name: createForm.name,
         templateId: createForm.templateId,
         parentId: normalizeOptionalValue(createForm.parentId)
       })
-    })
+    }), generation)
 
-    await applyMutationResponse(response)
+    await withinSession(applyMutationResponse(response), generation)
     resetCreateForm()
     successMessage.value = `Created ${response.item.name} and refreshed the affected branch.`
   } catch (error) {
+    if (generation !== getAuthRequestGeneration()) return
     pageError.value = getErrorMessage(error)
   } finally {
-    isSubmitting.value = false
+    if (generation === getAuthRequestGeneration()) isSubmitting.value = false
   }
 }
 
 async function submitDelete() {
+  const generation = getAuthRequestGeneration()
   if (isSubmitting.value || selectedItem.value == null) {
     return
   }
@@ -413,20 +441,22 @@ async function submitDelete() {
   isSubmitting.value = true
 
   try {
-    const response = await sendMutation<ContentMutationResponse>(itemToDelete._links.delete.href, {
+    const response = await withinSession(sendMutation<ContentMutationResponse>(itemToDelete._links.delete.href, {
       method: 'DELETE'
-    })
+    }), generation)
 
     applyDeletedMutationResponse(response)
     successMessage.value = `Deleted ${response.item.name} and refreshed the affected branch.`
   } catch (error) {
+    if (generation !== getAuthRequestGeneration()) return
     pageError.value = getErrorMessage(error)
   } finally {
-    isSubmitting.value = false
+    if (generation === getAuthRequestGeneration()) isSubmitting.value = false
   }
 }
 
 async function submitValues() {
+  const generation = getAuthRequestGeneration()
   if (isSubmitting.value || selectedItem.value == null) {
     return
   }
@@ -436,7 +466,7 @@ async function submitValues() {
   isSubmitting.value = true
 
   try {
-    const response = await fetchJson<ContentItemResponse>(
+    const response = await withinSession(fetchJson<ContentItemResponse>(
       selectedItem.value._links['set-values'].href,
       withJsonDefaults({
         method: 'POST',
@@ -448,20 +478,22 @@ async function submitValues() {
           )
         })
       })
-    )
+    ), generation)
 
     rootNodes.value = upsertTreeNode(rootNodes.value, extractParentIdFromHref(response._links.parent?.href), response)
     selectedItemId.value = response.id
-    await syncInspectorFromItem(response)
+    await withinSession(syncInspectorFromItem(response), generation)
     successMessage.value = `Saved ${Object.keys(fieldForm).length} field values for ${response.name}.`
   } catch (error) {
+    if (generation !== getAuthRequestGeneration()) return
     pageError.value = getErrorMessage(error)
   } finally {
-    isSubmitting.value = false
+    if (generation === getAuthRequestGeneration()) isSubmitting.value = false
   }
 }
 
 async function updateSelectedItemIcon(icon: string | null) {
+  const generation = getAuthRequestGeneration()
   if (isSubmitting.value || selectedItem.value == null) {
     return
   }
@@ -470,13 +502,13 @@ async function updateSelectedItemIcon(icon: string | null) {
   pageError.value = null
 
   try {
-    const response = await fetchJson<ContentItemResponse>(
+    const response = await withinSession(fetchJson<ContentItemResponse>(
       selectedItem.value._links.self.href,
       withJsonDefaults({
         method: 'PUT',
         body: JSON.stringify({ name: selectedItem.value.name, icon })
       })
-    )
+    ), generation)
 
     rootNodes.value = upsertTreeNode(
       rootNodes.value,
@@ -487,13 +519,15 @@ async function updateSelectedItemIcon(icon: string | null) {
       ? `Cleared the icon override for ${response.name}.`
       : `Updated the icon for ${response.name}.`
   } catch (error) {
+    if (generation !== getAuthRequestGeneration()) return
     pageError.value = getErrorMessage(error)
   } finally {
-    isSubmitting.value = false
+    if (generation === getAuthRequestGeneration()) isSubmitting.value = false
   }
 }
 
 async function updateSelectedTemplateIcon(icon: string) {
+  const generation = getAuthRequestGeneration()
   if (isSubmitting.value || selectedTemplateDetail.value == null) {
     return
   }
@@ -503,7 +537,7 @@ async function updateSelectedTemplateIcon(icon: string) {
   pageError.value = null
 
   try {
-    const response = await fetchJson<TemplateResponse>(
+    const response = await withinSession(fetchJson<TemplateResponse>(
       template._links.self.href,
       withJsonDefaults({
         method: 'PUT',
@@ -526,19 +560,21 @@ async function updateSelectedTemplateIcon(icon: string) {
           }))
         })
       })
-    )
+    ), generation)
 
-    await loadTemplates()
+    await withinSession(loadTemplates(), generation)
     selectedTemplateDetail.value = response
     successMessage.value = `Updated the icon for ${response.name}.`
   } catch (error) {
+    if (generation !== getAuthRequestGeneration()) return
     pageError.value = getErrorMessage(error)
   } finally {
-    isSubmitting.value = false
+    if (generation === getAuthRequestGeneration()) isSubmitting.value = false
   }
 }
 
 async function updateSelectedTemplateBaseTemplates(templateIds: string[]) {
+  const generation = getAuthRequestGeneration()
   if (isSubmitting.value || selectedTemplateDetail.value == null) {
     return
   }
@@ -557,7 +593,7 @@ async function updateSelectedTemplateBaseTemplates(templateIds: string[]) {
   pageError.value = null
 
   try {
-    const response = await fetchJson<TemplateResponse>(
+    const response = await withinSession(fetchJson<TemplateResponse>(
       template._links.self.href,
       withJsonDefaults({
         method: 'PUT',
@@ -580,16 +616,17 @@ async function updateSelectedTemplateBaseTemplates(templateIds: string[]) {
           }))
         })
       })
-    )
+    ), generation)
 
-    await loadTemplates()
+    await withinSession(loadTemplates(), generation)
     selectedTemplateDetail.value = response
     successMessage.value = `Updated inherited templates for ${response.name}.`
-    if (selectedItem.value != null) await loadTemplateFields(selectedItem.value)
+    if (selectedItem.value != null) await withinSession(loadTemplateFields(selectedItem.value), generation)
   } catch (error) {
+    if (generation !== getAuthRequestGeneration()) return
     pageError.value = getErrorMessage(error)
   } finally {
-    isSubmitting.value = false
+    if (generation === getAuthRequestGeneration()) isSubmitting.value = false
   }
 }
 
@@ -605,6 +642,7 @@ async function saveSelectedTemplate(template: {
     fields: Array<{ name: string; key: string; type: string; isShared: boolean; isUnversioned: boolean }>
   }>
 }) {
+  const generation = getAuthRequestGeneration()
   if (isSubmitting.value || selectedTemplateDetail.value == null) {
     return
   }
@@ -613,32 +651,34 @@ async function saveSelectedTemplate(template: {
   pageError.value = null
 
   try {
-    const response = await fetchJson<TemplateResponse>(
+    const response = await withinSession(fetchJson<TemplateResponse>(
       selectedTemplateDetail.value._links.self.href,
       withJsonDefaults({ method: 'PUT', body: JSON.stringify(template) })
-    )
+    ), generation)
 
-    await loadTemplates()
+    await withinSession(loadTemplates(), generation)
     selectedTemplateDetail.value = response
     successMessage.value = `Updated template ${response.name}.`
     // A base-template edit can also affect the selected item's effective fields.
     // Reload definitions without replacing unsaved author-entered field values.
-    if (selectedItem.value != null) await loadTemplateFields(selectedItem.value)
+    if (selectedItem.value != null) await withinSession(loadTemplateFields(selectedItem.value), generation)
   } catch (error) {
+    if (generation !== getAuthRequestGeneration()) return
     pageError.value = getErrorMessage(error)
   } finally {
-    isSubmitting.value = false
+    if (generation === getAuthRequestGeneration()) isSubmitting.value = false
   }
 }
 
 async function applyMutationResponse(response: ContentMutationResponse) {
+  const generation = getAuthRequestGeneration()
   for (const affected of response.affectedBranches) {
     if (shouldApplyWorkspaceBranch(affected.branch)) {
       rootNodes.value = applyBranchToContentTree(rootNodes.value, affected.branch)
     }
   }
 
-  const refreshedItem = await getItem(response.item.id)
+  const refreshedItem = await withinSession(getItem(response.item.id), generation)
 
   if (!isWithinContentWorkspace(refreshedItem.path)) {
     selectedItemId.value = null
@@ -648,7 +688,7 @@ async function applyMutationResponse(response: ContentMutationResponse) {
 
   rootNodes.value = upsertTreeNode(rootNodes.value, extractParentIdFromHref(refreshedItem._links.parent?.href), refreshedItem)
   selectedItemId.value = response.item.id
-  await syncInspectorFromItem(refreshedItem)
+  await withinSession(syncInspectorFromItem(refreshedItem), generation)
 }
 
 function applyDeletedMutationResponse(response: ContentMutationResponse) {
@@ -684,11 +724,12 @@ function syncFormsFromItem(item: ContentItemResponse) {
 }
 
 async function syncInspectorFromItem(item: ContentItemResponse) {
+  const generation = getAuthRequestGeneration()
   syncFormsFromItem(item)
-  await Promise.all([
+  await withinSession(Promise.all([
     loadTemplateFields(item),
     loadContentDependencies(item)
-  ])
+  ]), generation)
 }
 
 function resetCreateForm() {
@@ -711,7 +752,8 @@ function clearFieldForm() {
 }
 
 async function getRootBranch() {
-  return await fetchJson<ContentBranchResponse>(withContext('/api/v1/content/workspaces/content/branch'))
+  const generation = getAuthRequestGeneration()
+  return await withinSession(fetchJson<ContentBranchResponse>(withContext('/api/v1/content/workspaces/content/branch')), generation)
 }
 
 function createWorkspaceRootNode(branch: ContentBranchResponse): TreeNode {
@@ -765,10 +807,11 @@ function isWithinContentWorkspace(path: string): boolean {
 }
 
 async function loadTemplates() {
+  const generation = getAuthRequestGeneration()
   isLoadingTemplates.value = true
 
   try {
-    const response = await fetchJson<TemplateCollectionResponse>('/api/v1/templates')
+    const response = await withinSession(fetchJson<TemplateCollectionResponse>('/api/v1/templates'), generation)
     availableTemplates.value = response.embedded.templates
       .slice()
       .sort((left, right) => left.name.localeCompare(right.name) || left.key.localeCompare(right.key))
@@ -789,41 +832,47 @@ async function loadTemplates() {
       }
     }
   } catch {
+    if (generation !== getAuthRequestGeneration()) return
     availableTemplates.value = []
     selectedTemplateId.value = null
   } finally {
-    isLoadingTemplates.value = false
+    if (generation === getAuthRequestGeneration()) isLoadingTemplates.value = false
   }
 }
 
 async function loadFieldTypes() {
+  const generation = getAuthRequestGeneration()
   isLoadingFieldTypes.value = true
 
   try {
-    const response = await fetchJson<FieldTypeCollectionResponse>('/api/v1/field-types')
+    const response = await withinSession(fetchJson<FieldTypeCollectionResponse>('/api/v1/field-types'), generation)
     availableFieldTypes.value = response.embedded.fieldTypes
   } catch (error) {
+    if (generation !== getAuthRequestGeneration()) return
     availableFieldTypes.value = []
     pageError.value = getErrorMessage(error)
   } finally {
-    isLoadingFieldTypes.value = false
+    if (generation === getAuthRequestGeneration()) isLoadingFieldTypes.value = false
   }
 }
 
 async function getBranch(itemId: string) {
-  return await fetchJson<ContentBranchResponse>(withContext(`/api/v1/content/${itemId}/branch`))
+  const generation = getAuthRequestGeneration()
+  return await withinSession(fetchJson<ContentBranchResponse>(withContext(`/api/v1/content/${itemId}/branch`)), generation)
 }
 
 async function getItem(itemId: string) {
-  return await fetchJson<ContentItemResponse>(withContext(`/api/v1/content/${itemId}`))
+  const generation = getAuthRequestGeneration()
+  return await withinSession(fetchJson<ContentItemResponse>(withContext(`/api/v1/content/${itemId}`)), generation)
 }
 
 async function loadTemplateFields(item: ContentItemResponse) {
+  const generation = getAuthRequestGeneration()
   isLoadingTemplateFields.value = true
 
   try {
     const response =
-      await fetchJson<TemplateFieldCollectionResponse>(`${item._links.template.href}/fields`)
+      await withinSession(fetchJson<TemplateFieldCollectionResponse>(`${item._links.template.href}/fields`), generation)
 
     templateFields.value = response.embedded.fields
       .slice()
@@ -832,28 +881,32 @@ async function loadTemplateFields(item: ContentItemResponse) {
         left.sectionName.localeCompare(right.sectionName) ||
         left.name.localeCompare(right.name))
   } catch {
+    if (generation !== getAuthRequestGeneration()) return
     templateFields.value = []
   } finally {
-    isLoadingTemplateFields.value = false
+    if (generation === getAuthRequestGeneration()) isLoadingTemplateFields.value = false
   }
 }
 
 async function loadContentDependencies(item: ContentItemResponse) {
+  const generation = getAuthRequestGeneration()
   isLoadingItemDependencies.value = true
   selectedItemDependencies.value = null
 
   try {
     selectedItemDependencies.value =
-      await fetchJson<ContentItemDependencyResponse>(item._links.dependencies.href)
+      await withinSession(fetchJson<ContentItemDependencyResponse>(item._links.dependencies.href), generation)
   } catch (error) {
+    if (generation !== getAuthRequestGeneration()) return
     selectedItemDependencies.value = null
     pageError.value = getErrorMessage(error)
   } finally {
-    isLoadingItemDependencies.value = false
+    if (generation === getAuthRequestGeneration()) isLoadingItemDependencies.value = false
   }
 }
 
 async function selectTemplate(templateId: string) {
+  const generation = getAuthRequestGeneration()
   isNewTemplateDraftOpen.value = false
 
   if (selectedTemplateId.value === templateId && selectedTemplateDetail.value != null) {
@@ -861,10 +914,11 @@ async function selectTemplate(templateId: string) {
   }
 
   selectedTemplateId.value = templateId
-  await loadTemplateWorkspace(templateId)
+  await withinSession(loadTemplateWorkspace(templateId), generation)
 }
 
 async function inspectSelectedItemTemplate() {
+  const generation = getAuthRequestGeneration()
   if (selectedItem.value == null) {
     return
   }
@@ -877,16 +931,17 @@ async function inspectSelectedItemTemplate() {
     return
   }
 
-  await selectTemplate(selectedItem.value.templateId)
+  await withinSession(selectTemplate(selectedItem.value.templateId), generation)
 }
 
 async function loadTemplateWorkspace(templateId: string) {
+  const generation = getAuthRequestGeneration()
   pageError.value = null
 
-  await Promise.all([
+  await withinSession(Promise.all([
     loadTemplateDetail(templateId),
     loadTemplateDependencies(templateId)
-  ])
+  ]), generation)
 
   if (selectedTemplateId.value === templateId && selectedTemplateDetail.value != null) {
     loadSelectedTemplateIntoDesigner()
@@ -901,34 +956,39 @@ function onTemplateDesignerNameUpdate(value: string) {
 }
 
 async function loadTemplateDetail(templateId: string) {
+  const generation = getAuthRequestGeneration()
   isLoadingTemplateDetail.value = true
 
   try {
     selectedTemplateDetail.value =
-      await fetchJson<TemplateResponse>(`/api/v1/templates/${templateId}`)
+      await withinSession(fetchJson<TemplateResponse>(`/api/v1/templates/${templateId}`), generation)
   } catch (error) {
+    if (generation !== getAuthRequestGeneration()) return
     selectedTemplateDetail.value = null
     pageError.value = getErrorMessage(error)
   } finally {
-    isLoadingTemplateDetail.value = false
+    if (generation === getAuthRequestGeneration()) isLoadingTemplateDetail.value = false
   }
 }
 
 async function loadTemplateDependencies(templateId: string) {
+  const generation = getAuthRequestGeneration()
   isLoadingTemplateDependencies.value = true
 
   try {
     selectedTemplateDependencies.value =
-      await fetchJson<TemplateDependencyResponse>(`/api/v1/templates/${templateId}/dependencies`)
+      await withinSession(fetchJson<TemplateDependencyResponse>(`/api/v1/templates/${templateId}/dependencies`), generation)
   } catch (error) {
+    if (generation !== getAuthRequestGeneration()) return
     selectedTemplateDependencies.value = null
     pageError.value = getErrorMessage(error)
   } finally {
-    isLoadingTemplateDependencies.value = false
+    if (generation === getAuthRequestGeneration()) isLoadingTemplateDependencies.value = false
   }
 }
 
 async function applyTemplateToCreate() {
+  const generation = getAuthRequestGeneration()
   if (selectedTemplateSummary.value == null) {
     return
   }
@@ -961,6 +1021,7 @@ function loadSelectedTemplateIntoDesigner() {
 }
 
 async function loadBaseTemplatePreview(templateId: string) {
+  const generation = getAuthRequestGeneration()
   if (templateId.trim().length === 0) {
     selectedBaseTemplateDetail.value = null
     baseTemplatePreviewError.value = null
@@ -983,12 +1044,13 @@ async function loadBaseTemplatePreview(templateId: string) {
 
   try {
     selectedBaseTemplateDetail.value =
-      await fetchJson<TemplateResponse>(`/api/v1/templates/${templateId}`)
+      await withinSession(fetchJson<TemplateResponse>(`/api/v1/templates/${templateId}`), generation)
   } catch (error) {
+    if (generation !== getAuthRequestGeneration()) return
     selectedBaseTemplateDetail.value = null
     baseTemplatePreviewError.value = getErrorMessage(error)
   } finally {
-    isLoadingBaseTemplatePreview.value = false
+    if (generation === getAuthRequestGeneration()) isLoadingBaseTemplatePreview.value = false
   }
 }
 
@@ -1074,6 +1136,7 @@ function onTemplateFieldUnversionedUpdate(sectionId: string, fieldId: string, va
 }
 
 async function submitTemplateDesigner() {
+  const generation = getAuthRequestGeneration()
   if (isSubmitting.value) {
     return
   }
@@ -1095,7 +1158,7 @@ async function submitTemplateDesigner() {
     )
 
     const isEditing = templateDesignerForm.mode === 'edit' && templateDesignerForm.templateId.length > 0
-    const response = await fetchJson<TemplateResponse>(
+    const response = await withinSession(fetchJson<TemplateResponse>(
       isEditing
         ? `/api/v1/templates/${templateDesignerForm.templateId}`
         : '/api/v1/templates',
@@ -1103,36 +1166,39 @@ async function submitTemplateDesigner() {
         method: isEditing ? 'PUT' : 'POST',
         body: JSON.stringify(payload)
       })
-    )
+    ), generation)
 
-    await loadTemplates()
+    await withinSession(loadTemplates(), generation)
     selectedTemplateId.value = response.id
-    await loadTemplateWorkspace(response.id)
+    await withinSession(loadTemplateWorkspace(response.id), generation)
     loadSelectedTemplateIntoDesigner()
 
     if (selectedItem.value?.templateId === response.id) {
-      await loadTemplateFields(selectedItem.value)
+      await withinSession(loadTemplateFields(selectedItem.value), generation)
     }
 
     successMessage.value = isEditing
       ? `Updated template ${response.name}.`
       : `Created template ${response.name}.`
   } catch (error) {
+    if (generation !== getAuthRequestGeneration()) return
     pageError.value = getErrorMessage(error)
   } finally {
-    isSubmitting.value = false
+    if (generation === getAuthRequestGeneration()) isSubmitting.value = false
   }
 }
 
 async function refreshTemplateWorkspace() {
+  const generation = getAuthRequestGeneration()
   if (selectedTemplateId.value == null) {
     return
   }
 
-  await loadTemplateWorkspace(selectedTemplateId.value)
+  await withinSession(loadTemplateWorkspace(selectedTemplateId.value), generation)
 }
 
 async function submitTemplateDelete() {
+  const generation = getAuthRequestGeneration()
   if (isSubmitting.value || selectedTemplateSummary.value == null) {
     return
   }
@@ -1151,9 +1217,9 @@ async function submitTemplateDelete() {
   isSubmitting.value = true
 
   try {
-    await fetchWithNoContent(selectedTemplateSummary.value._links.self.href, {
+    await withinSession(fetchWithNoContent(selectedTemplateSummary.value._links.self.href, {
       method: 'DELETE'
-    })
+    }), generation)
 
     const deletedTemplateId = selectedTemplateSummary.value.id
     const deletedTemplateName = selectedTemplateSummary.value.name
@@ -1175,14 +1241,15 @@ async function submitTemplateDelete() {
     selectedTemplateDependencies.value = null
 
     if (selectedTemplateId.value != null) {
-      await loadTemplateWorkspace(selectedTemplateId.value)
+      await withinSession(loadTemplateWorkspace(selectedTemplateId.value), generation)
     }
 
     successMessage.value = `Deleted template ${deletedTemplateName}.`
   } catch (error) {
+    if (generation !== getAuthRequestGeneration()) return
     pageError.value = getErrorMessage(error)
   } finally {
-    isSubmitting.value = false
+    if (generation === getAuthRequestGeneration()) isSubmitting.value = false
   }
 }
 
@@ -1264,10 +1331,10 @@ function onFieldInput(key: string, value: string) {
 
   <ContextMenu v-if="auth.state.value === 'authenticated' && treeActions.menu.value" v-bind="treeActions.menu.value" :actions="treeActions.actions.value"
     @close="treeActions.menu.value = null" @action="treeActions.choose" />
-  <TreeActionDialog v-if="auth.state.value === 'authenticated' && treeActions.dialog.value" v-bind="treeActions.dialog.value" :busy="treeActions.busy.value"
+  <TreeActionDialog v-if="treeActions.dialog.value" v-bind="treeActions.dialog.value" :busy="treeActions.busy.value" :suspended="auth.state.value !== 'authenticated'"
     :error="treeActions.error.value" :destructive="treeActions.dialog.value.request.action === 'delete'"
     @cancel="treeActions.dialog.value = null" @submit="treeActions.submit" />
-  <div v-if="treeActions.error.value && !treeActions.dialog.value" role="alert" class="fixed bottom-12 right-4 z-50 max-w-md rounded border border-red-200 bg-white p-4 text-red-800">
+  <div v-if="auth.state.value === 'authenticated' && treeActions.error.value && !treeActions.dialog.value" role="alert" class="fixed bottom-12 right-4 z-50 max-w-md rounded border border-red-200 bg-white p-4 text-red-800">
     {{ treeActions.error.value }} <button type="button" aria-label="Dismiss action error" @click="treeActions.error.value = null">×</button>
   </div>
 
