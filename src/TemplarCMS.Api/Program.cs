@@ -6,6 +6,7 @@ using TemplarCMS.Api.Observability;
 using TemplarCMS.Api.Security;
 using TemplarCMS.Api.Templates;
 using TemplarCMS.Api.Media;
+using TemplarCMS.Api.Commands;
 
 var builder = WebApplication.CreateBuilder(args);
 var openApiEnabled =
@@ -47,6 +48,13 @@ builder.Services.AddTemplarCmsRuntime(
     builder.Environment);
 
 var app = builder.Build();
+
+if (AdminCommandRunner.IsCommand(args))
+{
+    Environment.ExitCode = await AdminCommandRunner.RunAsync(app.Services, args, Console.Out, Console.Error, app.Lifetime.ApplicationStopping);
+    await app.DisposeAsync();
+    return;
+}
 
 app.UseExceptionHandler();
 app.UseTemplarRequestObservability();
