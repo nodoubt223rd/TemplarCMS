@@ -94,6 +94,7 @@ internal static class DefaultContentBootstrapServiceCollectionExtensions
                                 : Path.Combine(environment.ContentRootPath, configuredPath));
                     }));
 
+        services.AddSingleton<CmsRuntimeInitializer>();
         services.AddHostedService<DefaultContentBootstrapHostedService>();
 
         return services;
