@@ -49,6 +49,30 @@ async function enterWorkspace(wrapper: ReturnType<typeof mount>) {
 }
 
 describe('workspace authentication', () => {
+  it('cannot restore a successful mutation after logout cancels its follow-up refresh', async () => {
+    const wrapper = mount(App); wrappers.push(wrapper)
+    await flushPromises(); await enterWorkspace(wrapper)
+    const state = (wrapper.vm.$ as unknown as { setupState: unknown }).setupState as {
+      selectedTemplateDetail: unknown
+      saveSelectedTemplate: (template: unknown) => Promise<void>
+    }
+    const template = { id: 'private-template', name: 'Private', key: 'private', sections: [], baseTemplateKeys: [], icon: null, _links: { self: { href: '/api/v1/templates/private-template' } } }
+    state.selectedTemplateDetail = template
+    let finishRefresh!: (response: Response) => void
+    const originalFetch = fetchMock.getMockImplementation()!
+    fetchMock.mockImplementation((url: string, init?: RequestInit) => {
+      if (init?.method === 'PUT') return Promise.resolve(new Response(JSON.stringify(template)))
+      if (url === '/api/v1/templates') return new Promise<Response>(resolve => { finishRefresh = resolve })
+      return originalFetch(url, init)
+    })
+    const saving = state.saveSelectedTemplate(template)
+    await flushPromises()
+    await wrapper.get('[data-test="logout"]').trigger('click'); await flushPromises()
+    finishRefresh(new Response(JSON.stringify({ embedded: { templates: [] } })))
+    await saving; await flushPromises()
+    expect(state.selectedTemplateDetail).toBeNull()
+  })
+
   it('loads no authoring data before login and the mandatory password change', async () => {
     const wrapper = mount(App); wrappers.push(wrapper)
     await flushPromises()

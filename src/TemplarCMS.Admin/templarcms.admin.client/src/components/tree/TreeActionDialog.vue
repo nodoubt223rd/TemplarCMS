@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 const props = defineProps<{
   title: string; initialName?: string; showName?: boolean; busy: boolean; error?: string | null
   destinations?: { id: string; label: string }[]; templates?: { id: string; name: string }[]
   initialParent?: string; initialTemplate?: string; destructive?: boolean
+  suspended?: boolean
 }>()
 const emit = defineEmits<{ cancel: []; submit: [value: { name: string; parentId: string; templateId: string }] }>()
 const dialog = ref<HTMLDialogElement>()
@@ -11,7 +12,9 @@ const name = ref(props.initialName ?? '')
 const parentId = ref(props.initialParent ?? '')
 const templateId = ref(props.initialTemplate ?? props.templates?.[0]?.id ?? '')
 const previousFocus = document.activeElement as HTMLElement | null
-onMounted(() => { dialog.value?.showModal(); dialog.value?.querySelector<HTMLInputElement>('input,select,button')?.focus() })
+function resume() { if (!props.suspended) { dialog.value?.showModal(); dialog.value?.querySelector<HTMLInputElement>('input,select,button')?.focus() } }
+onMounted(resume)
+watch(() => props.suspended, suspended => { if (suspended) dialog.value?.close(); else resume() }, { flush: 'post' })
 onBeforeUnmount(() => previousFocus?.focus())
 </script>
 <template>
