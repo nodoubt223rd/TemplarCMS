@@ -20,8 +20,9 @@ public static class AuthoringSecurityServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
 
-        services.Configure<AuthoringSecurityOptions>(
-            configuration.GetSection(AuthoringSecurityOptions.SectionName));
+        services.AddOptions<AuthoringSecurityOptions>().Bind(configuration.GetSection(AuthoringSecurityOptions.SectionName))
+            .Validate(options => options.Enabled, "AuthoringSecurity:Enabled=false is no longer supported. Enable security and run setup-admin.")
+            .ValidateOnStart();
 
         services.AddDataProtection().SetApplicationName("TemplarCMS")
             .PersistKeysToFileSystem(new DirectoryInfo(Path.GetFullPath(configuration["IdentitySecurity:DataProtectionKeysPath"] ?? "RuntimeData/IdentityKeys")));
@@ -80,6 +81,8 @@ public static class AuthoringSecurityServiceCollectionExtensions
         services.AddAuthorization(
             options =>
             {
+                options.FallbackPolicy = new AuthorizationPolicyBuilder(IdentityConstants.ApplicationScheme)
+                    .RequireAuthenticatedUser().AddRequirements(new AuthoringAccessRequirement()).Build();
                 options.AddPolicy(ApiAuthorizationPolicies.AccountSession, policy => policy.AddAuthenticationSchemes(IdentityConstants.ApplicationScheme).RequireAuthenticatedUser());
                 options.AddPolicy(UserDirectoryEndpoints.Policy, policy => policy
                     .AddAuthenticationSchemes(IdentityConstants.ApplicationScheme)

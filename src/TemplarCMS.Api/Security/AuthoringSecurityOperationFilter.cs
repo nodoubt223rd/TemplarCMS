@@ -18,7 +18,7 @@ internal sealed class AuthoringSecurityOperationFilter : IOperationFilter
                 .OfType<IAuthorizeData>()
                 .ToArray();
 
-        if (authorizeData.Length == 0)
+        if (context.ApiDescription.ActionDescriptor.EndpointMetadata.OfType<IAllowAnonymous>().Any())
         {
             return;
         }

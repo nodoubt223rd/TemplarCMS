@@ -11,5 +11,5 @@ public sealed record DirectoryUser(
 public sealed record DirectoryUserProfile(string FirstName, string LastName, string Email,
     string Language, IReadOnlyList<DirectoryRole> Roles);
 
-public enum DirectoryWriteStatus { Saved, NotFound, Conflict, DuplicateEmail, InvalidRoles }
+public enum DirectoryWriteStatus { Saved, NotFound, Conflict, DuplicateEmail, InvalidRoles, ProtectedAdministrator }
 public sealed record DirectoryWriteResult(DirectoryWriteStatus Status, DirectoryUser? User = null);

@@ -9,6 +9,8 @@ using Microsoft.Extensions.DependencyInjection;
 using TemplarCMS.Api.Security;
 using TemplarCMS.Persistence;
 using Xunit;
+using TemplarCMS.Api.Tests.Support;
+using Microsoft.Extensions.Options;
 
 namespace TemplarCMS.Api.Tests.Security;
 
@@ -35,16 +37,14 @@ public sealed class UserDirectoryIntegrationTests
     public async Task DisabledAuthoringSecurityDoesNotMakeDirectoryAnonymous()
     {
         await using var factory = new DirectoryFactory(securityEnabled: false);
-        using var client = factory.ClientWithKey();
-        using var response = await client.GetAsync("/api/v1/security/users", TestContext.Current.CancellationToken);
-        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        Assert.Throws<OptionsValidationException>(() => factory.CreateClient());
     }
 
     [Fact]
     public async Task DirectoryMustBeExplicitlyEnabled()
     {
         await using var factory = new DirectoryFactory(directoryEnabled: false);
-        using var client = factory.ClientWithKey();
+        using var client = factory.ClientWithAdmin();
         using var response = await client.GetAsync("/api/v1/security/users", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
     }
@@ -54,7 +54,7 @@ public sealed class UserDirectoryIntegrationTests
     {
         var ct = TestContext.Current.CancellationToken;
         await using var factory = new DirectoryFactory();
-        using var client = factory.ClientWithKey();
+        using var client = factory.ClientWithAdmin();
         using var created = await client.PostAsJsonAsync("/api/v1/security/users", Profile(), ct);
         Assert.Equal(HttpStatusCode.Created, created.StatusCode);
         var user = await created.Content.ReadFromJsonAsync<JsonElement>(ct);
@@ -77,14 +77,14 @@ public sealed class UserDirectoryIntegrationTests
         var list = await filtered.Content.ReadFromJsonAsync<JsonElement>(ct);
         Assert.Equal(1, list.GetProperty("total").GetInt32());
         using var empty = await client.GetAsync("/api/v1/security/users?status=active", ct);
-        Assert.Equal(0, (await empty.Content.ReadFromJsonAsync<JsonElement>(ct)).GetProperty("total").GetInt32());
+        Assert.Equal(1, (await empty.Content.ReadFromJsonAsync<JsonElement>(ct)).GetProperty("total").GetInt32());
     }
 
     [Fact]
     public async Task EmailUniquenessIsCaseInsensitiveAndWhitespaceNormalized()
     {
         await using var factory = new DirectoryFactory();
-        using var client = factory.ClientWithKey();
+        using var client = factory.ClientWithAdmin();
         var ct = TestContext.Current.CancellationToken;
         using var first = await client.PostAsJsonAsync("/api/v1/security/users", Profile(), ct);
         using var duplicate = await client.PostAsJsonAsync("/api/v1/security/users", Profile(" AUTHOR@example.test "), ct);
@@ -98,7 +98,7 @@ public sealed class UserDirectoryIntegrationTests
     public async Task CreationRejectsLifecycleAndCredentialProperties(string property, string value)
     {
         await using var factory = new DirectoryFactory();
-        using var client = factory.ClientWithKey();
+        using var client = factory.ClientWithAdmin();
         var payload = new Dictionary<string, object> { ["firstName"] = "Test", ["lastName"] = "Author",
             ["email"] = "author@example.test", ["roles"] = new[] { "Author" }, [property] = value };
         using var response = await client.PostAsJsonAsync("/api/v1/security/users", payload, TestContext.Current.CancellationToken);
@@ -109,7 +109,7 @@ public sealed class UserDirectoryIntegrationTests
     public async Task UnknownAndDuplicateRolesAreRejected()
     {
         await using var factory = new DirectoryFactory();
-        using var client = factory.ClientWithKey();
+        using var client = factory.ClientWithAdmin();
         foreach (var roles in new[] { new[] { "Unknown" }, new[] { "0" }, new[] { "Author", "Author" } })
         {
             using var response = await client.PostAsJsonAsync("/api/v1/security/users", Profile() with { Roles = roles }, TestContext.Current.CancellationToken);
@@ -127,7 +127,7 @@ public sealed class UserDirectoryIntegrationTests
             await db.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
             await db.Database.ExecuteSqlRawAsync("DROP TABLE DirectoryUsers", TestContext.Current.CancellationToken);
         }
-        using var client = factory.ClientWithKey();
+        using var client = factory.ClientWithAdmin();
         using var response = await client.GetAsync("/api/v1/security/users", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         using var scope = factory.Services.CreateScope();
@@ -139,7 +139,7 @@ public sealed class UserDirectoryIntegrationTests
     public async Task CatalogExposesFiveRolesWithFourAssignableEntries()
     {
         await using var factory = new DirectoryFactory();
-        using var client = factory.ClientWithKey();
+        using var client = factory.ClientWithAdmin();
         var catalog = await client.GetFromJsonAsync<JsonElement>("/api/v1/security/roles", TestContext.Current.CancellationToken);
         var entries = catalog.GetProperty("items").EnumerateArray().ToArray();
         Assert.Equal(new[] { "Author", "Developer", "FormsEditor", "TemplarAdmin", "MarketingAutomationEditors" },
@@ -168,7 +168,7 @@ public sealed class UserDirectoryIntegrationTests
     {
         var ct = TestContext.Current.CancellationToken;
         await using var factory = new DirectoryFactory();
-        using var client = factory.ClientWithKey();
+        using var client = factory.ClientWithAdmin();
         using var created = await client.PostAsJsonAsync("/api/v1/security/users", Profile(), ct);
         Assert.Equal(HttpStatusCode.Created, created.StatusCode);
         var original = await created.Content.ReadFromJsonAsync<JsonElement>(ct);
@@ -187,7 +187,7 @@ public sealed class UserDirectoryIntegrationTests
         Assert.Equal(original.GetProperty("revision").GetGuid(), saved.GetProperty("revision").GetGuid());
         Assert.Equal("Author", saved.GetProperty("roles")[0].GetString());
         var list = await client.GetFromJsonAsync<JsonElement>("/api/v1/security/users", ct);
-        Assert.Equal(1, list.GetProperty("total").GetInt32());
+        Assert.Equal(2, list.GetProperty("total").GetInt32());
     }
 
     [Fact]
@@ -195,7 +195,7 @@ public sealed class UserDirectoryIntegrationTests
     {
         var ct = TestContext.Current.CancellationToken;
         await using var factory = new DirectoryFactory();
-        using var client = factory.ClientWithKey();
+        using var client = factory.ClientWithAdmin();
         using var created = await client.PostAsJsonAsync("/api/v1/security/users", Profile() with { Roles = [] }, ct);
         Assert.Equal(HttpStatusCode.Created, created.StatusCode);
         var user = await created.Content.ReadFromJsonAsync<JsonElement>(ct);
@@ -205,7 +205,7 @@ public sealed class UserDirectoryIntegrationTests
         Assert.Equal(HttpStatusCode.OK, updated.StatusCode);
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<TemplarCmsDbContext>();
-        var row = await db.DirectoryUsers.AsNoTracking().SingleAsync(ct);
+        var row = await db.DirectoryUsers.AsNoTracking().SingleAsync(user => user.Status == "Invited", ct);
         Assert.Equal(new[] { "Author", "Developer", "FormsEditor", "TemplarAdmin" }, JsonSerializer.Deserialize<string[]>(row.RolesJson));
         var reloaded = await client.GetFromJsonAsync<JsonElement>(created.Headers.Location, ct);
         Assert.Equal(4, reloaded.GetProperty("roles").GetArrayLength());
@@ -215,7 +215,7 @@ public sealed class UserDirectoryIntegrationTests
     public async Task OpenApiDescribesCatalogMetadataAndRoleWriteConstraints()
     {
         await using var factory = new DirectoryFactory();
-        using var client = factory.ClientWithKey();
+        using var client = factory.ClientWithAdmin();
         var doc = await client.GetFromJsonAsync<JsonElement>("/openapi/v1.json", TestContext.Current.CancellationToken);
         var schemas = doc.GetProperty("components").GetProperty("schemas");
         var metadata = schemas.GetProperty("DirectoryRoleResponse").GetProperty("properties");
@@ -239,7 +239,7 @@ public sealed class UserDirectoryIntegrationTests
     public async Task InvalidRoleFiltersAreRejected(string role)
     {
         await using var factory = new DirectoryFactory();
-        using var client = factory.ClientWithKey();
+        using var client = factory.ClientWithAdmin();
         using var response = await client.GetAsync($"/api/v1/security/users?role={role}", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -249,14 +249,14 @@ public sealed class UserDirectoryIntegrationTests
     {
         var ct = TestContext.Current.CancellationToken;
         await using var factory = new DirectoryFactory();
-        using var client = factory.ClientWithKey();
+        using var client = factory.ClientWithAdmin();
         using var created = await client.PostAsJsonAsync("/api/v1/security/users", Profile(), ct);
         Assert.Equal(HttpStatusCode.Created, created.StatusCode);
         var original = await created.Content.ReadFromJsonAsync<JsonElement>(ct);
         using (var scope = factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<TemplarCmsDbContext>();
-            var row = await db.DirectoryUsers.SingleAsync(ct);
+            var row = await db.DirectoryUsers.SingleAsync(user => user.Status == "Invited", ct);
             row.RolesJson = "[\"Author\",\"MarketingAutomationEditors\"]";
             await db.SaveChangesAsync(ct);
         }
@@ -280,19 +280,18 @@ public sealed class UserDirectoryIntegrationTests
         Assert.Empty(final.GetProperty("roles").EnumerateArray());
     }
 
-    private sealed class DirectoryFactory(bool securityEnabled = true, bool directoryEnabled = true) : WebApplicationFactory<Program>
+    private sealed class DirectoryFactory(bool securityEnabled = true, bool directoryEnabled = true) : AdminIdentityApiFactory
     {
         private readonly string root = Directory.CreateTempSubdirectory("TemplarCMS.DirectoryTests-").FullName;
         public string ConnectionString => $"Data Source={Path.Combine(root, "directory.db")};Pooling=False";
-        public HttpClient ClientWithKey()
+        public HttpClient ClientWithAdmin()
         {
-            var client = CreateClient();
-            client.DefaultRequestHeaders.Add("X-Templar-Api-Key", "directory-test-key");
-            return client;
+            return CreateAdminClientAsync(true, TestContext.Current.CancellationToken).GetAwaiter().GetResult();
         }
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             Directory.CreateDirectory(root);
+            base.ConfigureWebHost(builder);
             builder.UseEnvironment("Production");
             builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(new Dictionary<string, string?>
             {

@@ -90,6 +90,7 @@ public static class UserDirectoryEndpoints
             DirectoryWriteStatus.Saved => TypedResults.Ok(Response(result.User!)),
             DirectoryWriteStatus.NotFound => Problem(404, "directory-user-not-found", "The directory user was not found."),
             DirectoryWriteStatus.DuplicateEmail => Problem(409, "directory-email-conflict", "A directory record already uses this email address."),
+            DirectoryWriteStatus.ProtectedAdministrator => Problem(409, "bootstrap-admin-protected", "The initial administrator must retain its TemplarAdmin role."),
             DirectoryWriteStatus.InvalidRoles => TypedResults.ValidationProblem(
                 new Dictionary<string, string[]> { ["roles"] = [DirectoryProfileValidation.AssignmentError] }),
             _ => Problem(409, "directory-revision-conflict", "This profile changed. Reload it before saving again.")

@@ -11,6 +11,7 @@ using TemplarCMS.Api.Content;
 using TemplarCMS.Api.Security;
 using TemplarCMS.Api.Templates;
 using Xunit;
+using Microsoft.AspNetCore.Identity;
 
 namespace TemplarCMS.Api.Tests.Security;
 
@@ -32,11 +33,11 @@ public sealed class AuthoringSecurityEndpointTests
         Assert.NotNull(policy);
         Assert.Contains(
             policy!.AuthenticationSchemes,
-            scheme => string.Equals(scheme, ApiKeyAuthenticationDefaults.SchemeName, StringComparison.Ordinal));
+            scheme => string.Equals(scheme, IdentityConstants.ApplicationScheme, StringComparison.Ordinal));
     }
 
     [Theory]
-    [InlineData(false, false, false, true)]
+    [InlineData(false, false, false, false)]
     [InlineData(true, false, false, false)]
     [InlineData(true, true, false, false)]
     [InlineData(true, true, true, true)]
@@ -89,7 +90,8 @@ public sealed class AuthoringSecurityEndpointTests
 
         if (hasAuthoringRole)
         {
-            claims.Add(new Claim(ClaimTypes.Role, ApiAuthorizationPolicies.AuthorContent));
+            claims.Add(new Claim(ClaimTypes.Role, "TemplarAdmin"));
+            claims.Add(new Claim(AccountSessionValidator.ChangeRequiredClaim, "false"));
         }
 
         return claims.ToArray();

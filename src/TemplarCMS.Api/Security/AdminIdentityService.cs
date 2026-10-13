@@ -12,7 +12,7 @@ namespace TemplarCMS.Api.Security;
 
 public sealed class AdminIdentityService(TemplarCmsDbContext db, UserManager<CmsIdentityUser> users,
     SignInManager<CmsIdentityUser> signIn, IPasswordHasher<CmsIdentityUser> hasher,
-    ILogger<AdminIdentityService> logger) : IAdminIdentityService
+    ILogger<AdminIdentityService> logger, TimeProvider clock) : IAdminIdentityService
 {
     public async Task<AdminSignInResult> CheckPasswordAsync(string loginName, string password, CancellationToken ct)
     {
@@ -29,6 +29,11 @@ public sealed class AdminIdentityService(TemplarCmsDbContext db, UserManager<Cms
         var stamp = user.SecurityStamp;
         var current = await db.Users.AsNoTracking().SingleOrDefaultAsync(value => value.Id == user.Id, ct);
         if (current is null || current.SecurityStamp != stamp) return new(AdminSignInStatus.InvalidCredentials);
+        var profile = await db.DirectoryUsers.SingleAsync(value => value.Id == user.Id, ct);
+        profile.LastLogin = clock.GetUtcNow().ToUniversalTime();
+        profile.Revision = Guid.NewGuid();
+        try { await db.SaveChangesAsync(ct); }
+        catch (DbUpdateConcurrencyException) { db.ChangeTracker.Clear(); return new(AdminSignInStatus.InvalidCredentials); }
         return new(AdminSignInStatus.SignedIn, snapshot, stamp);
     }
 

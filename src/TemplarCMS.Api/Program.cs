@@ -64,6 +64,7 @@ app.UseRouting();
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<AuthoringAntiforgeryMiddleware>();
 app.UseAntiforgery();
 
 if (openApiEnabled)

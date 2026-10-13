@@ -13,6 +13,8 @@ internal class AdminIdentityApiFactory : WebApplicationFactory<Program>
     protected readonly string Root = Directory.CreateTempSubdirectory("TemplarCMS.IdentityHttpTests-").FullName;
     public string? TemporaryPassword { get; private set; }
     public Guid UserId { get; private set; }
+    private string? _currentPassword;
+    internal const string ChangedTestPassword = "My new secure passphrase ✓";
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Development");
@@ -29,20 +31,23 @@ internal class AdminIdentityApiFactory : WebApplicationFactory<Program>
     {
         using var scope = Services.CreateScope();
         var result = await scope.ServiceProvider.GetRequiredService<IAdminProvisioningService>().SetupAsync("admin@example.test", ct);
-        if (result.TemporaryPassword is not null) { TemporaryPassword = result.TemporaryPassword; UserId = result.UserId!.Value; }
+        if (result.UserId is { } id) UserId = id;
+        if (result.TemporaryPassword is not null) { TemporaryPassword = result.TemporaryPassword; _currentPassword = result.TemporaryPassword; }
+        else if (result.Status == TemplarCMS.Domain.Security.AdminProvisioningStatus.AlreadyInitialized) _currentPassword ??= ChangedTestPassword;
     }
     public async Task<HttpClient> CreateAdminClientAsync(bool changePassword, CancellationToken ct)
     {
         await ProvisionAsync(ct);
         var client = CreateAnonymousClient();
         await RefreshCsrfAsync(client, ct);
-        using var login = await client.PostAsJsonAsync("/api/v1/auth/login", new { loginName = "TemplarAdmin", password = TemporaryPassword }, ct);
+        using var login = await client.PostAsJsonAsync("/api/v1/auth/login", new { loginName = "TemplarAdmin", password = _currentPassword }, ct);
         login.EnsureSuccessStatusCode();
         await RefreshCsrfAsync(client, ct);
-        if (changePassword)
+        if (changePassword && (await login.Content.ReadFromJsonAsync<JsonElement>(ct)).GetProperty("mustChangePassword").GetBoolean())
         {
-            using var change = await client.PostAsJsonAsync("/api/v1/auth/change-password", new { currentPassword = TemporaryPassword, newPassword = "My new secure passphrase ✓" }, ct);
+            using var change = await client.PostAsJsonAsync("/api/v1/auth/change-password", new { currentPassword = _currentPassword, newPassword = ChangedTestPassword }, ct);
             change.EnsureSuccessStatusCode();
+            _currentPassword = ChangedTestPassword;
             await RefreshCsrfAsync(client, ct);
         }
         return client;
