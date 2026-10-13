@@ -1,5 +1,9 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using TemplarCMS.Abstractions.Security;
+using TemplarCMS.Persistence;
+using TemplarCMS.Persistence.Security;
 
 namespace TemplarCMS.Api.Security;
 
@@ -14,6 +18,20 @@ public static class AuthoringSecurityServiceCollectionExtensions
 
         services.Configure<AuthoringSecurityOptions>(
             configuration.GetSection(AuthoringSecurityOptions.SectionName));
+
+        services.AddDataProtection();
+        services.AddIdentityCore<CmsIdentityUser>(options =>
+        {
+            options.Password.RequiredLength = 15;
+            options.Password.RequireDigit = false;
+            options.Password.RequireLowercase = false;
+            options.Password.RequireUppercase = false;
+            options.Password.RequireNonAlphanumeric = false;
+            options.Lockout.AllowedForNewUsers = true;
+            options.Lockout.MaxFailedAccessAttempts = 5;
+            options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+        }).AddEntityFrameworkStores<TemplarCmsDbContext>().AddSignInManager().AddDefaultTokenProviders();
+        services.AddScoped<IAdminProvisioningService, AdminProvisioningService>();
 
         services.AddAuthentication(
                 ApiKeyAuthenticationDefaults.SchemeName)
