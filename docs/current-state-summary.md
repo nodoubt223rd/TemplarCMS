@@ -1102,3 +1102,23 @@ Template organization is revisioned JSON under the configured template directory
 Tree and selected-item icons follow the effective template unless explicitly overridden. Template detail responses distinguish effective `icon` from nullable `authoredIcon`. Icon updates preserve unsaved content fields; reordering reconciles the selected sibling's draft order without resetting other edits. See [ADR-0014](decisions/ADR-0014-template-containment-and-content-ordering.md) for recovery, revisions, routes, and deployment preservation.
 
 The completion slice adds isolated browser checks, application restart/readback, permission-denied routes, concurrent SQLite writers, nested-tree/dialog regressions, and inherited-icon display coverage. Optional SQL Server rehearsal tests remain separately configured and were not run against a live database.
+
+# Admin identity (2026-10-12)
+
+Admin authoring now uses account sessions with security enabled by default. A
+local setup command provisions exactly one TemplarAdmin identity and displays a
+unique temporary password once. Password change is mandatory before authoring;
+local recovery issues a replacement and revokes old sessions without reseeding
+or reactivating accounts. Identity/marker schema is additive for SQLite and
+operator-provisioned for SQL Server through 007-admin-identity.sql.
+
+The Vue workspace waits for unrestricted login, keeps drafts in memory during
+expiry, and clears account state on logout/account change. The System directory
+uses the shared session; pending profiles still have no credentials or login
+access. The Admin proxy isolates browser cookies. See README and
+[ADR-0015](decisions/ADR-0015-admin-identity-and-delivery-authentication.md).
+
+Site delivery API keys remain the next implementation slice. Shared raw content
+reads currently require unrestricted admin sessions; rendered sample HTML and
+health remain public. No production deployment or live SQL Server rehearsal has
+been performed for this branch.

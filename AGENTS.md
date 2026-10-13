@@ -64,7 +64,7 @@ Use this file as the quick-start memory for coding sessions in this repo. Keep i
 ## Current Runtime Notes
 
 - OpenAPI routes are enabled by default through the API app settings: `/openapi` and `/openapi/v1.json`.
-- Authoring security is a lightweight API key gate for write endpoints and is controlled by the `AuthoringSecurity` configuration section.
+- Admin authoring uses Identity cookie sessions with security enabled by default and a mandatory first password change. Use README for one-time admin setup, recovery, and HTTPS proxy requirements.
 - Persistence defaults to SQLite; set `Persistence:Provider` to `SqlServer` with an external `TemplarCms` connection string after applying `database/sqlserver/001-initial-schema.sql`.
 
 ## Memory Hygiene

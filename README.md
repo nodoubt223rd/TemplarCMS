@@ -109,10 +109,10 @@ New-WebApplication -Site 'TemplarCMS.api' -Name 'author-workspace' `
   -ApplicationPool 'TemplarCMS.Admin'
 ```
 
-Browse to `https://templarcms.api/author-workspace/`. Authentication is
-intentionally deferred for local, internal testing; do not expose this route
-to an untrusted network until authoring authentication and authorization are
-implemented.
+Browse to `https://templarcms.api/author-workspace/`. Complete the local
+administrator setup below, sign in, and change the temporary password before
+using authoring tools. Preserve the configured Data Protection key directory
+across deployments and give the API app-pool identity access to it.
 
 ### IIS Prerequisites
 
@@ -192,7 +192,7 @@ Quick IIS-hosted smoke-test targets:
 
 - `https://templarcms.api/openapi`
 - `https://templarcms.api/openapi/v1.json`
-- `https://templarcms.api/api/v1/field-types`
+- `https://templarcms.api/api/v1/field-types` (401 anonymously; 200 after unrestricted admin login)
 - `https://templarcms.api/health`
 
 ### Runtime Diagnostics
@@ -251,59 +251,103 @@ a separate, reviewed cutover.
 
 ## Authoring Security
 
-### User Directory Preview
+Authoring uses ASP.NET Core Identity account sessions. Security and the System
+user directory are enabled by default. Before setup, authoring is locked. An
+explicit `AuthoringSecurity:Enabled=false` stops startup; the transitional
+operator API key no longer grants authoring access.
 
-The System workspace now supports persistent user profiles and the fixed role
-catalog. Enable `UserDirectory:Enabled` and `AuthoringSecurity:Enabled`, configure
-the operator API key outside source control, and connect from the System screen.
-Every directory read and write requires authentication, including when ordinary
-authoring security is disabled. The feature defaults to disabled.
+### First installation and recovery
 
-For existing SQL Server databases apply
-[002-user-directory.sql](database/sqlserver/002-user-directory.sql) first.
-SQLite adds the directory table during bootstrap. No demo accounts are seeded.
+Configure the intended database and runtime paths first. For SQLite, schema is
+added during runtime initialization. For SQL Server, apply the approved baseline,
+`002-user-directory.sql`, and [007-admin-identity.sql](database/sqlserver/007-admin-identity.sql)
+before starting the application or running setup. SQL Server startup does not run DDL.
 
-"Add pending user" stores an Invited record; it does not send email or enable
-login. Roles are stored assignments only. Status transitions, invitation delivery,
-credentials, and production identity remain deferred. See the
-[directory boundary](docs/decisions/ADR-0007-user-directory-foundation.md).
+From the repository root, provision the initial account:
 
-The role catalog contains `Author`, `Developer`, `FormsEditor`, `TemplarAdmin`,
-and planned `MarketingAutomationEditors`. `/api/v1/security/roles` supplies
-readable labels, capability-intent descriptions, `isAssignable`, and
-`availability` (`available` or `planned`). Membership is an unordered set:
-empty and multiple memberships are valid; unknown, retired, differently cased,
-and duplicate role keys return `400` ProblemDetails. The planned role cannot be
-assigned on creation or newly added on update. An existing planned membership
-may be preserved or removed; updates still require the current revision and
-stale saves return `409`. Memberships do not grant permissions.
-
-For TEM-13, recreate affected disposable review directory data before running
-the new catalog. All seven old keys are retired, with no translation layer.
-Fresh SQLite bootstrap or the existing SQL Server provisioning scripts create
-an empty directory; no demo users are seeded. The JSON string-key storage and
-database schema are unchanged. This slice adds no data migration, backup, or
-production rollout tooling. See [ADR-0009](docs/adr/ADR-0009-target-role-catalog-contract-and-boundary-validation.md).
-
-Write endpoints now support a first-pass authoring security model that can be
-enabled for Postman and shared test instances.
-
-Configuration:
-
-```json
-"AuthoringSecurity": {
-  "Enabled": false,
-  "ApiKeyHeaderName": "X-Templar-Api-Key",
-  "ApiKey": ""
-}
+```powershell
+dotnet run --project .\src\TemplarCMS.Api\TemplarCMS.Api.csproj --no-launch-profile -- setup-admin --email operator@example.com
 ```
 
-When enabled:
+The command uses the application's configured provider, connection string,
+environment, and runtime paths. It exits without starting HTTP and displays the
+`TemplarAdmin` login and a unique temporary password once, after the profile,
+credential hash, and installation marker commit together. Do not redirect that
+output to routine logs. Re-running setup reports that setup already completed
+without changing or revealing the password. Normal startup never seeds credentials.
 
-- `POST`, `PUT`, and `DELETE` authoring routes require the configured API key header.
-- Read routes stay anonymous for now.
-- The API responds with standard `401` and `403` endpoint metadata so the contract stays compatible with stricter future auth flows.
-- The OpenAPI document marks protected authoring routes with the API key requirement so Postman imports and Swagger UI are easier to use.
+Sign in through the Admin workspace over HTTPS. The API allows the temporary
+session to change its password and log out, and denies authoring until the change
+succeeds. Choose 15–128 characters; spaces and Unicode are permitted. Changes
+require the current password and invalidate earlier sessions. Five failed attempts
+lock login for 15 minutes; IP login rate limiting also applies.
+
+If the one-time output is lost or the account is locked out, a trusted local
+operator can issue a replacement temporary password:
+
+```powershell
+dotnet run --project .\src\TemplarCMS.Api\TemplarCMS.Api.csproj --no-launch-profile -- reset-admin-password
+```
+
+Recovery preserves account identity, revokes existing sessions, clears lockout,
+and requires another password change. It never creates a second account or
+reactivates a suspended/deactivated/missing account. There is no anonymous reset
+or registration endpoint.
+
+### Sessions and hosting
+
+Serve the SPA and `/api` behind one HTTPS origin, using the Admin.Server proxy or
+Vite development proxy. Set `TemplarApi:BaseUrl` for Admin.Server and
+`TEMPLAR_API_BASE_URL` for Vite to the intended API instance. Secure, HttpOnly,
+SameSite=Strict cookies identify the browser session. Sessions are nonpersistent
+and expire after 30 minutes without sliding renewal. The proxy forwards browser
+cookies independently and does not cache them in its pooled HTTP handler.
+
+Configure `IdentitySecurity:DataProtectionKeysPath` outside source control to a
+durable, access-restricted directory. The default is `RuntimeData/IdentityKeys`.
+Keep this directory outside public web assets and preserve it across deployment;
+multiple API instances must share the same key ring/application name. Protect
+runtime database and key storage with deployment permissions.
+
+JSON API clients use GET `/api/v1/auth/antiforgery` to obtain a request token, then
+send `X-Templar-CSRF` with login and every cookie-authenticated mutation. Use a
+cookie jar, and refresh the request token after login, password change, and logout.
+GET `/api/v1/auth/session` describes the current session and required password
+change. OpenAPI describes the `AdminSession` cookie scheme. API errors use
+401/403 ProblemDetails rather than HTML redirects. Passwords, hashes, cookies,
+and tokens never belong in browser storage, bundles, URLs, or routine logs.
+
+The SPA preserves unsaved drafts in memory during expiry so the same account can
+sign in again. Explicit logout and account changes clear workspace state. Failed
+mutations are not automatically replayed.
+
+### User directory
+
+The System workspace uses the shared account session. `Add pending user` stores
+an Invited profile, sends no email, and grants no login access. The initial
+administrator's TemplarAdmin membership cannot be removed through profile edits.
+Its login name remains stable when its profile email changes. Active,
+unrestricted TemplarAdmin identities can author and manage the directory; other
+catalog memberships grant no permissions yet. Status/lifecycle controls and
+additional credential issuance remain deferred.
+
+The catalog still contains `Author`, `Developer`, `FormsEditor`, `TemplarAdmin`,
+and planned `MarketingAutomationEditors`. Unknown/retired/differently cased/
+duplicate role keys fail validation. Existing planned memberships may be
+preserved or removed, but cannot be newly assigned. Empty and multiple
+memberships remain valid for ordinary pending profiles; stale revisions return
+409. No UX demo accounts are seeded. See [ADR-0009](docs/adr/ADR-0009-target-role-catalog-contract-and-boundary-validation.md)
+for the catalog and [ADR-0015](docs/decisions/ADR-0015-admin-identity-and-delivery-authentication.md)
+for the current identity boundary.
+
+### Client-facing content consumers
+
+Admin identity is the first implementation slice. Content API reads currently
+require an unrestricted administrator session. Separate read-only delivery API
+keys for site servers are the approved next slice; they are not implemented here.
+Do not use the retired operator key or expose a private key in a public website's
+JavaScript. Health, content-free API discovery, and rendered sample HTML remain
+public; authoring and raw content API data do not.
 
 ## Goals
 
