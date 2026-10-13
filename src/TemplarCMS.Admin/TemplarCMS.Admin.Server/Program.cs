@@ -1,26 +1,13 @@
 using System.Net.Http.Headers;
+using TemplarCMS.Admin.Server;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var apiBaseUrl =
-    builder.Configuration["TemplarApi:BaseUrl"]
-    ?? "https://templarcms.api";
-
+builder.Services.AddTransient<TemplarApiProxyHandler>();
 builder.Services.AddHttpClient(
     "TemplarApiProxy",
-    client => client.BaseAddress = new Uri(apiBaseUrl))
-    .ConfigurePrimaryHttpMessageHandler(() =>
-    {
-        var handler = new HttpClientHandler();
-
-        if (builder.Environment.IsDevelopment())
-        {
-            handler.ServerCertificateCustomValidationCallback =
-                HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
-        }
-
-        return handler;
-    });
+    (services, client) => client.BaseAddress = new Uri(services.GetRequiredService<IConfiguration>()["TemplarApi:BaseUrl"] ?? "https://templarcms.api"))
+    .ConfigurePrimaryHttpMessageHandler<TemplarApiProxyHandler>();
 
 var app = builder.Build();
 

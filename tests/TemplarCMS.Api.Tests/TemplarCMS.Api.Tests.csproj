@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\TemplarCMS.Api\TemplarCMS.Api.csproj" />
+    <ProjectReference Include="..\..\src\TemplarCMS.Admin\TemplarCMS.Admin.Server\TemplarCMS.Admin.Server.csproj" Aliases="AdminServer" />
     <ProjectReference Include="..\..\src\TemplarCMS.Application\TemplarCMS.Application.csproj" />
     <ProjectReference Include="..\..\src\TemplarCMS.Domain\TemplarCMS.Domain.csproj" />
   </ItemGroup>
