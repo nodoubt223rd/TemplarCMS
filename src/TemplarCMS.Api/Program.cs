@@ -12,9 +12,6 @@ var builder = WebApplication.CreateBuilder(args);
 var openApiEnabled =
     builder.Configuration.GetValue<bool?>("OpenApi:Enabled")
     ?? builder.Environment.IsDevelopment();
-var authoringSecurityHeaderName =
-    builder.Configuration.GetValue<string>("AuthoringSecurity:ApiKeyHeaderName")
-    ?? "X-Templar-Api-Key";
 
 builder.Services.AddProblemDetails();
 builder.Services.AddHealthChecks();
@@ -30,13 +27,13 @@ builder.Services.AddSwaggerGen(
                 Version = "v1"
             });
         options.AddSecurityDefinition(
-            ApiKeyAuthenticationDefaults.SchemeName,
+            "AdminSession",
             new OpenApiSecurityScheme
             {
                 Type = SecuritySchemeType.ApiKey,
-                Name = authoringSecurityHeaderName,
-                In = ParameterLocation.Header,
-                Description = "API key required for authoring endpoints when AuthoringSecurity is enabled."
+                Name = "__Host-TemplarAdmin",
+                In = ParameterLocation.Cookie,
+                Description = "Administrator session required. Change the temporary password before authoring; cookie mutations require X-Templar-CSRF."
             });
         options.OperationFilter<AuthoringSecurityOperationFilter>();
         options.SchemaFilter<DirectoryRoleSchemaFilter>();
@@ -58,8 +55,16 @@ if (AdminCommandRunner.IsCommand(args))
 
 app.UseExceptionHandler();
 app.UseTemplarRequestObservability();
+app.Use(async (http, next) =>
+{
+    if (http.Request.Path.StartsWithSegments("/api/v1/auth")) http.Response.Headers.CacheControl = "no-store";
+    await next(http);
+});
+app.UseRouting();
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseAntiforgery();
 
 if (openApiEnabled)
 {
@@ -88,6 +93,7 @@ app.MapTemplateOrganizationEndpoints();
 app.MapContentOrderingEndpoints();
 app.MapMediaEndpoints();
 app.MapUserDirectoryEndpoints();
+app.MapAuthEndpoints();
 app.MapSwaggerUiAssetFallback();
 
 app.Run();

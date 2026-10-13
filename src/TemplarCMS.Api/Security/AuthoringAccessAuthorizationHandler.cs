@@ -18,17 +18,9 @@ internal sealed class AuthoringAccessAuthorizationHandler
         AuthorizationHandlerContext context,
         AuthoringAccessRequirement requirement)
     {
-        var options =
-            _authoringSecurityOptions.CurrentValue;
-
-        if (!options.Enabled)
-        {
-            context.Succeed(requirement);
-            return Task.CompletedTask;
-        }
-
         if (context.User.Identity?.IsAuthenticated == true
-            && context.User.IsInRole(ApiAuthorizationPolicies.AuthorContent))
+            && context.User.IsInRole(nameof(TemplarCMS.Domain.Security.DirectoryRole.TemplarAdmin))
+            && context.User.HasClaim(AccountSessionValidator.ChangeRequiredClaim, "false"))
         {
             context.Succeed(requirement);
         }

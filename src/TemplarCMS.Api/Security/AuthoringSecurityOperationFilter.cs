@@ -33,7 +33,7 @@ internal sealed class AuthoringSecurityOperationFilter : IOperationFilter
                         Reference = new OpenApiReference
                         {
                             Type = ReferenceType.SecurityScheme,
-                            Id = ApiKeyAuthenticationDefaults.SchemeName
+                            Id = "AdminSession"
                         }
                     }
                 ] = []

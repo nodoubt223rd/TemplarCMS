@@ -6,6 +6,8 @@ namespace TemplarCMS.Api;
 
 internal static class ApiProblems
 {
+    public static ProblemDetails Auth(int status, string code, string detail) => CreateProblemDetails(
+        title: status == 401 ? "Authentication is required" : "Unable to complete the authentication request", detail: detail, statusCode: status, code: code);
     public static ProblemDetails AuthoringAuthenticationRequired(string headerName) =>
         CreateProblemDetails(
             title: "Authoring authentication is required",
