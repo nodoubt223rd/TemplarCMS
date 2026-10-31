@@ -38,6 +38,17 @@ Future hardening:
 - Replace the development API-key mechanism with a production identity
   and role/claims provider before public deployment
 
+### Credential-Aware API Discovery
+
+Status: Future
+
+`GET /api/v1` remains content-free and public, but its discovery links include
+administrator-only templates, workspace branches, creation operations, and
+OpenAPI for delivery callers. The target routes correctly enforce permissions.
+Filter these links by account eligibility or describe their required permissions,
+with a key-only discovery-response regression. Identified as a minor follow-up
+in the 2026-10-30 delivery-key review.
+
 ### ProblemDetails Error Catalog
 
 Status: In Progress
