@@ -122,22 +122,29 @@ public sealed class ContentItemLinksResponse
 {
     public required LinkResponse Self { get; init; }
 
-    public required LinkResponse Template { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public LinkResponse? Template { get; init; }
 
     public required LinkResponse Children { get; init; }
 
-    public required LinkResponse Dependencies { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public LinkResponse? Dependencies { get; init; }
 
     [JsonPropertyName("set-values")]
-    public required LinkResponse SetValues { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public LinkResponse? SetValues { get; init; }
 
-    public required LinkResponse Rename { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public LinkResponse? Rename { get; init; }
 
-    public required LinkResponse Move { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public LinkResponse? Move { get; init; }
 
-    public required LinkResponse Delete { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public LinkResponse? Delete { get; init; }
 
-    public required LinkResponse Branch { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public LinkResponse? Branch { get; init; }
 
     public LinkResponse? Parent { get; init; }
 }

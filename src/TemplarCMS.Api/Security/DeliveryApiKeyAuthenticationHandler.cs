@@ -13,7 +13,7 @@ public sealed class DeliveryApiKeyAuthenticationHandler(
     {
         if (!Request.Headers.TryGetValue(DeliveryApiKeyDefaults.HeaderName, out var values))
             return Task.FromResult(AuthenticateResult.NoResult());
-        if (values.Count != 1 || !validator.TryAuthenticate(values[0]!, out var name))
+        if (!Request.IsHttps || values.Count != 1 || !validator.TryAuthenticate(values[0]!, out var name))
             return Task.FromResult(AuthenticateResult.Fail("Invalid delivery credential."));
         var identity = new ClaimsIdentity([
             new Claim(ClaimTypes.NameIdentifier, name!), new Claim(DeliveryApiKeyDefaults.ClaimType, "read")

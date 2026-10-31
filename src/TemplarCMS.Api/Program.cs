@@ -57,7 +57,7 @@ app.UseExceptionHandler();
 app.UseTemplarRequestObservability();
 app.Use(async (http, next) =>
 {
-    if (http.Request.Path.StartsWithSegments("/api/v1/auth")) http.Response.Headers.CacheControl = "no-store";
+    if (http.Request.Path.StartsWithSegments("/api/v1")) http.Response.Headers.CacheControl = "private, no-store";
     await next(http);
 });
 app.UseRouting();

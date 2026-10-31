@@ -13,7 +13,7 @@ public static class AuthEndpoints
     public static void MapAuthEndpoints(this IEndpointRouteBuilder endpoints)
     {
         var group = endpoints.MapGroup("/api/v1/auth").WithTags("Authentication");
-        group.AddEndpointFilter(async (context, next) => { context.HttpContext.Response.Headers.CacheControl = "no-store"; return await next(context); });
+        group.AddEndpointFilter(async (context, next) => { context.HttpContext.Response.Headers.CacheControl = "private, no-store"; return await next(context); });
         group.MapGet("/antiforgery", (HttpContext http, IAntiforgery antiforgery) =>
         {
             var tokens = antiforgery.GetAndStoreTokens(http);

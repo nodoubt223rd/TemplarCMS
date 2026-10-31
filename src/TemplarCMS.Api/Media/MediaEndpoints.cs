@@ -10,8 +10,9 @@ public static class MediaEndpoints
 {
     public static IEndpointRouteBuilder MapMediaEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        endpoints.MapGet("/api/v1/media/assets", GetAllAsync).WithName("GetMediaAssets").WithTags("Media").Produces<MediaAssetCollectionResponse>();
-        endpoints.MapGet("/api/v1/media/assets/{id:guid}/content", GetContentAsync).WithName("GetMediaAssetContent").WithTags("Media");
+        endpoints.MapGet("/api/v1/media/assets", GetAllAsync).WithName("GetMediaAssets").WithTags("Media").Produces<MediaAssetCollectionResponse>().RequireAuthorization(ApiAuthorizationPolicies.AuthorContent);
+        endpoints.MapGet("/api/v1/media/assets/{id:guid}/content", GetContentAsync).WithName("GetMediaAssetContent").WithTags("Media")
+            .ProducesProblem(401).ProducesProblem(403).RequireAuthorization(ApiAuthorizationPolicies.ReadContent);
         endpoints.MapPost("/api/v1/media/assets", UploadAsync).WithName("UploadMediaAsset").WithTags("Media").Accepts<IFormFile>("multipart/form-data").RequireAuthorization(ApiAuthorizationPolicies.AuthorContent);
         return endpoints;
     }
