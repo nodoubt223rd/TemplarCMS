@@ -20,6 +20,10 @@ public static class AuthoringSecurityServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
 
+        services.AddSingleton<Microsoft.Extensions.Options.IValidateOptions<DeliveryKeyOptions>, DeliveryKeyOptionsValidator>();
+        services.AddOptions<DeliveryKeyOptions>().Bind(configuration.GetSection(DeliveryKeyOptions.SectionName)).ValidateOnStart();
+        services.AddSingleton<DeliveryKeyValidator>();
+
         services.AddOptions<AuthoringSecurityOptions>().Bind(configuration.GetSection(AuthoringSecurityOptions.SectionName))
             .Validate(options => options.Enabled, "AuthoringSecurity:Enabled=false is no longer supported. Enable security and run setup-admin.")
             .ValidateOnStart();
@@ -63,6 +67,7 @@ public static class AuthoringSecurityServiceCollectionExtensions
         services.AddScoped<IAdminProvisioningService, AdminProvisioningService>();
 
         services.AddAuthentication(IdentityConstants.ApplicationScheme)
+            .AddScheme<AuthenticationSchemeOptions, DeliveryApiKeyAuthenticationHandler>(DeliveryApiKeyDefaults.SchemeName, _ => { })
             .AddCookie(IdentityConstants.ApplicationScheme, options =>
             {
                 options.Cookie.Name = "__Host-TemplarAdmin";

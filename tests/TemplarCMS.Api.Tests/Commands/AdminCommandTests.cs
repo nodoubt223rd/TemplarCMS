@@ -10,6 +10,18 @@ namespace TemplarCMS.Api.Tests.Commands;
 public sealed class AdminCommandTests
 {
     [Fact]
+    public async Task DeliveryGenerationNeedsNoDatabaseAndWritesKeyOnlyToExplicitOutput()
+    {
+        using var services = new ServiceCollection().BuildServiceProvider();
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+        Assert.Equal(0, await TemplarCMS.Api.Commands.AdminCommandRunner.RunAsync(services, ["generate-delivery-key"], output, error, TestContext.Current.CancellationToken));
+        Assert.Contains("Delivery key:", output.ToString());
+        Assert.Contains("SHA-256 digest:", output.ToString());
+        Assert.Empty(error.ToString());
+    }
+
+    [Fact]
     public async Task SetupDisplaysPasswordOnceAndRepeatedSetupDoesNotResetIt()
     {
         await using var fixture = new ProvisioningFixture();
