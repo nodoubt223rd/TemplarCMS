@@ -68,7 +68,7 @@ public sealed class AuthoringSecurityEndpointTests
                 ? new ClaimsPrincipal(
                     new ClaimsIdentity(
                         CreateClaims(hasAuthoringRole),
-                        "Test"))
+                        IdentityConstants.ApplicationScheme))
                 : new ClaimsPrincipal(new ClaimsIdentity());
 
         var result =
@@ -107,8 +107,8 @@ public sealed class AuthoringSecurityEndpointTests
     [InlineData("POST", "/api/v1/templates", true)]
     [InlineData("PUT", "/api/v1/templates/{id:guid}", true)]
     [InlineData("DELETE", "/api/v1/templates/{id:guid}", true)]
-    [InlineData("GET", "/api/v1/content/{id:guid}", false)]
-    [InlineData("GET", "/api/v1/content/by-path/{**path}", false)]
+    [InlineData("GET", "/api/v1/content/{id:guid}", true)]
+    [InlineData("GET", "/api/v1/content/by-path/{**path}", true)]
     [InlineData("GET", "/api/v1/templates", false)]
     [InlineData("GET", "/api/v1/templates/{id:guid}", false)]
     public void EndpointAuthorization_ShouldMatchExpectedRoutes(
@@ -153,7 +153,7 @@ public sealed class AuthoringSecurityEndpointTests
         if (shouldRequireAuthorization)
         {
             var requirement = Assert.Single(authorizeData);
-            Assert.Equal(ApiAuthorizationPolicies.AuthorContent, requirement.Policy);
+            Assert.Equal(httpMethod == "GET" ? ApiAuthorizationPolicies.ReadContent : ApiAuthorizationPolicies.AuthorContent, requirement.Policy);
             return;
         }
 

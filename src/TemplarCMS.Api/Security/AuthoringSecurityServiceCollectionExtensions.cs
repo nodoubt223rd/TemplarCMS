@@ -82,22 +82,29 @@ public static class AuthoringSecurityServiceCollectionExtensions
         services.AddOptions<CookieAuthenticationOptions>(IdentityConstants.ApplicationScheme)
             .Configure<TimeProvider>((options, clock) => options.TimeProvider = clock);
         services.AddSingleton<IAuthorizationHandler, AuthoringAccessAuthorizationHandler>();
+        services.AddSingleton<IAuthorizationHandler, ReadContentAuthorizationHandler>();
+        services.AddSingleton<IAuthorizationMiddlewareResultHandler, ApiAuthorizationResultHandler>();
 
         services.AddAuthorization(
             options =>
             {
-                options.FallbackPolicy = new AuthorizationPolicyBuilder(IdentityConstants.ApplicationScheme)
+                options.FallbackPolicy = new AuthorizationPolicyBuilder(IdentityConstants.ApplicationScheme, DeliveryApiKeyDefaults.SchemeName)
                     .RequireAuthenticatedUser().AddRequirements(new AuthoringAccessRequirement()).Build();
-                options.AddPolicy(ApiAuthorizationPolicies.AccountSession, policy => policy.AddAuthenticationSchemes(IdentityConstants.ApplicationScheme).RequireAuthenticatedUser());
+                options.AddPolicy(ApiAuthorizationPolicies.AccountSession, policy => policy
+                    .AddAuthenticationSchemes(IdentityConstants.ApplicationScheme, DeliveryApiKeyDefaults.SchemeName)
+                    .RequireAuthenticatedUser().RequireAssertion(context => context.User.Identities.Any(AccountEligibility.IsAccount)));
+                options.AddPolicy(ApiAuthorizationPolicies.ReadContent, policy => policy
+                    .AddAuthenticationSchemes(IdentityConstants.ApplicationScheme, DeliveryApiKeyDefaults.SchemeName)
+                    .RequireAuthenticatedUser().AddRequirements(new ReadContentRequirement()));
                 options.AddPolicy(UserDirectoryEndpoints.Policy, policy => policy
-                    .AddAuthenticationSchemes(IdentityConstants.ApplicationScheme)
+                    .AddAuthenticationSchemes(IdentityConstants.ApplicationScheme, DeliveryApiKeyDefaults.SchemeName)
                     .RequireAuthenticatedUser().AddRequirements(new AuthoringAccessRequirement()));
                 options.AddPolicy(
                     ApiAuthorizationPolicies.AuthorContent,
                     policy =>
                     {
                         policy
-                            .AddAuthenticationSchemes(IdentityConstants.ApplicationScheme)
+                            .AddAuthenticationSchemes(IdentityConstants.ApplicationScheme, DeliveryApiKeyDefaults.SchemeName)
                             .RequireAuthenticatedUser()
                             .AddRequirements(new AuthoringAccessRequirement());
                     });

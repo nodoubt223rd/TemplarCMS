@@ -41,16 +41,16 @@ public sealed class ContentLookupEndpointsTests
             ok.Value.Links.Self.Href);
         Assert.Equal(
             $"/api/v1/content/{itemId.Value}/dependencies?lang=en&version=1",
-            ok.Value.Links.Dependencies.Href);
+            Assert.IsType<LinkResponse>(ok.Value.Links.Dependencies).Href);
         Assert.Equal(
             $"/api/v1/content/{itemId.Value}/rename",
-            ok.Value.Links.Rename.Href);
+            Assert.IsType<LinkResponse>(ok.Value.Links.Rename).Href);
         Assert.Equal(
             $"/api/v1/content/{itemId.Value}/move",
-            ok.Value.Links.Move.Href);
+            Assert.IsType<LinkResponse>(ok.Value.Links.Move).Href);
         Assert.Equal(
             $"/api/v1/content/{itemId.Value}/branch?lang=en&version=1",
-            ok.Value.Links.Branch.Href);
+            Assert.IsType<LinkResponse>(ok.Value.Links.Branch).Href);
         Assert.Equal(itemId, service.LastRequestedItemId);
         Assert.Equal(new ContentLanguage("en"), service.LastContext.Language);
         Assert.Equal(ContentVersion.First, service.LastContext.Version);
@@ -131,7 +131,7 @@ public sealed class ContentLookupEndpointsTests
             ok.Value.Links.Self.Href);
         Assert.Equal(
             $"/api/v1/content/{itemId.Value}/dependencies?lang=en&version=1",
-            ok.Value.Links.Dependencies.Href);
+            Assert.IsType<LinkResponse>(ok.Value.Links.Dependencies).Href);
         Assert.Equal(
             new ContentPath("/home/articles/hello-world"),
             service.LastRequestedPath);
@@ -1194,7 +1194,7 @@ public sealed class ContentLookupEndpointsTests
         Assert.Equal(3, ok.Value.Version);
         Assert.Equal(
             $"/api/v1/content/{itemId.Value}/dependencies?lang=fr-ca&version=3",
-            ok.Value.Links.Dependencies.Href);
+            Assert.IsType<LinkResponse>(ok.Value.Links.Dependencies).Href);
     }
 
     [Fact]

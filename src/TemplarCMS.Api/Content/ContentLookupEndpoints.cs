@@ -21,7 +21,9 @@ public static class ContentLookupEndpoints
             .WithTags("Content")
             .Produces<ContentItemResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
-            .ProducesProblem(StatusCodes.Status404NotFound);
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(401).ProducesProblem(403)
+            .RequireAuthorization(ApiAuthorizationPolicies.ReadContent);
 
         endpoints.MapGet(
                 "/api/v1/content/by-path/{**path}",
@@ -30,7 +32,9 @@ public static class ContentLookupEndpoints
             .WithTags("Content")
             .Produces<ContentItemResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
-            .ProducesProblem(StatusCodes.Status404NotFound);
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(401).ProducesProblem(403)
+            .RequireAuthorization(ApiAuthorizationPolicies.ReadContent);
 
         endpoints.MapGet(
                 "/api/v1/content/{id:guid}/children",
@@ -39,7 +43,9 @@ public static class ContentLookupEndpoints
             .WithTags("Content")
             .Produces<ContentItemCollectionResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
-            .ProducesProblem(StatusCodes.Status404NotFound);
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(401).ProducesProblem(403)
+            .RequireAuthorization(ApiAuthorizationPolicies.ReadContent);
 
         endpoints.MapGet(
                 "/api/v1/content/root/children",
@@ -47,7 +53,9 @@ public static class ContentLookupEndpoints
             .WithName("GetRootContentChildren")
             .WithTags("Content")
             .Produces<ContentItemCollectionResponse>(StatusCodes.Status200OK)
-            .ProducesProblem(StatusCodes.Status400BadRequest);
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(401).ProducesProblem(403)
+            .RequireAuthorization(ApiAuthorizationPolicies.ReadContent);
 
         endpoints.MapGet(
                 "/api/v1/content/{id:guid}/branch",
@@ -56,7 +64,9 @@ public static class ContentLookupEndpoints
             .WithTags("Content")
             .Produces<ContentBranchResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
-            .ProducesProblem(StatusCodes.Status404NotFound);
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(401).ProducesProblem(403)
+            .RequireAuthorization(ApiAuthorizationPolicies.AuthorContent);
 
         endpoints.MapGet(
                 "/api/v1/content/root/branch",
@@ -64,7 +74,9 @@ public static class ContentLookupEndpoints
             .WithName("GetRootContentBranch")
             .WithTags("Content")
             .Produces<ContentBranchResponse>(StatusCodes.Status200OK)
-            .ProducesProblem(StatusCodes.Status400BadRequest);
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(401).ProducesProblem(403)
+            .RequireAuthorization(ApiAuthorizationPolicies.AuthorContent);
 
         endpoints.MapGet(
                 "/api/v1/content/workspaces/content/branch",
@@ -73,7 +85,9 @@ public static class ContentLookupEndpoints
             .WithTags("Content")
             .Produces<ContentBranchResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
-            .ProducesProblem(StatusCodes.Status404NotFound);
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(401).ProducesProblem(403)
+            .RequireAuthorization(ApiAuthorizationPolicies.AuthorContent);
 
         endpoints.MapPost(
                 "/api/v1/content",
@@ -157,7 +171,9 @@ public static class ContentLookupEndpoints
             .WithTags("Content")
             .Produces<ContentItemDependencyResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
-            .ProducesProblem(StatusCodes.Status404NotFound);
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(401).ProducesProblem(403)
+            .RequireAuthorization(ApiAuthorizationPolicies.AuthorContent);
 
         return endpoints;
     }
@@ -167,7 +183,8 @@ public static class ContentLookupEndpoints
         string? lang,
         int? version,
         [FromServices] IContentItemService contentItemService,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        HttpContext? http = null)
     {
         ArgumentNullException.ThrowIfNull(contentItemService);
 
@@ -192,7 +209,7 @@ public static class ContentLookupEndpoints
                 MapResponse(
                     item,
                     context,
-                    $"/api/v1/content/{item.Item.Id.Value}?lang={context.Language}&version={context.Version.Value}"));
+                    $"/api/v1/content/{item.Item.Id.Value}?lang={context.Language}&version={context.Version.Value}", http is null || AccountEligibility.CanAuthor(http.User)));
         }
         catch (ArgumentException exception)
         {
@@ -205,7 +222,8 @@ public static class ContentLookupEndpoints
         string? lang,
         int? version,
         [FromServices] IContentItemService contentItemService,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        HttpContext? http = null)
     {
         ArgumentNullException.ThrowIfNull(contentItemService);
 
@@ -237,7 +255,7 @@ public static class ContentLookupEndpoints
                 MapResponse(
                     item,
                     context,
-                    $"/api/v1/content/by-path/{normalizedPath.ToString().TrimStart('/')}?lang={context.Language}&version={context.Version.Value}"));
+                    $"/api/v1/content/by-path/{normalizedPath.ToString().TrimStart('/')}?lang={context.Language}&version={context.Version.Value}", http is null || AccountEligibility.CanAuthor(http.User)));
         }
         catch (ArgumentException exception)
         {
@@ -250,7 +268,8 @@ public static class ContentLookupEndpoints
         string? lang,
         int? version,
         [FromServices] IContentItemService contentItemService,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        HttpContext? http = null)
     {
         ArgumentNullException.ThrowIfNull(contentItemService);
 
@@ -281,7 +300,7 @@ public static class ContentLookupEndpoints
                 MapCollectionResponse(
                     parent.Item.Id,
                     children,
-                    context));
+                    context, http is null || AccountEligibility.CanAuthor(http.User)));
         }
         catch (ArgumentException exception)
         {
@@ -293,7 +312,8 @@ public static class ContentLookupEndpoints
         string? lang,
         int? version,
         [FromServices] IContentItemService contentItemService,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        HttpContext? http = null)
     {
         ArgumentNullException.ThrowIfNull(contentItemService);
 
@@ -313,7 +333,7 @@ public static class ContentLookupEndpoints
                 MapCollectionResponse(
                     null,
                     children,
-                    context));
+                    context, http is null || AccountEligibility.CanAuthor(http.User)));
         }
         catch (ArgumentException exception)
         {
@@ -982,7 +1002,8 @@ public static class ContentLookupEndpoints
     private static ContentItemResponse MapResponse(
         ResolvedContentItem item,
         FieldValueResolutionContext context,
-        string selfHref)
+        string selfHref,
+        bool includeAuthoring = true)
     {
         var canonicalPath =
             item.Path.ToString();
@@ -1009,38 +1030,38 @@ public static class ContentLookupEndpoints
                 {
                     Href = selfHref
                 },
-                Template = new LinkResponse
+                Template = includeAuthoring ? new LinkResponse
                 {
                     Href = $"/api/v1/templates/{item.Item.TemplateId.Value}"
-                },
+                } : null,
                 Children = new LinkResponse
                 {
                     Href = $"/api/v1/content/{item.Item.Id.Value}/children?lang={context.Language}&version={context.Version.Value}"
                 },
-                Dependencies = new LinkResponse
+                Dependencies = includeAuthoring ? new LinkResponse
                 {
                     Href = $"/api/v1/content/{item.Item.Id.Value}/dependencies?lang={context.Language}&version={context.Version.Value}"
-                },
-                SetValues = new LinkResponse
+                } : null,
+                SetValues = includeAuthoring ? new LinkResponse
                 {
                     Href = $"/api/v1/content/{item.Item.Id.Value}/values"
-                },
-                Rename = new LinkResponse
+                } : null,
+                Rename = includeAuthoring ? new LinkResponse
                 {
                     Href = $"/api/v1/content/{item.Item.Id.Value}/rename"
-                },
-                Move = new LinkResponse
+                } : null,
+                Move = includeAuthoring ? new LinkResponse
                 {
                     Href = $"/api/v1/content/{item.Item.Id.Value}/move"
-                },
-                Delete = new LinkResponse
+                } : null,
+                Delete = includeAuthoring ? new LinkResponse
                 {
                     Href = $"/api/v1/content/{item.Item.Id.Value}"
-                },
-                Branch = new LinkResponse
+                } : null,
+                Branch = includeAuthoring ? new LinkResponse
                 {
                     Href = $"/api/v1/content/{item.Item.Id.Value}/branch?lang={context.Language}&version={context.Version.Value}"
-                },
+                } : null,
                 Parent = item.Item.ParentId == null
                     ? null
                     : new LinkResponse
@@ -1054,7 +1075,8 @@ public static class ContentLookupEndpoints
     private static ContentItemCollectionResponse MapCollectionResponse(
         ContentItemId? parentId,
         IReadOnlyCollection<ResolvedContentItem> children,
-        FieldValueResolutionContext context)
+        FieldValueResolutionContext context,
+        bool includeAuthoring = true)
     {
         var items =
             children.Select(
@@ -1062,7 +1084,7 @@ public static class ContentLookupEndpoints
                         MapResponse(
                             child,
                             context,
-                            $"/api/v1/content/{child.Item.Id.Value}?lang={context.Language}&version={context.Version.Value}"))
+                            $"/api/v1/content/{child.Item.Id.Value}?lang={context.Language}&version={context.Version.Value}", includeAuthoring))
                 .ToArray();
 
         return new ContentItemCollectionResponse

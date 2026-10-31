@@ -16,7 +16,7 @@ public static class UserDirectoryEndpoints
             .RequireAuthorization(Policy);
         group.AddEndpointFilter(async (context, next) =>
         {
-            context.HttpContext.Response.Headers.CacheControl = "no-store";
+            context.HttpContext.Response.Headers.CacheControl = "private, no-store";
             var config = context.HttpContext.RequestServices.GetRequiredService<IConfiguration>();
             return config.GetValue<bool>("UserDirectory:Enabled")
                 ? await next(context)
