@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authorization.Policy;
 
@@ -11,9 +10,6 @@ public sealed class ApiAuthorizationResultHandler : IAuthorizationMiddlewareResu
     {
         if (result.Succeeded)
         {
-            // Account operations and antiforgery must bind to the cookie's user id,
-            // never a delivery key's name when both credentials are present.
-            http.User = new ClaimsPrincipal(http.User.Identities.OrderByDescending(AccountEligibility.IsAccount));
             await next(http);
             return;
         }

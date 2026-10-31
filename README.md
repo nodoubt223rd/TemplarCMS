@@ -364,12 +364,59 @@ for the current identity boundary.
 
 ### Client-facing content consumers
 
-Admin identity is the first implementation slice. Content API reads currently
-require an unrestricted administrator session. Separate read-only delivery API
-keys for site servers are the approved next slice; they are not implemented here.
-Do not use the retired operator key or expose a private key in a public website's
-JavaScript. Health, content-free API discovery, and rendered sample HTML remain
-public; authoring and raw content API data do not.
+Client sites use separate read-only delivery keys over HTTPS. Generate a key
+locally without starting HTTP or connecting to the database:
+
+```powershell
+dotnet run --project .\src\TemplarCMS.Api\TemplarCMS.Api.csproj --no-launch-profile -- generate-delivery-key
+```
+
+The terminal displays the raw key once and its SHA-256 digest. Keep the raw key
+in the consuming site's server-side secret configuration. Configure only its
+digest in the CMS, outside source control, using
+`DeliverySecurity:KeyDigests:<site-name>` (environment variable form:
+`DeliverySecurity__KeyDigests__siteA`). Do not redirect key generation to routine
+logs, put keys in URLs, or commit credentials. Empty configuration denies
+delivery access; malformed or duplicate digests prevent API startup.
+
+Site-server requests send the exact generated key in a single
+`X-Templar-Api-Key` header. For example, a server using `IConfiguration` and an
+HTTPS `HttpClient` can read content without putting the credential on its
+command line or in browser code:
+
+```csharp
+using var request = new HttpRequestMessage(HttpMethod.Get,
+    "/api/v1/content/by-path/templar/content/home");
+request.Headers.Add("X-Templar-Api-Key",
+    configuration["Cms:DeliveryKey"] ?? throw new InvalidOperationException("Configure the site's CMS delivery key."));
+using var response = await client.SendAsync(request, cancellationToken);
+response.EnsureSuccessStatusCode();
+```
+
+Content by ID/path, root/item children, and media binary reads accept a valid
+delivery key or an unrestricted administrator session. Branch trees, dependencies,
+templates, field metadata, media listings, directory data, and every mutation
+remain administrator-only. Delivery responses retain content fields and read
+links, omitting links to forbidden administration operations. Protected API
+responses are private/no-store, including media ranges. Missing/invalid keys
+return 401; valid keys without permission return 403. Delivery keys never grant
+authoring access, even alongside a restricted administrator cookie. OpenAPI
+shows alternative key/cookie requirements on shared reads and account sessions
+only for authoring. The retired operator key grants no access.
+
+Key configuration is frozen at startup. To rotate site A, generate a replacement,
+add its digest under a new name, restart the API, switch A's server-side secret,
+then remove the old digest and restart again to revoke it. For an immediate
+cutover, replace A's digest and restart while coordinating the site update.
+Configuration reload alone does not rotate or revoke keys. Other sites' digests
+remain unchanged. Names label credentials; they do not partition content by site.
+
+Visitors browse rendered pages without a CMS key. Public-site image URLs need
+a site-server media proxy that authenticates CMS requests; direct visitor
+requests to protected media URLs cannot carry a private site key. A browser-only
+site needs a server-side boundary for all CMS calls. Health, content-free API
+discovery, and rendered sample HTML remain public. No key-management UI or key
+database is introduced.
 
 ## Goals
 

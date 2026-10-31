@@ -1118,7 +1118,14 @@ uses the shared session; pending profiles still have no credentials or login
 access. The Admin proxy isolates browser cookies. See README and
 [ADR-0015](decisions/ADR-0015-admin-identity-and-delivery-authentication.md).
 
-Site delivery API keys remain the next implementation slice. Shared raw content
-reads currently require unrestricted admin sessions; rendered sample HTML and
-health remain public. No production deployment or live SQL Server rehearsal has
-been performed for this branch.
+Site delivery API keys are now implemented (2026-10-30). Local
+`generate-delivery-key` produces a random key/digest without database access.
+Named digests live in protected CMS configuration; raw keys remain on consuming
+site servers. Content ID/path/children and media-byte reads accept keys or
+unrestricted admin sessions. All administration remains account-only, including
+for mixed credentials; delivery DTOs omit administration links. Protected API
+responses are private/no-store, including media ranges. Rotation/revocation
+requires a restart, with keys snapshotted before the first request. OpenAPI
+describes the key/cookie alternatives. No delivery schema migration is required.
+Rendered sample HTML, content-free discovery, and health remain public. No
+production deployment or live SQL Server rehearsal has been performed.
