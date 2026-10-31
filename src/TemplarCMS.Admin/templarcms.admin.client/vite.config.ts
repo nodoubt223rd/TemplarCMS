@@ -31,22 +31,27 @@ export default defineConfig(({ command }) => {
     const certFilePath = path.join(baseFolder, `${certificateName}.pem`);
     const keyFilePath = path.join(baseFolder, `${certificateName}.key`);
 
-    if (!fs.existsSync(baseFolder)) {
-        fs.mkdirSync(baseFolder, { recursive: true });
+    if (0 !== child_process.spawnSync('dotnet', [
+        'dev-certs', 'https', '--check', '--trust'
+    ], { stdio: 'inherit' }).status) {
+        throw new Error(
+            'A trusted localhost development certificate is required. Run dotnet dev-certs https --trust as your normal Windows user, then restart the browser and npm run dev.'
+        );
     }
 
-    if (!fs.existsSync(certFilePath) || !fs.existsSync(keyFilePath)) {
-        if (0 !== child_process.spawnSync('dotnet', [
-            'dev-certs',
-            'https',
-            '--export-path',
-            certFilePath,
-            '--format',
-            'Pem',
-            '--no-password',
-        ], { stdio: 'inherit' }).status) {
-            throw new Error('Could not create certificate.');
-        }
+    fs.mkdirSync(baseFolder, { recursive: true });
+    // Refresh on every start: existing files may belong to an old or untrusted
+    // certificate even after the current .NET certificate has been trusted.
+    if (0 !== child_process.spawnSync('dotnet', [
+        'dev-certs',
+        'https',
+        '--export-path',
+        certFilePath,
+        '--format',
+        'Pem',
+        '--no-password',
+    ], { stdio: 'inherit' }).status) {
+        throw new Error('Could not export the current development certificate. Check access to the ignored .certs directory.');
     }
 
     const target = env.TEMPLAR_API_BASE_URL

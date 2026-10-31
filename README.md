@@ -132,6 +132,28 @@ If IIS returns `500.19` with error code `0x8007000d` while loading
 
 ### Local HTTPS For Custom Dev Hosts
 
+For localhost development, run this once in PowerShell as your normal Windows
+user and accept the Windows certificate trust prompt:
+
+```powershell
+dotnet dev-certs https --trust
+dotnet dev-certs https --check --trust
+```
+
+Restart the browser (including Codex if using its embedded browser) after
+changing certificate trust. Then restart `npm run dev`. Vite checks for a trusted
+.NET development certificate and refreshes its ignored `.certs` PEM/key export
+on every start, so a cached certificate cannot survive certificate renewal or
+replacement. Production builds do not use this local certificate setup. Never
+commit the exported private key.
+
+If Windows reports trust but a browser still reports `ERR_CERT_AUTHORITY_INVALID`,
+check the certificate actually served by that hostname and the browser's trust
+store. A browser running under another user or in a separate environment may
+need trust configured there as well. Do not disable certificate validation or
+click through security warnings as a permanent fix. See Microsoft's
+[development certificate guidance](https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-dev-certs).
+
 `dotnet dev-certs` is usually enough for `localhost`, but a custom IIS host
 name such as `https://templarcms.api` needs its own trusted certificate.
 
