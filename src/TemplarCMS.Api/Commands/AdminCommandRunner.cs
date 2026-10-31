@@ -14,11 +14,21 @@ public static class AdminCommandRunner
 
     public static async Task<int> RunAsync(IServiceProvider services, string[] args, TextWriter output, TextWriter error, CancellationToken ct)
     {
+        if (args is ["generate-delivery-key"])
+        {
+            try
+            {
+                var generated = DeliveryKeyGenerator.Generate();
+                output.WriteLine($"Delivery key: {generated.Key}\nSHA-256 digest: {generated.Sha256Digest}\nStore the key on the consuming server and the named digest in CMS configuration. This key will not be displayed again.");
+                return 0;
+            }
+            catch (IOException) { error.WriteLine("Delivery key output failed. Run generate-delivery-key again; no credential was configured."); return 1; }
+        }
         var setup = args.Length == 3 && args[0] == "setup-admin" && args[1] == "--email";
         var reset = args.Length == 1 && args[0] == "reset-admin-password";
         if (!setup && !reset)
         {
-            error.WriteLine("Use setup-admin --email <operator-email> or reset-admin-password. The HTTP server was not started.");
+            error.WriteLine("Use setup-admin --email <operator-email>, reset-admin-password, or generate-delivery-key. The HTTP server was not started.");
             return 2;
         }
         var committed = false;
