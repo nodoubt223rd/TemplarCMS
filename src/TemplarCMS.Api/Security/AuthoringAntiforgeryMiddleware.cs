@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Antiforgery;
+using System.Security.Claims;
 
 namespace TemplarCMS.Api.Security;
 
@@ -7,6 +8,10 @@ public sealed class AuthoringAntiforgeryMiddleware(RequestDelegate next)
 {
     public async Task InvokeAsync(HttpContext http, IAntiforgery antiforgery)
     {
+        // This also runs on anonymous token/login endpoints, which bypass the
+        // authorization result handler after both schemes have authenticated.
+        // Keep token generation and validation bound to the same account.
+        http.User = new ClaimsPrincipal(http.User.Identities.OrderByDescending(AccountEligibility.IsAccount));
         if (http.Request.Path.StartsWithSegments("/api/v1") &&
             http.Request.Method is "POST" or "PUT" or "PATCH" or "DELETE")
         {

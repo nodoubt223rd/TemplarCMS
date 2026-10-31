@@ -72,3 +72,45 @@ database was not touched.
 
 No deployment, remote push, merge, issue update, or delivery-key implementation
 was performed.
+
+## Delivery implementation verification — 2026-10-30
+
+The separate delivery slice is now implemented on `pr/delivery-api-keys`, based
+on `f679c39b0fa4e8ca87e7c0c283a43f563d5a0e4d`.
+
+- Solution build passed with zero warnings/errors. Solution suites passed 554
+  tests: API 239, ContentModeling 234, Application 60, Integration 21. Three SQL
+  Server rehearsal tests were skipped; Domain.Tests contains no runnable tests.
+- Vue strict type checking, all 163 tests across 33 files, and production build
+  passed. The existing bundle-size warning remains.
+- Delivery coverage includes 256-bit random generation, canonical key syntax,
+  digest/configuration validation, duplicate headers/digests, oversized/query
+  credentials, empty configuration, retired operator keys, HTTPS enforcement,
+  read/admin credential matrix, per-identity claims, filtered links, authenticated
+  media ranges, cache headers, and secret-free request logs.
+- Startup snapshot and OpenAPI tests were RED before wiring and GREEN afterward.
+  A fresh host using the same database verified old-A=401, replacement-A=200,
+  unrelated-B=200, and empty configuration=401. Configuration reload before the
+  first request does not change the startup snapshot.
+- A real HTTPS API process used a disposable SQLite installation, generated key,
+  local setup command, and two independent cookie jars. Certificate validation
+  remained enabled. Anonymous read=401; key read=200; key admin access=403;
+  restricted-cookie read=403; restricted-cookie plus key read=200; mandatory
+  password change=200; old cookie after change=401; unrestricted account plus
+  key authoring=201; recovery revoked the current cookie=401.
+- The HTTPS smoke uncovered an antiforgery mismatch when both credentials were
+  present on the anonymous token endpoint. The regression first returned 400,
+  then passed after account identity priority moved into middleware that also
+  runs on anonymous endpoints. Token generation and validation now bind to the
+  same account identity. No token or key bypass was introduced.
+- Vite and the actual isolated API were checked in the in-app browser over HTTPS.
+  Session checking reached the sign-in form without a certificate warning or
+  API error, and Tab moved focus from login name to password. The previous
+  certificate blocker is resolved. Existing HTTPS proxy isolation tests passed
+  in the full API suite.
+
+No production/configured SQL Server database was modified. No delivery schema
+migration is required. Complete keyboard-only browser password-change, deployed
+IIS/restart checks, and live SQL Server validation remain manual evidence gaps;
+the account/key transitions above were exercised programmatically over HTTPS.
+No remote push, merge, issue update, or deployment was performed in this slice.

@@ -11,6 +11,9 @@ using Microsoft.AspNetCore.TestHost;
 using TemplarCMS.Application.Media;
 using TemplarCMS.Domain.Media;
 using TemplarCMS.Domain.Content;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Logging;
+using System.Collections.Concurrent;
 using TemplarCMS.Api.Security;
 using TemplarCMS.Api.Tests.Support;
 using Xunit;
@@ -19,6 +22,19 @@ namespace TemplarCMS.Api.Tests.Security;
 
 public sealed class DeliveryAuthorizationTests
 {
+    [Fact]
+    public async Task MixedCredentialAntiforgeryRefreshBindsToTheAccountForPasswordChange()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = new DeliveryApiFactory();
+        using var client = await factory.CreateAdminClientAsync(false, ct);
+        SetKey(client, factory.SiteKey.Key);
+        await AdminIdentityApiFactory.RefreshCsrfAsync(client, ct);
+        using var change = await client.PostAsJsonAsync("/api/v1/auth/change-password",
+            new { currentPassword = factory.TemporaryPassword, newPassword = "a fresh mixed credential passphrase" }, ct);
+        Assert.Equal(HttpStatusCode.OK, change.StatusCode);
+    }
+
     [Fact]
     public async Task SharedReadsDistinguishMissingWrongValidAndRestrictedCredentials()
     {
@@ -189,5 +205,37 @@ public sealed class DeliveryAuthorizationTests
     {
         client.DefaultRequestHeaders.Remove(DeliveryApiKeyDefaults.HeaderName);
         client.DefaultRequestHeaders.Add(DeliveryApiKeyDefaults.HeaderName, key);
+    }
+
+    [Fact]
+    public async Task RequestAndAuthenticationLogsDoNotContainKeysOrDigests()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = new DeliveryApiFactory();
+        var messages = new ConcurrentQueue<string>();
+        await using var logged = factory.WithWebHostBuilder(builder => builder.ConfigureLogging(logging => logging.AddProvider(new CaptureProvider(messages))));
+        using var client = logged.CreateClient(new() { BaseAddress = new("https://localhost") });
+        SetKey(client, factory.SiteKey.Key);
+        using var success = await client.GetAsync("/api/v1/content/root/children", ct);
+        Assert.Equal(HttpStatusCode.OK, success.StatusCode);
+        client.DefaultRequestHeaders.Remove(DeliveryApiKeyDefaults.HeaderName);
+        using var denied = await client.GetAsync($"/api/v1/content/root/children?key={factory.SiteKey.Key}", ct);
+        Assert.Equal(HttpStatusCode.Unauthorized, denied.StatusCode);
+        Assert.NotEmpty(messages);
+        var log = string.Join('\n', messages);
+        Assert.DoesNotContain(factory.SiteKey.Key, log);
+        Assert.DoesNotContain(factory.SiteKey.Sha256Digest, log);
+    }
+
+    private sealed class CaptureProvider(ConcurrentQueue<string> messages) : ILoggerProvider
+    {
+        public ILogger CreateLogger(string categoryName) => new CaptureLogger(messages);
+        public void Dispose() { }
+    }
+    private sealed class CaptureLogger(ConcurrentQueue<string> messages) : ILogger
+    {
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public bool IsEnabled(LogLevel logLevel) => true;
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) => messages.Enqueue(formatter(state, exception) + exception);
     }
 }

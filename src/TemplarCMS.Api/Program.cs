@@ -36,6 +36,12 @@ builder.Services.AddSwaggerGen(
                 Description = "Administrator session required. Change the temporary password before authoring; cookie mutations require X-Templar-CSRF."
             });
         options.OperationFilter<AuthoringSecurityOperationFilter>();
+        options.AddSecurityDefinition("DeliveryApiKey", new OpenApiSecurityScheme
+        {
+            Type = SecuritySchemeType.ApiKey, In = ParameterLocation.Header,
+            Name = DeliveryApiKeyDefaults.HeaderName,
+            Description = "Read-only site delivery key. Keep it on the consuming server; send it over HTTPS. It grants no authoring or directory access."
+        });
         options.SchemaFilter<DirectoryRoleSchemaFilter>();
     });
 builder.Services.AddTemplarApiAuthoringSecurity(
@@ -52,6 +58,9 @@ if (AdminCommandRunner.IsCommand(args))
     await app.DisposeAsync();
     return;
 }
+
+// Capture delivery configuration before the first request, not lazily on first use.
+_ = app.Services.GetRequiredService<DeliveryKeyValidator>();
 
 app.UseExceptionHandler();
 app.UseTemplarRequestObservability();

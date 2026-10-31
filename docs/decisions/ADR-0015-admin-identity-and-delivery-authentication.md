@@ -1,6 +1,6 @@
 # ADR-0015: Initial administrator identity and separate site delivery credentials
 
-Status: Accepted for the admin identity implementation. Delivery API keys are approved as a separate follow-up slice.
+Status: Accepted. Admin identity and the separate site-delivery credential slice are implemented.
 
 ## Context
 
@@ -66,13 +66,31 @@ in this slice.
 
 ## Delivery boundary
 
-The transitional operator key no longer grants authoring access. Client-facing
-sites will use separate read-only delivery API keys under the approved
-[delivery plan](../superpowers/plans/2026-10-10-delivery-api-keys.md). That scheme is
-not implemented in the admin-first slice: shared content reads currently require
-an unrestricted administrator cookie. Implement the delivery scheme before
-enabling site consumers against this new authentication contract. Site keys must
-remain on the consuming server, never in public browser JavaScript or storage.
+The transitional operator key grants no access. A separate DeliveryApiKey scheme
+authenticates named SHA-256 digests from protected deployment configuration.
+`generate-delivery-key` produces a 256-bit random base64url credential and its
+digest locally, without database initialization. Only the terminal receives the
+raw key; the CMS stores digests and the consuming site stores its key on the
+server, never in public JavaScript or browser storage. Strict format checks,
+constant-time digest comparison, and startup configuration validation fail closed.
+
+ReadContent accepts a valid HTTPS delivery identity or an unrestricted validated
+account identity for content by ID/path, root/item children, and media bytes.
+Every other protected route requires the account's own permissions. Claims from
+different identities cannot combine to elevate access; a key plus a restricted
+cookie can read, but cannot author. Cookie operations and antiforgery bind to
+the account identity even when a delivery key is also present. One centralized
+authorization result handler emits a single 401/403 ProblemDetails body.
+
+Delivery DTOs omit administration links while preserving content fields and
+read links. Protected API responses are private/no-store, including range
+responses. Public-site media needs a site-server proxy that supplies its key.
+OpenAPI advertises key OR cookie security on reads and cookie-only eligibility
+on administration routes. Key names label credentials, with no site partitioning.
+
+Key configuration is captured eagerly at startup. Rotation and revocation
+require an API restart; configuration reload alone changes neither access nor
+other sites' keys. No delivery credential tables or management UI are added.
 
 ## Consequences
 
